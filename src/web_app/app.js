@@ -5290,16 +5290,37 @@ async function renderMode1OOPBlanks() {
   sessionMode.textContent = "OOP 빈칸 채우기";
 
   try {
-    // 파일 로드 (신규 이름 우선, 실패 시 구버전 이름으로 폴백)
-    const primaryUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
-    const legacyUrl = '/data/CSharp_코드문제.txt?t=' + Date.now();
+    // 파일 로드 (상대 경로로 - GitHub Pages와 로컬 서버 모두 호환)
+    const basePaths = ['data/', '../data/', './data/', '/data/'];
+    const fileNames = ['3_OOP_코드빈칸.txt', 'CSharp_코드문제.txt'];
+
     let text = "";
-    let resp = await fetch(primaryUrl);
-    if (!resp.ok) {
-      resp = await fetch(legacyUrl);
+    let loaded = false;
+
+    // 여러 경로와 파일명 조합 시도
+    for (const basePath of basePaths) {
+      if (loaded) break;
+      for (const fileName of fileNames) {
+        const url = basePath + fileName + '?t=' + Date.now();
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            text = await resp.text();
+            if (text.trim().length > 0) {
+              console.log('[Mode1] 파일 로드 성공:', url);
+              loaded = true;
+              break;
+            }
+          }
+        } catch (e) {
+          console.log('[Mode1] 시도:', url, '실패');
+        }
+      }
     }
-    if (!resp.ok) throw new Error('파일을 찾을 수 없습니다');
-    text = await resp.text();
+
+    if (!loaded || !text.trim()) {
+      throw new Error('파일을 찾을 수 없습니다');
+    }
 
     // 문제 파싱
     const allQuestions = parseCSharpQuestions(text);
