@@ -424,3 +424,127 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                     log_error(f"[DEBUG] 파일 없음! 스냅샷: {folder_snapshot}")
                     self.send_error(404, f"File not found: {file_name}")
             return
+
+            # 정적 파일 제공 (index.html, app.js, style.css 등)
+            super().do_GET()
+        except Exception as e:
+            log_error(f"GET 처리 오류: {self.path} - {e}")
+            self.send_error(500, str(e))
+    
+    
+    def do_POST(self):
+        try:
+            if self.path == '/api/generate':
+                try:
+                    content_length = int(self.headers.get('Content-Length', 0))
+                    if content_length == 0:
+                        self.send_json_response({"error": "empty request"}, 400)
+                        return
+                    post_data = self.rfile.read(content_length).decode('utf-8')
+                    data = json.loads(post_data)
+                    preset = data.get('preset', 'oop_vocab')
+                    mode = int(data.get('mode', 7))
+                    method = data.get('method', 'local')
+                    custom_content = data.get('content')
+                    custom_filename = data.get('fileName')
+                    result = generate_session(preset, mode, method, custom_content, custom_filename)
+                    self.send_json_response(result)
+                except Exception as e:
+                    log_error(f"API generate error: {e}")
+                    self.send_json_response({"error": str(e)}, 500)
+                return
+            if self.path == '/shutdown':
+                self.send_response(200)
+                self.end_headers()
+                threading.Thread(target=lambda: os._exit(0), daemon=True).start()
+                return
+            if self.path == '/api/clear-cache':
+                self.send_json_response({"success": True})
+                return
+            if self.path == '/api/save-key':
+                try:
+                    content_length = int(self.headers.get('Content-Length', 0))
+                    post_data = self.rfile.read(content_length).decode('utf-8')
+                    data = json.loads(post_data)
+                    api_key = data.get('api_key', '').strip()
+                    if api_key:
+                        API_KEY_FILE.write_text(api_key, encoding='utf-8')
+                        os.environ['GEMINI_API_KEY'] = api_key
+                        self.send_json_response({"success": True})
+                    else:
+                        self.send_json_response({"error": "empty"}, 400)
+                except Exception as e:
+                    self.send_json_response({"error": str(e)}, 500)
+                return
+            self.send_error(405)
+        except Exception as e:
+            log_error(f"POST error: {e}")
+            self.send_json_response({"error": str(e)}, 500)
+
+
+def find_available_port(start_port, max_retries=10):
+    for i in range(max_retries):
+        port = start_port + i
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("0.0.0.0", port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError("No available port")
+
+
+def start_server(port):
+    global current_port
+    current_port = port
+    os.chdir(str(WEB_APP_DIR))
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    class SafeAPIHandler(APIHandler):
+        def handle(self):
+            try:
+                super().handle()
+            except Exception as e:
+                log_error(f"Handler error: {e}")
+    try:
+        with socketserver.ThreadingTCPServer(("0.0.0.0", port), SafeAPIHandler) as httpd:
+            log_error(f"Server running on http://localhost:{port}")
+            httpd.serve_forever()
+    except Exception as e:
+        log_error(f"Server error: {e}")
+        time.sleep(2)
+        start_server(port)
+
+
+def main():
+    global current_port
+    log_error("=" * 50)
+    log_error("Study Helper server starting...")
+    log_error("=" * 50)
+    try:
+        port = find_available_port(BASE_PORT, MAX_PORT_RETRIES)
+        current_port = port
+    except RuntimeError as e:
+        log_error(f"Fatal: {e}")
+        sys.exit(1)
+    save_server_info(port)
+    result = generate_session("oop_vocab", 7)
+    if not result.get("success"):
+        try:
+            with open(SESSION_FILE, "w", encoding="utf-8") as f:
+                json.dump(create_fallback_session(), f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            log_error(f"Fallback save failed: {e}")
+    if os.getenv("SKIP_AUTO_BROWSER_OPEN") != "1":
+        def open_browser():
+            time.sleep(0.5)
+            try:
+                webbrowser.open(f"http://localhost:{port}")
+            except:
+                pass
+        threading.Thread(target=open_browser, daemon=True).start()
+    log_error("Server running...")
+    start_server(port)
+
+
+if __name__ == "__main__":
+    main()
