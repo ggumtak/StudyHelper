@@ -1,0 +1,24 @@
+{
+  "name": "Study Helper",
+  "short_name": "Study Helper",
+  "description": "코드/문제 연습장 - 객관식, 빈칸 채우기 문제 풀이",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c1018",
+  "theme_color": "#62f0b8",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

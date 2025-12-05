@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="theme-color" content="#62f0b8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Study Helper" />
+  <meta name="description" content="Study Helper - 코드/문제 연습실" />
+  <title>Study Helper | 코드/문제 연습실</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Pretendard:wght@400;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo">SH</div>
+      <div>
+        <div class="brand-name">Study Helper</div>
+        <div class="brand-sub">코드/문제 연습실</div>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="ngrok-url" class="ngrok-url" style="display:none" title="클릭하면 복사">외부 주소: 로딩중...</span>
+      <span id="mobile-url" class="mobile-url" title="클릭하면 복사">모바일 접속: 로딩중...</span>
+      <span id="study-timer" class="study-timer" title="공부 시간">⏱️ 00:00</span>
+      <button id="btn-file-mode" class="primary-btn" title="파일/모드 선택 (F)">📂 파일/모드</button>
+      <button id="btn-shuffle" class="shuffle-btn" title="문항 순서 섞기 (S)">🔀 순서 섞기</button>
+      <button id="btn-check" title="전체 채점 (Ctrl+Enter, K)">✅ 채점</button>
+      <button id="btn-shortcuts" class="help-btn" title="단축키 보기 (?)">❔</button>
+      <button id="btn-api-key" class="api-btn" title="Gemini API 키 설정">🔑 API</button>
+      <button id="btn-shutdown" class="danger-btn" title="서버 종료">⏻</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="info">
+      <div class="card">
+        <div class="label">제목</div>
+        <div id="session-title" class="value">세션을 불러주세요</div>
+      </div>
+      <div class="card">
+        <div class="label">언어</div>
+        <div id="session-lang" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="label">모드</div>
+        <div id="session-mode" class="value">-</div>
+      </div>
+      <div class="card">
+        <div class="label">빈칸</div>
+        <div id="session-count" class="value">0</div>
+      </div>
+      <div class="card">
+        <div class="label">점수</div>
+        <div id="session-score" class="value">0 / 0</div>
+        <div id="session-progress" class="progress-bar"><span style="width:0%"></span></div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="controls-left">
+        <span id="streak-counter" class="streak-badge" style="display:none">🔥 0</span>
+        <span class="badge">Enter: 단답 입력 + 자동 이동</span>
+        <span class="hint emphasis">Ctrl+Enter 전체 채점 / Shift+Enter 개별 확인(Mode3)</span>
+        <span id="review-badge" class="hint emphasis">복습 0</span>
+      </div>
+      <div class="controls-right">
+        <button id="btn-reveal" title="정답 보기 (V)">🧠 정답</button>
+        <button id="btn-regenerate" class="regen-btn" title="무작위 빈칸 재생성">♻️ 새로</button>
+        <button id="btn-toggle-completed" class="ghost-btn" title="완료 카드 숨기기">완료 숨기기</button>
+        <button id="btn-review" title="틀린/미답만 복습">📌 복습</button>
+        <button id="btn-reset" title="모든 입력 초기화 (R)">🧹 리셋</button>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <aside class="blank-nav" id="blank-nav">
+        <div class="nav-header">
+          <div class="nav-title">빈칸 목록</div>
+          <button id="btn-toggle-nav" class="toggle-nav-btn" title="목록 닫기">목록</button>
+        </div>
+        <div class="nav-sub">상태: ▫ 미답 / 🟢 정답 / 🟠 시도 / 🔴 틀림</div>
+        <div id="blank-list" class="blank-list"></div>
+      </aside>
+      <button id="btn-show-nav" class="show-nav-btn" title="빈칸 목록 보기">목록 보기</button>
+
+      <section class="code-shell">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <span class="badge">문제 코드</span>
+            <span class="hint">자동 번호 매기기 + 코드 복사</span>
+          </div>
+          <div class="toolbar-right">
+            <span class="hint">Ctrl+L: AI 패널</span>
+          </div>
+        </div>
+        <div id="code-area" class="code-area"></div>
+      </section>
+    </section>
+
+    <section class="answer-panel">
+      <details>
+        <summary>정답 코드/해설 보기</summary>
+        <pre id="answer-block" class="answer-block"></pre>
+      </details>
+    </section>
+  </main>
+
+  <!-- 선택 코드 설명 버튼 -->
+  <div id="floating-explain" class="floating-explain" style="display:none;">
+    <button id="btn-explain-selection">선택 코드 설명 듣기</button>
+  </div>
+
+  <!-- AI 사이드 패널 -->
+  <aside id="ai-panel" class="ai-panel">
+    <div class="ai-panel-header">
+      <h3>🤖 AI 패널</h3>
+      <button id="btn-close-panel" class="close-panel-btn">×</button>
+    </div>
+
+    <div class="ai-panel-content">
+      <div id="explanation-area" class="explanation-area">
+        <div class="explanation-placeholder">
+          빈칸의 <span class="help-icon">?</span> 버튼을 누르거나<br>
+          코드를 선택해서 해설을 받아보세요
+        </div>
+      </div>
+
+      <div class="chat-area">
+        <div class="chat-header">🙋 AI에게 질문하기</div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input-area">
+          <textarea id="chat-input" placeholder="질문을 입력하세요. (Enter=전송)"></textarea>
+          <button id="btn-send-chat">전송</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- API 키 모달 -->
+  <div id="api-key-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>🔑 Gemini API 키 설정</h3>
+      <p>AI 기능을 사용하려면 Google Gemini API 키가 필요합니다.</p>
+      <input type="password" id="api-key-input" placeholder="API 키를 입력하세요" />
+      <div class="modal-actions">
+        <button id="btn-save-api-key">저장</button>
+        <button id="btn-cancel-api-key">취소</button>
+      </div>
+      <p class="hint">키는 브라우저/로컬에만 저장되고, 끄면 로컬 모드로만 동작합니다.</p>
+    </div>
+  </div>
+
+  <!-- 빈칸 재생성 모달 -->
+  <div id="regenerate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>🔄 무작위 빈칸 생성</h3>
+      <p>생성할 빈칸의 개수를 입력하세요 (10~100)</p>
+      <input type="number" id="regen-count-input" value="50" min="10" max="100" />
+      <div class="modal-actions">
+        <button id="btn-confirm-regen">재생성</button>
+        <button id="btn-cancel-regen">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 파일/모드 선택 모달 -->
+  <div id="file-mode-modal" class="modal" style="display:none;">
+    <div class="modal-content file-mode-modal">
+      <h3>📂 기본 파일 &amp; 모드 선택</h3>
+
+      <div class="fm-section">
+        <label>기본 파일 선택</label>
+        <div class="fm-presets" id="preset-buttons">
+          <button class="fm-preset" data-preset="oop_vocab" data-default-mode="7">1) OOP 영단어</button>
+          <button class="fm-preset" data-preset="oop_concept" data-default-mode="5">2) OOP 개념어</button>
+          <button class="fm-preset" data-preset="oop_code" data-default-mode="1">3) OOP 코드 빈칸</button>
+          <button class="fm-preset" data-preset="data_structure" data-default-mode="3">4) 자료구조 코드</button>
+          <button class="fm-preset" data-preset="math_theory" data-default-mode="4">5) 전산수학 필기</button>
+          <button class="fm-preset" data-preset="math_practice" data-default-mode="6">6) 전산수학 실기</button>
+          <label class="fm-preset fm-upload">
+            <input type="file" id="custom-file-input" accept=".txt,.py,.c,.cpp,.java,.js,.cs" style="display:none" />
+            직접 파일 선택
+          </label>
+        </div>
+        <p class="fm-selected">선택된 파일: <span id="selected-file-name">1_OOP_영단어.txt</span></p>
+      </div>
+
+      <div class="fm-section">
+        <label>모드 선택</label>
+        <div class="fm-modes" id="mode-buttons">
+          <button class="fm-mode" data-mode="1">1. OOP 빈칸 채우기</button>
+          <button class="fm-mode" data-mode="2">2. 자료구조 빈칸</button>
+          <button class="fm-mode active" data-mode="3">3. 백지 연습</button>
+          <button class="fm-mode" data-mode="4">4. 모의고사</button>
+          <button class="fm-mode" data-mode="5">5. 정의 퀴즈</button>
+          <button class="fm-mode" data-mode="6">6. 코드 작성(전산수학)</button>
+          <button class="fm-mode" data-mode="7">7. 영단어 훈련</button>
+        </div>
+      </div>
+
+      <div class="fm-section">
+        <label>문제 생성 방식</label>
+        <div class="fm-methods" id="method-buttons">
+          <button class="fm-method active" data-method="local">⚡ 로컬 (빠름)</button>
+          <button class="fm-method" data-method="ai">✨ AI (Gemini)</button>
+        </div>
+        <p class="fm-method-hint">로컬: 즉시 생성, AI: Gemini API로 변형/추가 문제 생성</p>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-generate-session" class="primary">🚀 세션 생성</button>
+        <button id="btn-cancel-fm">취소</button>
+      </div>
+
+      <p id="fm-status" class="fm-status"></p>
+    </div>
+  </div>
+
+  <!-- 모드별 플로팅 버튼 -->
+  <button id="btn-ai-toggle" class="floating-ai-toggle">AI</button>
+  <button id="btn-scroll-top" class="floating-top">맨 위로</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>
+    const script = document.createElement('script');
+    script.src = 'app.js?v=' + new Date().getTime();
+    document.body.appendChild(script);
+
+    window.addEventListener('unload', function () {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage('CLEAR_CACHE');
+      }
+      try {
+        localStorage.removeItem('quiz_session_progress');
+      } catch (e) { }
+    });
+  </script>
+</body>
+</html>

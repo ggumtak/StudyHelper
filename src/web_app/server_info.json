@@ -1,0 +1,22 @@
+{
+  "local_ip": "192.168.219.103",
+  "port": 8006,
+  "mobile_url": "http://192.168.219.103:8006",
+  "presets": {
+    "oop_vocab": "1_OOP_영단어.txt",
+    "oop_concept": "2_OOP_개념어.txt",
+    "oop_code": "3_OOP_코드빈칸.txt",
+    "data_structure": "4_자료구조_코드.txt",
+    "math_theory": "5_전산수학_필기.txt",
+    "math_practice": "6_전산수학_실기.txt"
+  },
+  "modes": {
+    "1": "OOP 빈칸 채우기",
+    "2": "자료구조 빈칸",
+    "3": "백지 연습 (코드 에디터)",
+    "4": "모의고사",
+    "5": "정의 퀴즈",
+    "6": "코드 작성 (전산수학)",
+    "7": "영단어"
+  }
+}

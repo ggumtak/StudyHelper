@@ -1,0 +1,1095 @@
+IT CookBook - 원리가 보이는 파이썬 빅데이터 분석 기초와 실습
+연습문제 정리본 (Chapter별 문제 목록)
+
+
+[Chapter 01. 파이썬 소개 및 기초 사용법]
+
+1. 변수 이름으로 사용 가능한 것은?
+   ① $dollar
+   ② False
+   ③ abc
+   ④ 1cde
+
+2. 문자형 데이터가 아닌 것은?
+   ① '10000'
+   ② 10000
+   ③ "8500"
+   ④ '사칙 연산의 결과'
+
+3. 다음 코드를 실행한 결과는?
+
+   variable = 'Hello Python'
+   print(variable[0], variable[-1], variable[1])
+
+   ① H n e
+   ② H o e
+   ③ Hello
+   ④ Hello Python
+
+4. 다음 코드를 실행한 결과는?
+
+   company_name = "Samsung"
+   "I have %s stocks." % company_name
+
+   ① 'I have 5 stocks.'
+   ② 'I have Samsung stocks.'
+   ③ 'I have 5 Samsung stocks.'
+   ④ '41 T To estio'
+
+5. 실행 결과가 틀린 것은?
+   ① print('%5d' % 100) → 100
+   ② print('%5d' % 1) → 1
+   ③ print('%-5d' % 1) → 10000
+   ④ print('%05d' % 1) → 00001
+
+6. 다음은 f 문자열 포매팅을 사용한 것이다. 실행 결과를 보고 밑줄에 들어갈 내용으로 옳은 것은?
+
+   company_name = "Samsung"
+   price = "85,000"
+   new_price = "100,000"
+   stock_price = f"""__________
+   {price}
+   __________"""
+   print(stock_price)
+
+   [실행 결과]
+   Samsung
+   85,000
+   100,000
+   'Samsung\n85,000\n100,000'
+
+   ① {stock_price}, {price}
+   ② {price}, {new_price}
+   ③ {company_name}, {price}
+   ④ {company_name}, {new_price}
+
+7. 문자열의 첫 글자만 대문자로 변환하는 함수는?
+   ① count
+   ② find
+   ③ capitalize
+   ④ upper
+
+8. 다음 코드를 실행한 결과는?
+
+   single_string = "To be, or not to be, that is the question"
+   text = single_string
+   text.replace("question", "QUESTION")
+
+   ① 'TO BE, OR NOT TO BE, THAT IS THE QUESTION'
+   ② 'To be, or not to be, that is the QUESTION'
+   ③ 'to be, or not to be, that is the question'
+   ④ 'To Be, Or Not To Be, That Is The Question'
+
+9. 다음 중 공백을 기준으로 문자열을 단어 단위로 나누는 함수는?
+   ① split
+   ② strip
+   ③ find
+   ④ count
+
+10. 다음 코드를 실행한 결과는?
+
+    'https://www.hanbit.co.kr/'.strip('https://')
+
+    ① https://www.hanbit.co.kr
+    ② www.hanbit.co.kr
+    ③ www.hanbit
+    ④ http://www.hanbit
+
+
+[Chapter 02. 파이썬 복합 데이터형]
+
+1. 다음 코드를 실행한 결과는?
+
+   prices = [85000, 140000, 200000, 15000]
+   prices[0] = 5000
+   prices
+
+   ① [85000, 140000, 200000, 15000]
+   ② [5000, 5000, 5000, 5000]
+   ③ [5000, 140000, 200000, 15000]
+   ④ [85000, 140000, 200000, 5000]
+
+2. prices 리스트의 마지막 원소값인 200000을 가져오려면 인덱스는 어떻게 설정해야 하는가?
+
+   prices = [85000, 140000, 200000]
+
+   ① prices[0]
+   ② prices[-1]
+   ③ prices[1]
+   ④ prices[-2]
+
+3. prices 리스트에서 첫 번째부터 두 번째까지 값을 가져오려면 어떻게 설정해야 하는가?
+
+   prices = [85000, 140000, 200000]
+
+   ① prices[:2]
+   ② prices[:]
+   ③ prices[1:]
+   ④ prices[2:]
+
+4. 다음 코드를 실행한 결과는?
+
+   integer_list = [1, 2, 3]
+   sum(integer_list)
+
+   ① 0
+   ② 2
+   ③ 3
+   ④ 6
+
+5. 다음 코드의 실행 결과를 입력하시오.
+
+   prices = [5000, 140000, 200000, 15000]
+   x = [1, 2, 3, 4]
+   prices.extend(x)
+   prices
+
+6. prices_tuple 튜플에서 prices_tuple[0]의 실행 결과는?
+
+   prices_tuple = (85000, 140000, 200000)
+   prices_tuple[0]
+
+   ① 140000
+   ② 85000
+   ③ 0
+   ④ 200000
+
+7. 다음 코드의 실행 결과를 입력하시오.
+
+   prices_tuple = ('삼성전자', 'LG전자', 'SK', 85000, 140000, 200000)
+   prices_tuple[2:4]
+
+8. 다음 코드를 실행한 결과는?
+
+   item_list = [1, 2, 3, 1, 2, 3]
+   num_items = len(item_list)
+   num_items
+
+   ① 6
+   ② 3
+   ③ 2
+   ④ 0
+
+9. 다음 코드를 실행한 결과는?
+
+   item_list = [1, 2, 3, 1, 2, 3]
+   item_set = set(item_list)
+   item_set
+
+   ① {1, 2, 3}
+   ② (1, 2, 3)
+   ③ [1, 2, 3]
+   ④ {1, 2, 3, 1, 2, 3}
+
+10. 다음 코드의 실행 결과를 입력하시오.
+
+    my_stocks = {'ss': 10, 'lg': 5, 'sk': 5}
+    print("number of my ss stocks: %d" % my_stocks['ss'])
+
+11. 다음 코드의 실행 결과를 입력하시오.
+
+    my_stocks = {'ss': 10, 'lg': 5, 'sk': 5}
+    my_stocks['lg'] = 15
+    my_stocks
+
+12. 다음 코드를 실행한 결과는?
+
+    my_stocks = {'lg': 15, 'naver': 20, 'sk': 5, 'ss': 10}
+    ss_quantity = my_stocks.get("naver")
+    ss_quantity
+
+    ① 15
+    ② 10
+    ③ 20
+    ④ lg
+
+
+[Chapter 03. 제어문과 함수]
+
+1. 다음 코드를 실행한 결과는?
+
+   price = 800
+
+   if price == 900:
+       print('적정 가격')
+   elif price > 900:
+       print('비싼 가격')
+   else:
+       print('낮은 가격')
+
+   ① 비싼 가격
+   ② 낮은 가격
+   ③ 적정 가격
+   ④ 900
+
+2. 다음 코드의 실행 결과를 입력하시오.
+
+   current_price = 900
+   predict_price = 1000
+   fee = 0.01
+
+   profit_change = (predict_price - current_price) / current_price
+
+   if profit_change > fee:
+       print("profit_change는 %.2f, fee는 %f "%(profit_change, fee))
+       print("buy stock: 순수익률은 %.2f"%(profit_change - fee))
+   elif profit_change < -fee:
+       print("sell stock: 수익률은 %.2f, 수수료는 %f"%(profit_change, fee))
+   else:
+       print(profit_change, "hold stock")
+
+3. 다음 코드의 실행 결과를 입력하시오.
+   (※ 코드 구조는 2번과 동일, fee와 current_price 값만 다를 수 있음)
+
+4. 다음 코드의 실행 결과를 입력하시오.
+
+   googoo = [i*j for i in range(2, 10) for j in range(1, 10)]
+   print(googoo)
+
+5. 다음 코드의 실행 결과를 보고 밑줄에 들어갈 내용을 적으시오.
+
+   for i in range(10):
+       if i == 3:
+           _______
+       else:
+           print(i)
+
+   [실행 결과]
+   0
+   1
+   2
+
+6. 다음 코드의 실행 결과를 입력하시오.
+
+   menus = ['된장찌개', '삼겹살', '설렁탕', '냉면', '칼국수', '김치찌개']
+   requests = ['된장찌개', '김치찌개', '해물찜']
+
+   for item in requests:
+       if item in menus:
+           print(f"{item} 주문합니다.")
+       else:
+           print(f"\n죄송합니다. 저희는 {item}이 없습니다.")
+
+7. 다음 코드를 실행한 결과는?
+
+   my_stocks = {'ss': 10, 'lg': 5, 'sk': 5}
+   my_stocks1 = {k: v*100 for (k, v) in my_stocks.items()}
+   my_stocks1
+
+   ① {'ss': 10, 'lg': 5, 'sk': 5}
+   ② {'ss': 1, 'lg': 0.5, 'sk': 0.5}
+   ③ {'ss': 1000, 'lg': 500, 'sk': 500}
+   ④ {'ss': 110, 'lg': 150, 'sk': 150}
+
+8. 다음 코드의 실행 결과를 입력하시오.
+
+   my_stocks = {'ss': 10, 'lg': 5, 'sk': 5}
+   for i, key in enumerate(my_stocks):
+       print(i, key)
+
+9. 다음 코드의 실행 결과를 입력하시오.
+
+   i = 0
+   while i < 5:
+       print(i)
+       i += 1
+
+10. 다음 코드를 실행한 결과는?
+
+    scores = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    total = 0
+    for i in range(len(scores)):
+        total += scores[i]
+    print(total)
+
+    ① 5000
+    ② 50
+    ③ 500
+    ④ 550
+
+11. 다음 코드를 실행한 결과는?
+
+    def add(a, b):
+        return a + b
+    print(add(1, 2))
+
+    ① 1
+    ② 3
+    ③ 30
+    ④ 2
+
+12. 다음 코드를 실행한 결과는?
+
+    def f1(x):
+        return x * 2
+
+    def doubler(f1):
+        def g(x):
+            return 2 * f1(x)
+        return g
+
+    doubler(f1)(4)
+
+    ① 6
+    ② 12
+    ③ 16
+    ④ 20
+
+13. 다음 코드를 실행한 결과는?
+
+    def sum4(x, y):
+        return x + y
+    sum4(5, 10)
+
+    ① 15
+    ② 150
+    ③ 50
+    ④ 500
+
+14. 다음 코드를 실행한 결과는?
+
+    def sum5(x, y):
+        return x + y
+    sum5(5, 10)
+
+    (lambda x,y: x+y)(5, 10)
+
+    ① 15
+    ② 50
+    ③ 500
+    ④ 5
+
+15. 다음 코드를 실행한 결과는?
+
+    def add_mul(choice, *args):
+        if choice == "add":
+            result = 0
+            for i in args:
+                result = result + i
+        elif choice == "mul":
+            result = 1
+            for i in args:
+                result = result * i
+        return result
+
+    add_mul('add', 1, 2, 3, 4, 5)
+
+    ① 0
+    ② 200
+    ③ 120
+    ④ 15
+
+16. 다음 코드의 실행 결과를 입력하시오.
+
+    def stockprices(*args, **kwargs):
+        print("불특정 인자들:", args)
+        print("키워드 인자들:", kwargs)
+
+    stockprices(1, 2, 3, key1="word1", key2="word2")
+
+17. 다음 코드를 실행한 결과는?
+
+    def other_way(x, y, z):
+        return x + y + z
+    x_y_list = [1, 2]
+    z_dict = {"z": 3}
+    other_way(*x_y_list, **z_dict)
+
+    ① 3
+    ② 4
+    ③ 6
+    ④ 5
+
+18. 다음 코드를 실행한 결과는?
+
+    def other_way1(price1, price2, price3):
+        return price1 + price2 + price3
+    kwargs = {"price1": 85000, "price2": 145000, "price3": 120000}
+    other_way1(**kwargs)
+
+    ① 500000
+    ② 35000
+    ③ 350000
+    ④ 50000
+
+19. 다음 코드의 실행 결과를 입력하시오.
+
+    fruits = ["apple", "apple", "apple", "banana", "banana", "cherry", "melon"]
+
+    word_counts = {}
+    for word in fruits:
+        previous_count = word_counts.get(word, 0)
+        word_counts[word] = previous_count + 1
+    word_counts
+
+20. 다음 코드의 실행 결과를 입력하시오.
+
+    from collections import defaultdict
+    fruits = ["apple", "apple", "apple", "banana", "banana", "cherry", "melon"]
+    word_counts = defaultdict(int)
+    for i in fruits:
+        word_counts[i] += 1
+    word_counts
+
+21. 다음 코드의 실행 결과를 입력하시오.
+
+    from collections import Counter
+    c1 = Counter(["apple", "apple", "apple", "banana", "banana", "cherry", "melon"])
+    print(c1)
+
+22. 다음 코드의 실행 결과를 입력하시오.
+
+    letters = ['a', 'b', 'c']
+    numbers = [1, 2, 3]
+    [pair for pair in zip(letters, numbers)]
+
+23. 다음 코드를 실행한 결과는?
+
+    numbers1 = [1, 2, 3]
+    numbers2 = [4, 5, 6]
+    sumlist = [i+j for i, j in zip(numbers1, numbers2)]
+    sumlist
+
+    ① [5, 7, 9]
+    ② [5, 5, 5]
+    ③ [4, 5, 6]
+    ④ [9, 9, 9]
+
+24. 다음 코드의 실행 결과를 입력하시오.
+
+    pairlist = [('a', 1), ('b', 2), ('c', 3)]
+    letters, numbers = zip(*pairlist)
+    letters, numbers
+
+25. 다음은 enumerate 함수를 사용한 것이다. 코드의 실행 결과를 입력하시오.
+
+    my_stocks = {'ss': 10, 'lg': 5, 'sk': 5}
+    data = enumerate(my_stocks)
+    for i, j in data:
+        print(i, ":", j, my_stocks[j])
+
+26. 다음 코드의 실행 결과를 입력하시오.
+
+    prices = [2000, 140000, 200000, 15000, 1, 2, 3, 4]
+    x = [1, 2, 3, 4]
+    prices.extend(x)
+    prices
+
+27. 다음 코드의 실행 결과를 입력하시오.
+
+    x = sorted([-4, 1, -2, 3], key=abs, reverse=True)
+    x
+
+
+[Chapter 04. 클래스, 모듈, 패키지]
+
+1. 다음 코드를 실행한 결과는?
+
+   class Stocks:
+       "삼성전자, LG전자, SK하이닉스"
+       def __init__(self, name, price):
+           self.name = name
+           self.price = price
+
+   lg = Stocks("LG전자", 150000)
+   print(lg.name, lg.price)
+
+   ① LG전자 150000
+   ② 삼성전자 150000
+   ③ LG전자 100000
+   ④ SK하이닉스 150000
+
+2. 다음은 무엇에 대한 설명인가? 빈칸에 공통으로 들어갈 내용을 적으시오.
+   클래스에서 정의된 메서드는 클래스 이름만 지정하면 새로 만들지 않고 사용할 수 있다. 이를 **( )**이라고 한다.
+   메서드를 **( )**받는 클래스를 하위 클래스라 하고 메서드를 제공하는 클래스를 상위 클래스라고 한다.
+   하위 클래스는 상위 클래스의 모든 메서드를 그대로 이용할 수 있다.
+
+3. 다음은 무엇에 대한 설명인가? 빈칸에 들어갈 내용을 적으시오.
+   하위 클래스와 상위 클래스의 메서드 이름이 같을 때, 하위 클래스 객체를 이용해 같은 이름의 메서드를 실행하면
+   하위 클래스의 메서드가 우선 실행되는 것을 메서드 **( )**이라고 한다.
+
+4. 괄호 안에 들어갈 내용으로 적당한 것은?
+
+   (     ) math import pi as p, sqrt as s
+   p       # pi로 원주율 출력
+   s(4.0)  # s로 sqrt 함수 사용
+
+   ① pi
+   ② import
+   ③ as
+   ④ from
+
+5. 다음 코드를 실행한 결과는?
+
+   import re as regex
+   my_regex = regex.compile("[a-z]+")
+   char = "life is too short"
+   my_regex.findall(char)
+
+   ① ['life', 'too', 'short']
+   ② ['life', 'is', 'too', 'short']
+   ③ ['life', 'is', 'short']
+   ④ ['life is too short']
+
+6. 다음 코드를 실행한 결과는?
+
+   from math import pi as p, sqrt as s
+   p
+   s(4.0)
+
+   ① 1, 0
+   ② 2, 0
+   ③ 1, 5
+   ④ 3.141592
+
+7. 다음 코드를 실행한 결과는?
+
+   from math import pi
+   pi
+
+   ① 5
+   ② 7.3
+   ③ 3.141592653
+   ④ 8.5
+
+8. 다음 코드를 실행한 결과는?
+
+   from math import sqrt as root1
+   root1(4.0)
+
+   ① 4.0
+   ② 3.0
+   ③ 1.0
+   ④ 2.0
+
+9. 다음 코드를 실행한 결과는?
+
+   class Stocks:
+       "삼성전자, LG전자, SK하이닉스"
+       def __init__(self, name, price, count=0):
+           self.name = name
+           self.price = price
+           self.count = count
+       def click(self, num_times=1):
+           """클릭 횟수"""
+           self.count += num_times
+
+   lg = Stocks("LG전자", 150000)
+   print(lg.name, lg.price, lg.count)
+   lg.click()
+   print(lg.name, lg.price, lg.count)
+   lg.click()
+   print(lg.name, lg.price, lg.count)
+
+10. 다음 코드를 실행한 결과는?
+
+    class Stocks:
+        "삼성전자, LG전자, SK하이닉스"
+        def __init__(self, name, price, count=0):
+            self.name = name
+            self.price = price
+            self.count = count
+
+    lg = Stocks("LG전자", 150000)
+    print(lg.name, lg.price, lg.count)
+
+    ① 삼성전자 150000 1
+    ② SK하이닉스 20000 3
+    ③ LG전자 150000 0
+    ④ LG전자 150000 1
+
+
+[Chapter 05. 판다스 기본]
+
+1. 다음 코드의 실행 결과를 입력하시오.
+
+   import pandas as pd
+   pd.Series([1, 2, 3, 4, 5])
+
+2. 다음 score 리스트를 데이터프레임으로 만들려면 적당한 내용을 빈칸에 작성하시오.
+
+   import pandas as pd
+   score = [['정약용', 70, 80, 100],
+            ['이순신', 100, 80, 70],
+            ['이율곡', 90, 95, 90]]
+
+   score_df = pd._________(score)
+   print(type(score_df))
+   score_df
+
+3. 빈칸에 들어갈 내용은 무엇인가?
+   ________ 함수를 이용해 열 이름을 한꺼번에 만들거나 변경할 수 있다.
+   만약 특정한 열 이름만 변경할 때는 rename 함수를 사용하면 된다.
+
+4. 빈칸에 공통으로 들어갈 내용을 작성하시오.
+   ________ 속성을 이용해 데이터프레임의 구조를 확인할 수 있다.
+   데이터프레임.________ 형태로 입력해 score_dict_df가 3행 4열로 이루어져 있음을 확인할 수 있다.
+
+5. 빈칸에 들어갈 내용을 작성하시오.
+   ________ 속성을 이용하면 데이터프레임의 행 인덱스의 시작과 끝, 증가값을 확인할 수 있다.
+
+6. 다음 score_dict 딕셔너리를 데이터프레임으로 만들려면 어떻게 작성해야 하는가? 빈칸에 들어갈 내용으로 적당한 것은?
+
+   import pandas as pd
+   score_dict = {'성명': ['정약용', '이순신', '이율곡'],
+                 '국어': [70, 80, 100],
+                 '영어': [100, 80, 70],
+                 '수학': [90, 95, 90]}
+
+   score_dict_df = pd._________(score_dict)
+   score_dict_df
+
+   ① index
+   ② df
+   ③ columns
+   ④ DataFrame
+
+7. 빈칸에 들어갈 내용을 작성하시오.
+   ________ 속성을 통해 데이터프레임이 어떤 열로 구성되어 있는지 확인할 수 있다.
+
+8. 빈칸에 공통으로 들어갈 내용을 작성하시오.
+   columns 속성을 이용해 열을 확인하는 것뿐만 아니라 ________ 속성을 통해 값을 확인할 수도 있다.
+   변수 이름.________ 형태로 입력하고 확인해보면 다음과 같이 어떤 값으로 이루어져 있는지 표시된다.
+
+9. 다음 score_dict_df 데이터프레임의 성명 열을 인덱스로 변경하려고 한다. 빈칸에 들어갈 내용으로 옳은 것은?
+
+   score_dict_df
+   # ... (생략)
+
+   score_dict_df.________ = score_dict_df['성명']
+   score_dict_df
+
+   ① df
+   ② index
+   ③ columns
+   ④ values
+
+10. 다음 코드에서 '성명' 열을 삭제하려면 axis는 어떻게 지정해야 하는가?
+
+    score_dict_df.drop(['성명'], axis=______)
+
+    ① 0
+    ② 1
+    ③ 2
+    ④ 4
+
+
+[Chapter 06. 판다스를 활용한 데이터 전처리 1]
+
+1. 다음 빈칸에 들어갈 내용을 적으시오.
+   ______( ) 함수는 데이터프레임의 초기 다섯 개 행을 출력한다.
+   인자값을 입력하지 않으면 인덱스 0부터 4까지 5행의 데이터를 출력한다.
+   원하는 개수만큼 행을 출력할 수도 있는데 괄호에 출력하고 싶은 숫자를 입력하면 된다.
+
+2. 다음 빈칸에 들어갈 내용을 적으시오.
+   ______( ) 함수는 head 함수와 반대로 맨 끝에서 5행의 데이터를 출력한다.
+   개수를 지정하지 않으면 끝의 5행 데이터가 출력되지만 원하는 행 수를 입력하면 그만큼의 데이터를 출력할 수 있다.
+
+3. 데이터 개수를 확인할 수 있는 함수 중에서 데이터프레임이 총 몇 건의 데이터를 가지고 있는지 확인할 수 있는 것은?
+   ① head
+   ② tail
+   ③ len
+   ④ find
+
+4. 데이터프레임이 몇 행 몇 열의 형태를 갖는지 구조를 표시해주는 함수는?
+
+5. 행, 데이터형 등의 정보를 제공하는 함수로 null 값과 데이터형을 확인할 때 주로 사용하는 함수는?
+
+6. 모든 문자열을 숫자로 변환되고 변환할 수 없는 것은 NaN으로 표시하려는 코드다. 밑줄에 들어갈 내용을 적으시오.
+
+   titanic_df1 = titanic_df.apply(pd.________, errors='coerce')
+
+7. 다음 빈칸에 공통으로 들어갈 내용을 적으시오.
+   ________ 속성을 이용하면 데이터프레임이 가진 열 이름을 확인할 수 있다.
+   데이터프레임 이름.________ 형태로 입력한다.
+
+8. 열 이름을 재정의할 때 사용하는 속성은?
+   ① columns
+   ② head
+   ③ tail
+   ④ len
+
+9. 다음 빈칸에 들어갈 내용을 적으시오.
+   ________ 속성을 이용하면 데이터프레임이 가진 행의 시작 번호와 끝 번호, 증가값을 설정할 수 있다.
+   start, stop 옵션으로 시작값과 종료값을 설정하고 step으로 증가값을 설정할 수 있다.
+
+10. 다음은 무엇에 관한 설명인가?
+    인덱스를 기준으로 정렬할 때 사용한다. 별다른 옵션을 설정하지 않으면 오름차순으로 정렬되고
+    괄호 안에 ascending=False를 입력하면 내림차순으로 정렬된다.
+    ① values
+    ② sort_index
+    ③ sorted
+    ④ dtypes
+
+11. 다음은 어떤 함수에 관한 설명인가?
+    특정 열을 기준으로 정렬하는 함수로, by 옵션에 정렬할 열 이름을 설정한다.
+    ascending 옵션을 True로 설정하면 오름차순, False로 설정하면 내림차순으로 정렬된다.
+    ① sort_index
+    ② head
+    ③ sort_values
+    ④ values
+
+12. 다음 중 행을 슬라이싱하는 방법에 대한 보기가 옳지 않은 것은?
+    ① 데이터프레임 이름[열 이름].values[2:6]  # 2행부터 6행까지
+    ② 데이터프레임 이름[열 이름].values[:-1]   # 마지막 행은 제외
+    ③ 데이터프레임 이름[열 이름].values[::3]  # 3개 step으로 슬라이싱
+    ④ 데이터프레임 이름[열 이름].values[-1:]  # 마지막 행만 추출
+
+13. 다음 빈칸에 들어갈 내용을 적으시오.
+    ________ 속성을 이용하면 데이터프레임의 인덱스 이름을 이용해 원하는 만큼의 데이터를 가져올 수 있다.
+    하나의 행만 지정할 수도 있고 여러 행을 지정할 수도 있다.
+
+14. 다음 빈칸과 밑줄에 공통으로 들어갈 내용을 적으시오.
+    ________는 조건으로 검색하려는 값이 해당 리스트에 있을 때만 사용한다.
+    조건으로 사용할 데이터를 리스트 형태로 만들고
+    데이터프레임 이름[열 이름].________(리스트 이름) 형태로 설정하면 된다.
+
+15. 문자열의 공백을 제거할 때 사용하는 함수는?
+    ① split
+    ② strip
+    ③ replace
+    ④ len
+
+16. 특정 열에서 중복을 없애고 고유값만 표시할 때 사용하는 함수는?
+    ① replace
+    ② unique
+    ③ split
+    ④ strip
+
+17. 다음 빈칸과 밑줄에 공통으로 들어갈 내용을 적으시오.
+
+    ________ 함수는 데이터프레임에 포함된 열 중 두 개의 열을 각각 행 인덱스와 열 인덱스로 설정하고
+    그 행과 열이 만나는 지점의 열 데이터를 표시한다.
+    피벗 테이블은 왼쪽에 나타나는 인덱스를 행 인덱스, 상단에 나타나는 인덱스를 열 인덱스라고 한다.
+    엑셀의 피벗 테이블과 동일한 형태로 이해하면 쉽다.
+
+    pd.________(데이터프레임 이름, index='행 인덱스', columns='열 인덱스', values='계산에 사용할 열')
+
+18. 다음 빈칸에 들어갈 내용을 적으시오.
+    ________ 함수를 사용하면 데이터프레임의 특정 열을 기준으로 묶어 표시할 수 있다.
+    count, sum, mean 함수를 이용하면 그룹화된 데이터의 개수, 합계, 평균 등을 함께 볼 수 있다.
+    같은 데이터끼리 묶어서 분석하고 계산할 때 유용하다.
+
+19. 다음 빈칸에 들어갈 내용을 차례로 적으시오.
+    판다스의 ①______, ②______ 함수를 이용하면 데이터프레임을 재구조화할 수 있다.
+    ①______ 함수는 특정 열을 그룹화하여 행 기준으로 데이터를 표시하고 계산된 값을 나타낼 수 있고,
+    반대로 ②______ 함수는 데이터를 열 기준으로 표시하고 계산하여 나타낼 수 있다.
+
+
+[Chapter 07. 판다스를 활용한 데이터 전처리 2]
+
+1. 다음 빈칸에 들어갈 내용을 적으시오.
+   ______( ) 함수를 사용하면 NaN이 아닌 값에 대하여 True를 반환한다.
+
+2. 다음 빈칸과 밑줄에 들어갈 내용을 적으시오.
+   데이터프레임의 특정 열에 포함된 결측치를 다른 값으로 바꾸려면 다음과 같은 형식으로 입력하면 된다.
+   특정 열에 포함된 결측치를 0으로 변경하는 것으로, 밑줄에 들어가는 것은 ________ 함수다.
+
+   데이터프레임명['열 이름'].________(0)
+
+3. 다음 빈칸과 밑줄에 들어갈 내용을 적으시오.
+   특정 열을 숫자형으로 바꿀 때는 ________ 함수를 이용한다.
+   예를 들어, titanic_df1['sex'] 값을 숫자형으로 변경하라는 의미다.
+
+   titanic_df1['sex'].________(titanic_df1['sex'])
+
+4. 다음 빈칸에 들어갈 내용을 적으시오.
+   ________ 함수는 데이터를 정수형 또는 실수형으로 변경할 때 사용한다.
+
+5. 다음 빈칸에 들어갈 내용을 적으시오.
+   특정 열에 결측치가 있을 때 결측치를 평균값으로 치환하려면 ________ 함수를 사용한다.
+
+6. 다음 빈칸에 공통으로 들어갈 내용을 적으시오.
+   ________ 복사는 변수명=할당할 데이터프레임명 형태로 데이터프레임을 복사한다.
+   ________ 복사는 원본과 같은 주소를 참조하는 객체를 생성하므로
+   원본 데이터를 보존하려면 ________ 복사보다는 깊은 복사를 하는 것이 좋다.
+
+
+[Chapter 08. 넘파이 소개 및 기초 사용법]
+
+1. 다음 코드의 실행 결과로 옳은 것은?
+
+   import numpy as np
+   a = np.arange(3)
+   print(a)
+
+   ① [1 2 3]
+   ② [3 2 1]
+   ③ [0 1 2]
+   ④ [2 1 0]
+
+2. 다음 코드의 실행 결과를 입력하시오.
+
+   for i in range(1, 6, 2):
+       print(i)
+
+3. 다음 코드의 실행 결과를 입력하시오.
+
+   arr = np.arange(start=1, stop=11, step=1)
+   arr
+
+4. 다음 코드의 실행 결과로 옳은 것은?
+
+   m = np.array([[0, 1, 2],
+                 [3, 4, 5]])
+   print(m.shape)
+
+   ① (3, 3)
+   ② (2, 3)
+   ③ (3, 2)
+   ④ (2, 2)
+
+5. 다음 코드의 실행 결과로 옳은 것은?
+
+   m = np.array([np.arange(3), np.arange(3, 6)])
+   print(m)
+
+   ① [[0 1 2]
+      [3 4 5]]
+   ② [[3 4 5]
+      [3 4 5]]
+   ③ [[0 1 2]
+      [0 1 2]]
+   ④ [[3 4 5]
+      [0 1 2]]
+
+6. 다음 코드의 실행 결과로 옳은 것은?
+
+   np.arange(2, 6, 3)
+
+   ① array([0, 3])
+   ② array([1, 4])
+   ③ array([2, 5])
+   ④ array([2, 6])
+
+7. 다음 코드의 실행 결과를 입력하시오.
+
+   m = np.array([[[0, 1, 2],
+                  [3, 4, 5]],
+                 [[0, 1, 2],
+                  [3, 4, 5]]])
+   print(m)
+
+8. 다음 코드의 실행 결과로 옳은 것은?
+
+   arr1 = np.array([1, 2, 3, 3.14])
+   print(arr1.dtype)
+
+   ① int8
+   ② float64
+   ③ unit8
+   ④ int32
+
+9. 다음 코드의 실행 결과로 옳은 것은?
+
+   m1 = np.arange(6)
+   print(m1)
+
+   ① [0 1 2 3 4 5]
+   ② [1 2 3 4 5 6]
+   ③ [0 1 2 3 4 5 6]
+   ④ [0 0 0 0 0 0]
+
+10. 다음 코드의 실행 결과로 옳은 것은?
+
+    m1 = np.arange(6)
+    m2 = m1.reshape(6, 1)
+    print(m2.shape)
+
+    ① (1, 1)
+    ② (1, )
+    ③ (6, 1)
+    ④ (1, 6)
+
+11. 다음 코드의 실행 결과를 입력하시오.
+
+    a = np.arange(12).reshape(3, 4)
+    f = a.flatten()
+    print(f, f.shape)
+
+12. 다음 코드의 실행 결과를 입력하시오.
+
+    a = np.arange(12).reshape(3, 4)
+    print(a[::-1])
+
+13. 괄호 안에 들어갈 알맞은 내용을 입력하시오.
+    ( ) 명령은 배열을 임시로 1차원으로 변경해 데이터를 채운 뒤 다시 원래의 구조를 되돌려준다.
+    주로 배열의 요소 전체를 한꺼번에 초기화할 때 사용한다.
+
+14. 다음 코드의 실행 결과로 옳은 것은?
+
+    d = np.arange(6)
+    print(d[-2])
+
+    ① 0
+    ② 1
+    ③ 4
+    ④ 5
+
+15. 다음 코드의 실행 결과로 옳은 것은?
+
+    d = np.arange(12).reshape(3, 4)
+    print(d[2, 1])
+
+    ① 0
+    ② 1
+    ③ 4
+    ④ 9
+
+16. 다음 코드의 실행 결과를 입력하시오.
+
+    d = np.arange(12).reshape(3, 4)
+    d[0] = 20
+    print(d)
+
+17. 다음 코드의 실행 결과를 입력하시오.
+
+    a = np.array([1, 2, 3, 4, 5, 6])
+    print(a > 2)
+
+18. 다음 코드의 실행 결과로 옳은 것은?
+
+    a = np.array([1, 2, 3, 4, 5, 6])
+    print(a[a > 2])
+
+    ① [1 2]
+    ② [0 1 2]
+    ③ [3 3 3 3]
+    ④ [3 4 5 6]
+
+19. 다음 코드의 실행 결과를 입력하시오.
+
+    a = np.array([1, 2, 3, 4, 5, 6])
+    result = a > 2
+    result
+
+20. 다음 코드의 실행 결과를 입력하시오.
+
+    a = np.array([1, 2, 3, 4, 5, 6])
+    a[a != 3]
+
+21. 다음 코드의 실행 결과로 옳은 것은?
+
+    a = np.arange(1, 7)
+    a[[1, 3, 5, 2]]
+
+    ① array([1, 3, 5, 2])
+    ② array([2, 4, 6, 3])
+    ③ array([1, 4, 2, 3])
+    ④ array([1, 2, 3, 4])
+
+22. 다음 코드의 실행 결과를 입력하시오.
+
+    idx = [1, 3, 5]
+    a[idx]
+
+23. 괄호 안에 들어갈 알맞은 내용을 입력하시오.
+    ( ) 함수는 정렬된 값이 아닌 인덱스를 반환한다.
+    배열에 있는 값을 오름차순 정렬하고 정렬된 배열의 요소가 아니라 배열의 인덱스를 순서대로 반환한다.
+
+
+[Chapter 09. 선형대수와 신경망 기초]
+
+1. 다음 코드의 결과를 적으시오.
+
+   import numpy as np
+   a = np.array([1, 2])
+   b = np.array([3, 4])
+   c = a + b
+   c
+
+2. 다음 코드의 결과를 적으시오.
+
+   a = np.array([1, 2])
+   b = np.array([3, 4])
+   c = a - b
+   c
+
+3. 다음 괄호 안에 들어갈 내용을 순서대로 적으시오.
+   파이썬에서 기본적으로 많이 사용되는 자료형으로 **( )**의 합을 구하면 ( ) 값이 연결되어 표시된다.
+   **( )**의 합은 넘파이의 array 함수를 이용해서 ( ) 값을 할당하고 합을 구하면
+   각각의 원소값들이 더해져서 표시된다.
+
+4. 다음 코드의 결과로 옳은 것은?
+
+   Hong1 = [80, 90]
+   Hong2 = [70, 80]
+   Hong_S = [i + j for i, j in zip(Hong1, Hong2)]
+   print(Hong_S)
+
+   ① [10, 20]
+   ② [100, 170]
+   ③ [150, 170]
+   ④ [170, 150]
+
+5. 다음 코드의 결과로 옳은 것은?
+
+   A1 = np.array([1, 2, 3, 4, 5])
+   B = A1 * 2
+   print(B)
+
+   ① [10 8 6 4 2]
+   ② [2 2 2 2 2]
+   ③ [2 8 6 10 8]
+   ④ [2 4 6 8 10]
+
+6. 다음 코드의 결과를 적으시오.
+
+   a = 0.5
+   Hong_S = [150, 170]
+   avg_Hong1 = list(map(lambda x: x*a, Hong_S))
+   print(avg_Hong1)
+
+7. 다음 코드의 결과로 옳은 것은?
+
+   import numpy as np
+   npx1 = np.array([1, 2, 3])
+   npy1 = np.array([4, 5, 6])
+   sum(npx1 * npy1)
+
+   ① 32
+   ② 120
+   ③ 6
+   ④ 15
+
+8. 다음 코드의 결과로 옳은 것은?
+
+   a = np.array([1, 2, 3, 4, 5])
+   b = np.array([2, 4, 6, 8, 10])
+   print(np.sum(a + b))
+
+   ① 130
+   ② 110
+   ③ 100
+   ④ 120
+
+9. 다음 코드의 결과로 옳은 것은?
+
+   def vector_subtract(v, w):
+       return [v_i - w_i for v_i, w_i in zip(v, w)]
+
+   def squared_distance(v, w):
+       return sum_of_squares(vector_subtract(v, w))
+
+   v = [1, 2]
+   w = [3, 4]
+   squared_distance(v, w)
+
+   ① 12
+   ② 8
+   ③ 15
+   ④ 20
+
+10. 다음 코드의 결과로 옳은 것은?
+
+    y = [1, 1, 0, 1, 0, 1, 0, 1, 0, 0]
+    t = [0, 0, 1, 0, 0, 1, 0, 1, 0, 0]
+    import numpy as np
+    def mean_squared_error(y, t):
+        return 0.5 * np.sum((y - t) ** 2)
+    mean_squared_error(np.array(y), np.array(t))
+
+    ① 3.0
+    ② 4.0
+    ③ 2.0
+    ④ 5.0

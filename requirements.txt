@@ -1,0 +1,8 @@
+# Study Helper - Python Dependencies
+# 이 파일은 자동으로 설치됩니다
+
+# Google Gemini AI
+google-generativeai>=0.3.0
+
+# 기타 유틸리티 (대부분 기본 내장)
+# pathlib, json, http.server 등은 Python 기본 내장 모듈
