@@ -39,8 +39,8 @@ SESSION_FILE = WEB_APP_DIR / "session.json"
 LOG_FILE = LOG_DIR / "server_error.log"
 API_KEY_FILE = CONFIG_DIR / "gemini_api_key.txt"
 
-BASE_PORT = 8000
-MAX_PORT_RETRIES = 50  # Try ports 8000-8049
+BASE_PORT = 3000
+MAX_PORT_RETRIES = 50  # Try ports 3000-3049
 current_port = BASE_PORT
 
 # Ensure folders exist
