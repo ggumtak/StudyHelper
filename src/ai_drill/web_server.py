@@ -1,5 +1,7 @@
 """
-Study Helper - Backend Server (clean UTF-8)
+Study Helper - Backend Server
+
+English-only strings to avoid encoding issues.
 """
 
 from __future__ import annotations
@@ -47,48 +49,42 @@ current_port = BASE_PORT
 for folder in (DATA_DIR, CONFIG_DIR, LOG_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
-# Preset files (English names with legacy fallbacks)
+# Preset files
 PRESET_FILES = {
     "oop_vocab": {
         "name": "1_OOP_Vocabulary.txt",
         "path": DATA_DIR / "1_OOP_Vocabulary.txt",
-        "legacy": [DATA_DIR / "1_OOP_영단어.txt"],
     },
     "oop_concept": {
         "name": "2_OOP_Concepts.txt",
         "path": DATA_DIR / "2_OOP_Concepts.txt",
-        "legacy": [DATA_DIR / "2_OOP_개념어.txt"],
     },
     "oop_code": {
         "name": "3_OOP_Code_Blanks.txt",
         "path": DATA_DIR / "3_OOP_Code_Blanks.txt",
-        "legacy": [DATA_DIR / "3_OOP_코드빈칸.txt", DATA_DIR / "CSharp_코드문제.txt"],
     },
     "data_structure": {
         "name": "4_Data_Structure_Code.txt",
         "path": DATA_DIR / "4_Data_Structure_Code.txt",
-        "legacy": [DATA_DIR / "4_자료구조_코드.txt"],
     },
     "math_theory": {
         "name": "5_Computational_Math_Theory.txt",
         "path": DATA_DIR / "5_Computational_Math_Theory.txt",
-        "legacy": [DATA_DIR / "5_전산수학_필기.txt"],
     },
     "math_practice": {
         "name": "6_Computational_Math_Practice.txt",
         "path": DATA_DIR / "6_Computational_Math_Practice.txt",
-        "legacy": [DATA_DIR / "6_전산수학_실기.txt"],
     },
 }
 
 MODE_LABELS = {
-    1: "OOP 빈칸 채우기",
-    2: "OOP 개념어",
-    3: "OOP 코드 빈칸",
-    4: "자료구조 코드",
-    5: "전산수학 필기",
-    6: "전산수학 실기",
-    7: "커스텀/추가",
+    1: "OOP fill-in-the-blank",
+    2: "OOP concept Q&A",
+    3: "OOP code blanks",
+    4: "Data structure code",
+    5: "Computational math theory",
+    6: "Computational math practice",
+    7: "Vocabulary",
 }
 
 
@@ -145,17 +141,17 @@ def save_server_info(port: int | None = None):
     try:
         info_path = WEB_APP_DIR / "server_info.json"
         with open(info_path, "w", encoding="utf-8") as f:
-            json.dump(info, f, ensure_ascii=False, indent=2)
+            json.dump(info, f, ensure_ascii=True, indent=2)
     except Exception as e:
         log_error(f"server_info save failed: {e}")
 
 
 def create_fallback_session() -> dict:
     return {
-        "title": "기본 세션",
+        "title": "Default session",
         "language": "plaintext",
         "mode": 3,
-        "question": "기본 세션입니다. 파일/모드를 선택해 세션을 생성하세요.",
+        "question": "Default session placeholder. Choose a file/mode to start.",
         "answer_key": {"_type": "whiteboard", "_challenges": []},
         "original_code": "",
     }
@@ -165,17 +161,20 @@ def read_preset_content(preset_key: str) -> tuple[str, str]:
     if preset_key not in PRESET_FILES:
         raise ValueError(f"Unknown preset: {preset_key}")
     preset_info = PRESET_FILES[preset_key]
-    candidates = [preset_info["path"]] + preset_info.get("legacy", [])
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate.read_text(encoding="utf-8"), str(candidate)
-    tried = ", ".join(str(p.name) for p in candidates)
-    raise FileNotFoundError(f"Preset file not found. Tried: {tried}")
+    candidate = preset_info["path"]
+    if candidate.exists():
+        return candidate.read_text(encoding="utf-8"), str(candidate)
+    raise FileNotFoundError(f"Preset file not found: {candidate.name}")
 
 
-def generate_session(preset_key: str, mode: int, method: str = "local",
-                     custom_content: str | None = None, custom_filename: str | None = None,
-                     difficulty: int = 2) -> dict:
+def generate_session(
+    preset_key: str,
+    mode: int,
+    method: str = "local",
+    custom_content: str | None = None,
+    custom_filename: str | None = None,
+    difficulty: int = 2,
+) -> dict:
     """
     Build a session using AI or local generator.
     Modes 1 and 6: AI is preferred; if AI fails, fallback to local.
@@ -187,7 +186,7 @@ def generate_session(preset_key: str, mode: int, method: str = "local",
         # Load content
         if preset_key == "custom":
             if not custom_content:
-                return {"error": "파일 내용이 비어 있습니다."}
+                return {"error": "No content provided."}
             content = custom_content
             file_path = custom_filename or "custom_input.txt"
         else:
@@ -199,7 +198,7 @@ def generate_session(preset_key: str, mode: int, method: str = "local",
 
         if not content.strip():
             log_error("Empty content")
-            return {"error": "파일이 비어 있습니다."}
+            return {"error": "Content is empty."}
 
         # Decide AI or local
         force_ai = mode in (1, 6)
@@ -237,13 +236,12 @@ def generate_session(preset_key: str, mode: int, method: str = "local",
             payload["llm_error"] = llm_error
             payload["generator"] = "local_fallback"
 
-        # Save session
         try:
             with open(SESSION_FILE, "w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False, indent=2)
+                json.dump(payload, f, ensure_ascii=True, indent=2)
         except Exception as e:
             log_error(f"session save failed: {e}")
-            return {"error": f"세션 저장 실패: {str(e)}"}
+            return {"error": f"Session save failed: {str(e)}"}
 
         answer_key = payload.get("answer_key", {})
         challenges_count = len(answer_key.get("_challenges", []))
@@ -264,7 +262,7 @@ def generate_session(preset_key: str, mode: int, method: str = "local",
     except Exception as e:
         error_msg = f"session build exception: {str(e)}\n{traceback.format_exc()}"
         log_error(error_msg)
-        return {"error": f"예기치 못한 오류: {str(e)}"}
+        return {"error": f"Unexpected error: {str(e)}"}
 
 
 class APIHandler(http.server.SimpleHTTPRequestHandler):
@@ -272,9 +270,9 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(WEB_APP_DIR), **kwargs)
 
     def end_headers(self):
-        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-        self.send_header('Pragma', 'no-cache')
-        self.send_header('Expires', '0')
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         super().end_headers()
 
     def log_message(self, format, *args):
@@ -284,16 +282,16 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
     def send_json_response(self, data: dict, status: int = 200):
         try:
             self.send_response(status)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
-            body = json.dumps(data, ensure_ascii=False)
-            self.wfile.write(body.encode('utf-8'))
+            body = json.dumps(data, ensure_ascii=True)
+            self.wfile.write(body.encode("utf-8"))
         except Exception as e:
             log_error(f"JSON response error: {e}")
 
     def do_GET(self):
         try:
-            if self.path == '/api/info':
+            if self.path == "/api/info":
                 save_server_info()
                 info_path = WEB_APP_DIR / "server_info.json"
                 with open(info_path, "r", encoding="utf-8") as f:
@@ -301,20 +299,20 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json_response(data)
                 return
 
-            if self.path.startswith('/data/'):
-                clean_path = self.path.split('?')[0]
-                file_name = unquote(clean_path.replace('/data/', ''))
+            if self.path.startswith("/data/"):
+                clean_path = self.path.split("?")[0]
+                file_name = unquote(clean_path.replace("/data/", ""))
                 candidate_paths = [
                     DATA_DIR / file_name,
-                    WEB_APP_DIR / 'data' / file_name,
+                    WEB_APP_DIR / "data" / file_name,
                 ]
                 file_path = next((p for p in candidate_paths if p.exists() and p.is_file()), None)
                 if file_path:
                     self.send_response(200)
-                    self.send_header('Content-Type', 'text/plain; charset=utf-8')
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
                     self.end_headers()
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        self.wfile.write(f.read().encode('utf-8'))
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        self.wfile.write(f.read().encode("utf-8"))
                 else:
                     self.send_error(404, f"File not found: {file_name}")
                 return
@@ -326,52 +324,51 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            if self.path == '/api/generate':
-                content_length = int(self.headers.get('Content-Length', 0))
+            if self.path == "/api/generate":
+                content_length = int(self.headers.get("Content-Length", 0))
                 if content_length == 0:
                     self.send_json_response({"error": "empty request"}, 400)
                     return
-                post_data = self.rfile.read(content_length).decode('utf-8')
+                post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                preset = data.get('preset', 'oop_vocab')
-                mode = int(data.get('mode', 7))
-                method = data.get('method', 'local')
-                custom_content = data.get('content')
-                custom_filename = data.get('fileName')
-                
-                # Handle difficulty - can be number or string like 'easy', 'normal', 'hard', 'extreme'
-                raw_difficulty = data.get('difficulty', 2)
+                preset = data.get("preset", "oop_vocab")
+                mode = int(data.get("mode", 7))
+                method = data.get("method", "local")
+                custom_content = data.get("content")
+                custom_filename = data.get("fileName")
+
+                raw_difficulty = data.get("difficulty", 2)
                 if isinstance(raw_difficulty, str):
-                    difficulty_map = {'easy': 1, 'normal': 2, 'hard': 3, 'extreme': 4}
+                    difficulty_map = {"easy": 1, "normal": 2, "hard": 3, "extreme": 4}
                     difficulty = difficulty_map.get(raw_difficulty.lower(), 2)
                 else:
                     try:
                         difficulty = int(raw_difficulty)
                     except (ValueError, TypeError):
                         difficulty = 2
-                
+
                 result = generate_session(preset, mode, method, custom_content, custom_filename, difficulty)
                 self.send_json_response(result)
                 return
 
-            if self.path == '/shutdown':
+            if self.path == "/shutdown":
                 self.send_response(200)
                 self.end_headers()
                 threading.Thread(target=lambda: os._exit(0), daemon=True).start()
                 return
 
-            if self.path == '/api/clear-cache':
+            if self.path == "/api/clear-cache":
                 self.send_json_response({"success": True})
                 return
 
-            if self.path == '/api/save-key':
-                content_length = int(self.headers.get('Content-Length', 0))
-                post_data = self.rfile.read(content_length).decode('utf-8')
+            if self.path == "/api/save-key":
+                content_length = int(self.headers.get("Content-Length", 0))
+                post_data = self.rfile.read(content_length).decode("utf-8")
                 data = json.loads(post_data)
-                api_key = data.get('api_key', '').strip()
+                api_key = data.get("api_key", "").strip()
                 if api_key:
-                    API_KEY_FILE.write_text(api_key, encoding='utf-8')
-                    os.environ['GEMINI_API_KEY'] = api_key
+                    API_KEY_FILE.write_text(api_key, encoding="utf-8")
+                    os.environ["GEMINI_API_KEY"] = api_key
                     self.send_json_response({"success": True})
                 else:
                     self.send_json_response({"error": "empty"}, 400)
@@ -435,7 +432,7 @@ def main():
     if not result.get("success"):
         try:
             with open(SESSION_FILE, "w", encoding="utf-8") as f:
-                json.dump(create_fallback_session(), f, ensure_ascii=False, indent=2)
+                json.dump(create_fallback_session(), f, ensure_ascii=True, indent=2)
         except Exception as e:
             log_error(f"Fallback save failed: {e}")
 

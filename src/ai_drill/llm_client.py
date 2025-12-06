@@ -1,7 +1,8 @@
-# ai_drill/llm_client.py
+﻿# ai_drill/llm_client.py
 """
 Lightweight Gemini client with lazy SDK loading so offline/local-only
 features can run without google-generativeai installed.
+All prompts are English-only to avoid encoding issues.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ def _scrub_system_prompt(raw: str) -> str:
 
 def _load_base_prompt() -> str:
     """
-    Load the shared Ailey & Bailey system prompt, skipping HTML/canvas-specific lines.
+    Load the shared system prompt, skipping HTML/canvas-specific lines.
     """
     root_dir = Path(__file__).resolve().parents[1]
     candidates = [
@@ -61,7 +62,6 @@ class LLMClient:
     def __init__(self, api_key: str | None = None, model_name: str | None = None):
         genai = self._load_genai_sdk()
 
-        # Pick up key/model from env when not provided directly.
         if not api_key:
             api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -79,10 +79,7 @@ class LLMClient:
 
         genai.configure(api_key=api_key)
         self.model_name = model_to_use
-        self.model = genai.GenerativeModel(
-            model_to_use,
-            system_instruction=system_prompt
-        )
+        self.model = genai.GenerativeModel(model_to_use, system_instruction=system_prompt)
         self._genai: Any = genai
 
     def generate_drill(self, content: str, mode: int, difficulty: int = 2) -> str:
@@ -101,16 +98,13 @@ class LLMClient:
 
         user_message = f"""{prompt_map[mode]}
 
-학습 파일 내용:
-------------------------------------------------------------
+=== Source content ===
 {content}
-------------------------------------------------------------
+=== End source ===
 
-
-위 규칙에 따라 [MODE {mode}] 변환을 실행해주세요.
-난이도 설정: {difficulty} (1=Easy, 2=Normal, 3=Hard, 4=Extreme)
-난이도가 높을수록 더 핵심적이고 어려운 부분에 빈칸을 만들어주세요.
-"""
+Follow the [MODE {mode}] conversion rules.
+Difficulty: {difficulty} (1=Easy, 2=Normal, 3=Hard, 4=Extreme).
+Higher difficulty should focus on harder blanks and concepts."""
 
         response = self.model.generate_content(
             contents=user_message,
@@ -125,6 +119,7 @@ class LLMClient:
         """
         try:
             import google.generativeai as genai  # type: ignore
+
             return genai
         except ImportError as exc:
             raise RuntimeError(

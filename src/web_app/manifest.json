@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "Study Helper",
   "short_name": "Study Helper",
-  "description": "코드/문제 연습장 - 객관식, 빈칸 채우기 문제 풀이",
+  "description": "Code and quiz practice with AI/local generation.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0c1018",

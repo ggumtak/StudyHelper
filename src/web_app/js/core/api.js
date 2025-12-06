@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Gemini API Module
  * Centralized API calls with rate limiting and retry logic
  */
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 // Rate limiter state
 let lastApiCall = 0;
@@ -16,29 +16,29 @@ let systemPromptCache = null;
  * Get API key from localStorage or config
  */
 export function getApiKey() {
-    return localStorage.getItem('gemini_api_key') || '';
+  return localStorage.getItem("gemini_api_key") || "";
 }
 
 export function setApiKey(key) {
-    localStorage.setItem('gemini_api_key', key);
+  localStorage.setItem("gemini_api_key", key);
 }
 
 /**
  * Load system prompt (cached)
  */
 export async function loadSystemPrompt() {
-    if (systemPromptCache) return systemPromptCache;
+  if (systemPromptCache) return systemPromptCache;
 
-    try {
-        const response = await fetch('/data/gemini_system_prompt.txt');
-        if (response.ok) {
-            systemPromptCache = await response.text();
-        }
-    } catch (e) {
-        console.warn('Failed to load system prompt:', e);
+  try {
+    const response = await fetch("/data/gemini_system_prompt.txt");
+    if (response.ok) {
+      systemPromptCache = await response.text();
     }
+  } catch (e) {
+    console.warn("Failed to load system prompt:", e);
+  }
 
-    return systemPromptCache || '';
+  return systemPromptCache || "";
 }
 
 /**
@@ -48,105 +48,80 @@ export async function loadSystemPrompt() {
  * @param {Array} chatHistory - Optional chat history
  * @returns {Promise<string>} API response text
  */
-export async function callGeminiAPI(prompt, systemInstruction = '', chatHistory = null) {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        throw new Error('API key not set');
+export async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("API key not set");
+  }
+
+  const now = Date.now();
+  const timeSinceLastCall = now - lastApiCall;
+  if (timeSinceLastCall < MIN_API_INTERVAL) {
+    await new Promise((r) => setTimeout(r, MIN_API_INTERVAL - timeSinceLastCall));
+  }
+  lastApiCall = Date.now();
+
+  const contents = [];
+
+  if (chatHistory && Array.isArray(chatHistory)) {
+    contents.push(...chatHistory);
+  }
+
+  contents.push({ role: "user", parts: [{ text: prompt }] });
+
+  const requestBody = { contents };
+
+  if (systemInstruction) {
+    requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+  }
+
+  const maxRetries = 2;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.warn(`API retry ${attempt + 1}/${maxRetries}:`, err.message);
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
     }
-
-    // Rate limiting
-    const now = Date.now();
-    const timeSinceLastCall = now - lastApiCall;
-    if (timeSinceLastCall < MIN_API_INTERVAL) {
-        await new Promise(r => setTimeout(r, MIN_API_INTERVAL - timeSinceLastCall));
-    }
-    lastApiCall = Date.now();
-
-    // Build request
-    const contents = [];
-
-    if (chatHistory && Array.isArray(chatHistory)) {
-        contents.push(...chatHistory);
-    }
-
-    contents.push({ role: 'user', parts: [{ text: prompt }] });
-
-    const requestBody = { contents };
-
-    if (systemInstruction) {
-        requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
-    }
-
-    // Make request with retry
-    const maxRetries = 2;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || `API Error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        } catch (err) {
-            if (attempt === maxRetries) throw err;
-            console.warn(`API retry ${attempt + 1}/${maxRetries}:`, err.message);
-            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-        }
-    }
+  }
 }
 
 /**
  * Simple grading prompt - returns CORRECT or WRONG
  */
 export async function gradeAnswer(question, userAnswer, correctAnswer) {
-    const prompt = `채점 요청:
-질문: ${question}
-정답: ${correctAnswer}
-학생답: ${userAnswer}
-
-맞으면 CORRECT, 틀리면 WRONG. 한 단어만 응답.`;
-
-    const response = await callGeminiAPI(prompt);
-    return response.trim().toUpperCase().includes('CORRECT');
+  const prompt = `Grading request:\nQuestion: ${question}\nAnswer: ${correctAnswer}\nStudent: ${userAnswer}\n\nIf correct, respond CORRECT. If wrong, respond WRONG. Only one word.`;
+  const response = await callGeminiAPI(prompt);
+  return response.trim().toUpperCase().includes("CORRECT");
 }
 
 /**
  * Get hint for a blank
  */
 export async function getHint(codeContext, blankNum) {
-    const systemPrompt = await loadSystemPrompt();
-    const prompt = `빈칸 ${blankNum}번에 대한 힌트를 간략히 제공해줘. 정답은 알려주지 마.
-
-코드:
-\`\`\`
-${codeContext}
-\`\`\``;
-
-    return callGeminiAPI(prompt, systemPrompt);
+  const systemPrompt = await loadSystemPrompt();
+  const prompt = `Give a concise hint for blank #${blankNum}. Do not reveal the answer.\n\nCode:\n\n${codeContext}`;
+  return callGeminiAPI(prompt, systemPrompt);
 }
 
 /**
  * Explain why answer is wrong
  */
 export async function explainWrong(codeContext, blankNum, userAnswer, correctAnswer) {
-    const systemPrompt = await loadSystemPrompt();
-    const prompt = `빈칸 ${blankNum}번 오답 설명:
-학생 답: "${userAnswer}"
-정답: "${correctAnswer}"
-
-왜 틀렸는지 간단히 설명해줘.
-
-코드:
-\`\`\`
-${codeContext}
-\`\`\``;
-
-    return callGeminiAPI(prompt, systemPrompt);
+  const systemPrompt = await loadSystemPrompt();
+  const prompt = `Explain wrong answer for blank #${blankNum}:\nStudent answer: "${userAnswer}"\nCorrect answer: "${correctAnswer}"\n\nExplain briefly why it is wrong.\n\nCode:\n\n${codeContext}`;
+  return callGeminiAPI(prompt, systemPrompt);
 }

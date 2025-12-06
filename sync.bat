@@ -1,32 +1,32 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo    GitHub 동기화 중...
+echo    GitHub sync running...
 echo ========================================
 
 cd /d "%~dp0"
 
-:: 변경사항 추가
+:: Stage changes
 git add .
 
-:: 커밋 (변경사항 있을 때만)
+:: Commit only when staged files exist
 git diff --cached --quiet
 if %errorlevel% neq 0 (
-    git commit -m "자동 동기화 %date% %time%"
-    echo [OK] 변경사항 저장완료
+    git commit -m "auto sync %date% %time%"
+    echo [OK] Changes committed
 ) else (
-    echo [INFO] 변경사항 없음
+    echo [INFO] No changes to commit
 )
 
-:: GitHub에 업로드
+:: Push to GitHub
 git push
 if %errorlevel% equ 0 (
-    echo [OK] GitHub 업로드 완료!
+    echo [OK] Pushed to GitHub
 ) else (
-    echo [ERROR] 업로드 실패
+    echo [ERROR] Push failed
 )
 
 echo ========================================
-echo    동기화 완료! 2초 후 창 닫힘
+echo    Sync done! Closing in 2 seconds
 echo ========================================
 timeout /t 2 >nul

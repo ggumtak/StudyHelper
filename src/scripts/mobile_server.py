@@ -5,7 +5,7 @@ Mobile-friendly launcher for Study Helper.
 
 Usage (Termux/Pydroid/Android):
   python scripts/mobile_server.py --port 8000
-Then on the phone, open: http://<폰 IP>:8000
+Then on the phone, open: http://<PHONE_IP>:8000
 """
 
 from __future__ import annotations
@@ -29,25 +29,25 @@ def main():
     parser.add_argument("--port", type=int, default=8000, help="Port to listen on (default: 8000)")
     args = parser.parse_args()
 
-    # Termux/Pydroid에서 브라우저 자동 실행 방지
+    # Prevent auto browser open on Termux/Pydroid
     os.environ.setdefault("SKIP_AUTO_BROWSER_OPEN", "1")
 
-    # 요청된 포트 고정 사용
+    # Use requested port only
     web_server.BASE_PORT = args.port
     web_server.MAX_PORT_RETRIES = 1
 
-    # 서버 정보 저장 + 기본 세션 생성
+    # Save server info + build default session
     web_server.save_server_info(args.port)
     try:
         result = web_server.generate_session("oop_vocab", 7)
         if not result.get("success"):
-            print(f"[WARN] 기본 세션 생성 실패: {result.get('error')}")
-    except Exception as exc:  # pragma: no cover - 안전망
-        print(f"[WARN] 기본 세션 생성 실패: {exc}")
+            print(f"[WARN] Default session generation failed: {result.get('error')}")
+    except Exception as exc:  # pragma: no cover - safety net
+        print(f"[WARN] Default session generation failed: {exc}")
 
     local_ip = web_server.get_local_ip()
     print(f"Mobile server starting on http://{local_ip}:{args.port} (bind=0.0.0.0)")
-    print("같은 Wi-Fi/핫스팟 기기에서 위 주소로 접속하세요.")
+    print("Connect from devices on the same Wi-Fi/hotspot using the above address.")
 
     web_server.start_server(args.port)
 

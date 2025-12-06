@@ -1,7 +1,7 @@
-{
-  "local_ip": "localhost",
+﻿{
+  "local_ip": "127.0.0.1",
   "port": 3000,
-  "mobile_url": "http://localhost:3000",
+  "mobile_url": "http://127.0.0.1:3000",
   "presets": {
     "oop_vocab": "1_OOP_Vocabulary.txt",
     "oop_concept": "2_OOP_Concepts.txt",
@@ -11,12 +11,12 @@
     "math_practice": "6_Computational_Math_Practice.txt"
   },
   "modes": {
-    "1": "OOP 빈칸 채우기",
-    "2": "OOP 개념어",
-    "3": "OOP 코드 빈칸",
-    "4": "자료구조 코드",
-    "5": "전산수학 필기",
-    "6": "전산수학 실기",
-    "7": "커스텀/추가"
+    "1": "OOP fill-in-the-blank",
+    "2": "OOP concept Q&A",
+    "3": "OOP code blanks",
+    "4": "Data structure code",
+    "5": "Computational math theory",
+    "6": "Computational math practice",
+    "7": "Vocabulary"
   }
 }

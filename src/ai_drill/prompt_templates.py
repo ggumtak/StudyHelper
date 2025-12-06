@@ -1,28 +1,24 @@
-# ai_drill/prompt_templates.py
+﻿# ai_drill/prompt_templates.py
 
 COMMON_RULES = """
-⚠ CRITICAL INSTRUCTION
-- 모든 최종 출력(설명·주석·헤더 포함)은 반드시 **한국어**로 작성할 것.
-- 사용법/도움말만 묻는 경우에는 코드를 변환하지 말고 1~4번 모드의 기능을 간략히 설명할 것.
-- 입력에 [교수 코멘트], [예상 코드], [사용자 요구], [문제 설명]과 같은 맥락 섹션이 있으면 변환 시 우선 반영할 것.
-- 코드 포맷: 함수/클래스 단위로 처리하며, 수직 레이아웃(질문 블록 → 정답 블록 → JSON 키)을 반드시 유지할 것.
-- 빈칸은 항상 `_____`(밑줄 5개)로 표기할 것.
-- Question 블록과 Answer 블록을 하나의 코드블록에 합치지 말 것(각각 별도 블록).
+!! CRITICAL INSTRUCTION
+- All final output (explanations, hints, order, headers) must be ENGLISH ONLY.
+- Never change source logic beyond required blanks/answers.
+- Keep the number and order of blanks stable; keep code structure intact.
+- Blank placeholder must be exactly `_____` (five underscores).
+- Provide three blocks in order: Question Block (code with blanks), Answer Block (code with answers), JSON answer key.
 """
 
 MODE_1_PROMPT = """
-🔵 [MODE 1] OOP Fill-in-the-Blank Mode (논리 빈칸)
+You are [MODE 1] OOP Fill-in-the-Blank Mode.
+Goal: produce 40-60 blanks focusing on control flow, return values, conditions, and core OOP logic.
 
-목표: 분기·반복·리턴 등 핵심 흐름을 빈칸으로 만들어 로직 이해도를 평가.
-
-규칙:
-1. 빈칸 생성 대상: `if/while/for` 조건, `return` 값, 비표준 라이브러리 메서드 호출, 복합 계산식.
-2. 컨텍스트 유지: 변수/함수/클래스 이름은 가능하면 보존하고, 흐름을 추론할 수 있는 위치만 빈칸 처리.
-3. 체인(예: `current.next`, `self.data`)은 하나의 빈칸(`_____`)으로 처리.
-4. 입력에 [교수 코멘트], [예상 코드], [사용자 요구]가 있으면 이를 반영해 코드 일부를 변형하거나 난이도를 조절.
-5. 빈칸이 원래 없더라도 전체 코드를 스캔해 적정 개수의 빈칸을 새로 만들 것.
-
-출력 형식 (반드시 순서 준수):
+Rules:
+1) Prefer blanks on control flow (`if/while/for`), `return`, key operations, and calculations.
+2) Keep context: keep variable/class names visible; only blank essential tokens.
+3) Keep indentation and spacing exactly as in the source.
+4) Use comments like `# (1)` to mark blank positions when helpful.
+5) Output format:
 ```python
 # Question Block
 ...
@@ -33,66 +29,46 @@ MODE_1_PROMPT = """
 ```
 ```json
 {
-  "1": "정답1",
-  "2": "정답2"
+  "1": "answer1",
+  "2": "answer2"
 }
 ```
-(JSON 키는 1부터 시작해 빈칸 순서대로 나열)
 """
 
 MODE_2_PROMPT = """
-🔵 [MODE 2] Data Structure Drill Mode (45~50 빈칸 / Hard)
-
-목표: 전체 구현 파일을 대상으로 고밀도(약 50개) 빈칸을 생성.
-
-규칙:
-1. 목표 빈칸 수: 약 50개. 코드 전반에 분포시키되, 핵심 로직을 우선적으로 공략.
-2. 타겟: 포인터/레퍼런스(`node.next`, `head`), 루프 조건(`while ptr:`), 변수 대입, `return`, 불리언 체크.
-3. 회피: 함수 정의 시그니처, 단순 출력, `:`/`()` 같은 문법 토큰.
-4. 힌트 금지: `# (1)` 등 힌트는 제거하고 `_____`만 남길 것.
-5. 원본 구조 유지: 들여쓰기와 제어 흐름은 그대로, 값/표현식만 빈칸 처리.
-
-출력 형식은 MODE 1과 동일(Question Block → Answer Block → JSON Answer Key).
+You are [MODE 2] Data Structure Drill Mode. Produce about 45-50 blanks (Hard).
+Focus on pointers/iterators (`node.next`, `head`), loop conditions (`while ptr:`), returns, and boundary checks.
+Keep syntax (`:`, parentheses) and numbering consistent. Use `_____` for blanks.
+Output format is identical to MODE 1 (Question Block, Answer Block, JSON answer key).
 """
 
 MODE_3_PROMPT = """
-🔵 [MODE 3] Whiteboard/Recall Mode (백지 복습)
-
-목표: 시그니처만 남기고 내부를 모두 비워 직접 구현 연습을 하게 함.
-
-규칙:
-1. 스켈레톤만 유지: 클래스/함수 정의와 파라미터는 남기고, 내부 로직은 모두 제거.
-2. 주석: 각 함수/메서드에 한 줄짜리 한국어 주석으로 "무엇을 하는지"만 설명(방법은 설명하지 말 것).
-3. 유효성: `pass`를 넣어 문법이 깨지지 않도록 처리.
-
-출력: 스켈레톤 코드 블록 → 바로 아래에 전체 정답 구현 블록.
+You are [MODE 3] Whiteboard/Recall Mode (blank sheet coding).
+Goal: remove all answers so the learner rewrites the code from memory.
+- Keep function/class signatures; remove bodies with `pass` or blanks.
+- Keep important comments as hints.
+- Output: single code block with blanks or `pass` where needed (no JSON required).
 """
 
 MODE_4_PROMPT = """
-🔵 [MODE 4] Problem Set Mode (실전 문제)
-
-목표: 문제/보기는 그대로 두고, 순서를 섞어 5문항씩 출력.
-
-규칙:
-1. 문제·보기 텍스트는 절대 수정/요약하지 말 것.
-2. 순서 섞기: 문항 순서를 랜덤하게 섞되 1세트에 5문항.
-3. 구분선: 각 문항 사이에 `---`를 삽입.
-4. 레이아웃:
+You are [MODE 4] Problem Set Mode (5 questions).
+Goal: generate 5 question blocks with answers and a JSON table.
+- Maintain order; clearly separate questions with `---` lines.
+- Format example:
 ```markdown
-### 📝 [실전 모의고사 - Set N]
+### Quiz - Set N
 
 ---
-**Q1.** (문항 내용)
-  (보기)
+**Q1.** (question text)
+  (choices or description)
 
 ---
 ...
 
-### 🔓 정답 확인
-| 문항 | 정답 |
-| :--: | :--: |
+### Answer Sheet
+| Q | Answer |
+| :-: | :-: |
 | Q1 | **(Ans)** |
-...
 ```
-5. 가능하면 JSON 정답 키를 추가(시각 표가 우선).
+Also return a JSON answer map `{ "Q1": "A", ... }`.
 """
