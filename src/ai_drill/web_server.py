@@ -338,7 +338,18 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 method = data.get('method', 'local')
                 custom_content = data.get('content')
                 custom_filename = data.get('fileName')
-                difficulty = int(data.get('difficulty', 2))
+                
+                # Handle difficulty - can be number or string like 'easy', 'normal', 'hard', 'extreme'
+                raw_difficulty = data.get('difficulty', 2)
+                if isinstance(raw_difficulty, str):
+                    difficulty_map = {'easy': 1, 'normal': 2, 'hard': 3, 'extreme': 4}
+                    difficulty = difficulty_map.get(raw_difficulty.lower(), 2)
+                else:
+                    try:
+                        difficulty = int(raw_difficulty)
+                    except (ValueError, TypeError):
+                        difficulty = 2
+                
                 result = generate_session(preset, mode, method, custom_content, custom_filename, difficulty)
                 self.send_json_response(result)
                 return

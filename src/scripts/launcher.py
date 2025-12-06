@@ -1,6 +1,7 @@
 """
 Study Helper - GUI Launcher
 단일 실행 파일로 모든 것을 처리합니다.
+- GitHub 자동 업데이트 (git pull)
 - Python 자동 설치
 - 의존성 설치
 - 서버 시작
@@ -18,6 +19,110 @@ import webbrowser
 from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
+
+# GitHub repository info
+GITHUB_REPO = "ggumtak/StudyHelper"
+GITHUB_RAW_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
+
+
+def check_and_update_from_github(project_root: Path, splash=None) -> bool:
+    """
+    GitHub에서 최신 버전을 확인하고 업데이트합니다.
+    git이 설치되어 있으면 git pull을 실행합니다.
+    Returns True if update was successful or not needed.
+    """
+    creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    
+    # Check if git is available
+    try:
+        subprocess.run(
+            ["git", "--version"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+            creationflags=creationflags,
+        )
+    except Exception:
+        # Git not installed, skip update check
+        if splash:
+            splash.set_sub("Git 없음 - 업데이트 스킵")
+        return True
+    
+    # Check if this is a git repository
+    git_dir = project_root / ".git"
+    if not git_dir.exists():
+        if splash:
+            splash.set_sub("Git 저장소 아님 - 스킵")
+        return True
+    
+    if splash:
+        splash.set_status("🔄 업데이트 확인 중...")
+        splash.set_sub("GitHub에서 최신 버전 확인")
+    
+    try:
+        # Fetch latest changes
+        result = subprocess.run(
+            ["git", "fetch", "--quiet"],
+            cwd=project_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=creationflags,
+            timeout=30,  # 30 second timeout
+        )
+        
+        # Check if there are updates
+        result = subprocess.run(
+            ["git", "status", "-uno"],
+            cwd=project_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=creationflags,
+            text=True,
+        )
+        
+        output = result.stdout.lower()
+        if "behind" in output or "뒤처" in output:
+            # There are updates available
+            if splash:
+                splash.set_status("⬇️ 업데이트 다운로드 중...")
+                splash.set_sub("최신 파일 가져오는 중...")
+            
+            # Pull latest changes
+            pull_result = subprocess.run(
+                ["git", "pull", "--ff-only"],
+                cwd=project_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=creationflags,
+                text=True,
+                timeout=60,  # 60 second timeout for pull
+            )
+            
+            if pull_result.returncode == 0:
+                if splash:
+                    splash.set_status("✅ 업데이트 완료!")
+                    splash.set_sub("최신 버전으로 업데이트됨")
+                time.sleep(1)
+                return True
+            else:
+                # Pull failed (maybe local changes conflict)
+                if splash:
+                    splash.set_sub("업데이트 실패 - 로컬 변경사항 충돌 가능")
+                return True  # Continue anyway
+        else:
+            # Already up to date
+            if splash:
+                splash.set_sub("✓ 이미 최신 버전")
+            return True
+            
+    except subprocess.TimeoutExpired:
+        if splash:
+            splash.set_sub("네트워크 타임아웃 - 오프라인 모드")
+        return True
+    except Exception as e:
+        if splash:
+            splash.set_sub(f"업데이트 확인 실패: {str(e)[:30]}")
+        return True  # Continue anyway
 
 
 def resolve_base_dir() -> Path:
@@ -247,6 +352,11 @@ def main() -> int:
         return 1
 
     splash = Splash(project_root)
+    splash.set_status("시작 중...")
+    
+    # GitHub에서 최신 버전 확인 및 업데이트
+    check_and_update_from_github(project_root, splash)
+    
     splash.set_status("환경 점검 중...")
 
     python_cmd = find_python_cmd()
