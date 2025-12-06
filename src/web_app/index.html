@@ -15,7 +15,32 @@
   <title>Study Helper | 코드/문제 연습실</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+  <!-- CSS with cache busting -->
+  <link rel="stylesheet" href="style.css" id="main-style" />
+  <script>
+    // Force cache clear on every load
+    (function () {
+      var ts = new Date().getTime();
+      var style = document.getElementById('main-style');
+      if (style) style.href = 'style.css?v=' + ts;
+
+      // Clear service worker cache
+      if ('caches' in window) {
+        caches.keys().then(function (names) {
+          names.forEach(function (name) { caches.delete(name); });
+        });
+      }
+
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (registration) {
+            registration.unregister();
+          });
+        });
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
