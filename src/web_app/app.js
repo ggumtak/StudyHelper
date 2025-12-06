@@ -4159,7 +4159,7 @@ function initializeButtonHandlers() {
   fetch("/server_info.json")
     .then(r => r.json())
     .then(info => {
-      const currentPort = window.location.port || "8000";
+      const currentPort = window.location.port || "3000";
 
       // 모바일 URL 표시
       if (mobileUrlEl) {
@@ -4192,9 +4192,9 @@ function initializeButtonHandlers() {
       // server_info.json 없으면 현재 호스트 사용
       if (mobileUrlEl) {
         const currentHost = window.location.hostname;
-        const currentPort = window.location.port || "8000";
+        const currentPort = window.location.port || "3000";
         if (currentHost === "localhost" || currentHost === "127.0.0.1") {
-          mobileUrlEl.textContent = "📱 같은 WiFi에서 PC IP:8000";
+          mobileUrlEl.textContent = "📱 같은 WiFi에서 PC IP:3000";
         } else {
           mobileUrlEl.textContent = `📱 http://${currentHost}:${currentPort}`;
         }

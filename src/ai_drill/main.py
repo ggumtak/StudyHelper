@@ -18,7 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WEB_APP_DIR = PROJECT_ROOT / "web_app"
 SESSION_FILE = WEB_APP_DIR / "session.json"
 API_KEY_FILE = PROJECT_ROOT / "gemini_api_key.txt"
-PORT = 8000
+PORT = 3000
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))

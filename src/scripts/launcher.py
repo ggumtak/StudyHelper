@@ -228,7 +228,7 @@ def start_ngrok(project_root: Path, env: dict[str, str], token: str | None):
     if not ngrok_path.exists():
         return None
 
-    cmd = [str(ngrok_path), "http", "8000", "--log=stdout"]
+    cmd = [str(ngrok_path), "http", "3000", "--log=stdout"]
     if token:
         cmd += ["--authtoken", token]
 
