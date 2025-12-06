@@ -2911,3 +2911,7 @@ textarea:focus-visible,
   background: rgba(0, 0, 0, 0.2);
 }
 
+
+
+/* Resizable Code Area */
+.code-shell { resize: horizontal !important; overflow: auto !important; min-width: 300px; max-width: 90vw; border-right: 4px solid var(--border); }

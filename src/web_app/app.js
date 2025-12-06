@@ -623,38 +623,9 @@ async function explainBlank(key) {
   const answer = answerKeyMap[key];
   if (!answer) return;
 
-  openAIPanel();
-
-  const lines = (currentSession?.question || "").split("\n");
-  const numbered = lines.map((ln, idx) => `${idx + 1}: ${ln}`).join("\n");
-  const context = numbered.split("\n").slice(0, 120).join("\n");
-
-  explanationArea.innerHTML = `<div class="explanation-loading">AI가 설명을 생성하고 있습니다...</div>`;
-
-  const prompt = `빈칸 #${key}에 들어갈 답은 "${answer}"야. 아래 코드 맥락을 보고 정말 짧게 핵심만 알려줘.
-
-코드 일부 (앞 120줄):
-\`\`\`python
-${context}
-\`\`\`
-
-형식 예시:
-#3번에 뭐가 들어가야해 ?
--> 3번에는 리스트 비었는지 체크해서 빈 리스트면 "(빈 리스트)" 출력하고 종료하는 조건. if start == None:
-
-규칙: 한두 줄, 바로 적용할 수 있는 힌트만. 장황한 설명 금지.`;
-
-  try {
-    const response = await callGeminiAPI(prompt, "친근하고 짧은 힌트만 주는 코치처럼, 1-2줄로 핵심만 말해줘.");
-    explanationArea.innerHTML = `
-      <div class="explanation-content">
-        <strong style="color: var(--accent-2);">빈칸 #${key}: <code>${escapeHtml(answer)}</code></strong>
-        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
-        ${formatMarkdown(response)}
-      </div>`;
-  } catch (err) {
-    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">에러: ${err.message}</div>`;
-  }
+  // 채팅창에 자동입력
+  const msg = `${key}번 힌트좀 줘`;
+  fillChatAndOpen(msg);
 }
 
 /**
@@ -6249,7 +6220,7 @@ ${question.code.split('\n').slice(0, 30).join('\n')}
 
 ## 채점 기준
 1. 정확히 일치하면 CORRECT
-2. 대소문자 차이만 있으면 CORRECT
+2. 대소문자 차이만 있으면 Wrong
 3. 공백 차이만 있어도 CORRECT
 4. 같은 의미의 다른 표현이면 CORRECT (예: "new int[]"와 "new int []")
 5. 그 외는 WRONG
