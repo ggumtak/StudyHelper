@@ -621,10 +621,10 @@ button.floating-top.show {
   pointer-events: auto;
 }
 
-/* 紐⑤컮�씪�슜 AI �넗湲� �뵆濡쒗똿 踰꾪듉 */
+/* Floating AI toggle for mobile */
 .floating-ai-toggle {
   display: none;
-  /* 湲곕낯�쟻�쑝濡� �닲源� - 紐⑤컮�씪�뿉�꽌留� �몴�떆 */
+  /* Hidden by default - only shown on mobile */
   position: fixed;
   left: 16px;
   bottom: 22px;
@@ -1541,19 +1541,20 @@ summary {
   }
 
   .chat-messages {
-    padding-bottom: 110px;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
   }
 
   .chat-input-area {
     position: sticky;
     bottom: 0;
     z-index: 2;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    gap: 10px;
+    padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 14px);
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.6));
   }
 
   .chat-input-area textarea {
-    height: 56px;
+    min-height: 64px;
     font-size: 14px;
   }
 
@@ -1576,7 +1577,7 @@ summary {
     padding: 8px;
   }
 
-  /* 紐⑤컮�씪�뿉�꽌 AI �넗湲� 踰꾪듉 �몴�떆 */
+  /* Show AI toggle button on mobile */
   .floating-ai-toggle {
     display: flex;
     align-items: center;
@@ -2506,7 +2507,7 @@ textarea:focus-visible,
   box-shadow: 0 5px 20px rgba(98, 240, 184, 0.3);
 }
 
-/* �깮�꽦 諛⑹떇 �꽑�깮 */
+/* Generation method selection */
 .fm-methods {
   display: flex;
   flex-wrap: wrap;
@@ -2543,7 +2544,7 @@ textarea:focus-visible,
   font-style: italic;
 }
 
-/* �뙆�씪 �뾽濡쒕뱶 踰꾪듉 */
+/* File upload button */
 .fm-upload {
   border-style: dashed !important;
   border-color: var(--accent-2) !important;
@@ -2561,10 +2562,10 @@ textarea:focus-visible,
   border-style: solid !important;
 }
 
-/* ========== 紐⑤컮�씪 諛섏쓳�삎 �뒪����씪 ========== */
+/* ========== Mobile responsive styles ========== */
 @media (max-width: 768px) {
 
-  /* �뙆�씪/紐⑤뱶 紐⑤떖 紐⑤컮�씪 理쒖쟻�솕 */
+  /* File/mode modal mobile optimization */
   .modal-content.file-mode-modal {
     width: 95% !important;
     max-width: 95vw !important;
@@ -2574,7 +2575,7 @@ textarea:focus-visible,
     margin: 10px;
   }
 
-  /* �봽由ъ뀑/紐⑤뱶 踰꾪듉�쓣 �꽭濡쒕줈 */
+  /* Stack preset/mode buttons vertically */
   .fm-presets,
   .fm-modes,
   .fm-methods {
@@ -2590,12 +2591,12 @@ textarea:focus-visible,
     font-size: 14px !important;
   }
 
-  /* 紐⑤떖 �젣紐� */
+  /* Modal title size */
   .file-mode-modal h3 {
     font-size: 18px !important;
   }
 
-  /* �꽭�뀡 �깮�꽦 踰꾪듉 */
+  /* Modal action buttons */
   .modal-actions button {
     width: 100% !important;
     padding: 14px !important;
@@ -2608,7 +2609,7 @@ textarea:focus-visible,
     gap: 8px !important;
   }
 
-  /* 紐⑤컮�씪�뿉�꽌 鍮덉뭏 紐⑸줉 湲곕낯 �닲源� */
+  /* Hide blank nav by default on mobile */
   .blank-nav {
     position: fixed;
     top: 0;
@@ -2626,7 +2627,7 @@ textarea:focus-visible,
     transform: translateX(0);
   }
 
-  /* 鍮덉뭏 紐⑸줉 �떕湲� 踰꾪듉 */
+  /* Close button for blank nav */
   .toggle-nav-btn {
     display: flex !important;
     background: var(--red);
@@ -2641,7 +2642,7 @@ textarea:focus-visible,
     font-size: 16px;
   }
 
-  /* 鍮덉뭏 紐⑸줉 �뿴湲� 踰꾪듉 - �삤瑜몄そ �긽�떒�쑝濡� (�뒪�겕濡� �떆 �넀�뿉 �븞 嫄몃━寃�) */
+  /* Show-nav button positioned near the top */
   .show-nav-btn {
     display: flex !important;
     position: fixed;
@@ -2668,7 +2669,7 @@ textarea:focus-visible,
     transform: scale(0.95);
   }
 
-  /* 臾몄젣 ����씠�뿉 吏묒쨷�븯�룄濡� 而⑦듃濡� �쁺�뿭 媛꾩냼�솕 */
+  /* Compact controls column layout */
   .controls {
     flex-direction: column;
     gap: 8px;
@@ -2686,20 +2687,20 @@ textarea:focus-visible,
   }
 }
 
-/* �뜲�뒪�겕�깙�뿉�꽌�뒗 �넗湲� 踰꾪듉 �닲湲곌린 */
+/* Hide nav toggle buttons on desktop */
 .toggle-nav-btn,
 .show-nav-btn {
   display: none;
 }
 
-/* �꽕鍮꾧쾶�씠�뀡 �뿤�뜑 �젅�씠�븘�썐 */
+/* Navigation header layout */
 .nav-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* �떒異뺥궎 媛��씠�뱶 踰꾪듉 */
+/* Shortcut guide button */
 .shortcut-guide-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -2718,7 +2719,7 @@ textarea:focus-visible,
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }
 
-/* ̵  ư */
+/* Difficulty selection */
 .fm-difficulty {
   display: flex;
   flex-wrap: wrap;

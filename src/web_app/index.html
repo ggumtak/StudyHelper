@@ -290,6 +290,7 @@
     applyStaticTexts();
 
     const script = document.createElement('script');
+    script.type = 'module';
     script.src = 'app.js?v=' + new Date().getTime();
     script.addEventListener('load', () => applyKoreanUI());
     document.body.appendChild(script);

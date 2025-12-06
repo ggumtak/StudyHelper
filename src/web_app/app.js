@@ -1,3 +1,16 @@
+import {
+  buildDifferencePrompt,
+  buildDefinitionGradePrompt,
+  buildMode1AnswerPrompt,
+  buildMode1GradePrompt,
+  buildMode1HintPrompt,
+  buildMode1WhyWrongPrompt,
+  buildMode6HintPrompt,
+  buildMode6ProblemPrompt,
+  buildVocabMeaningPrompt,
+} from "./js/features/prompt-builders.js";
+import { escapeHtml, formatMarkdown, isAnswerCorrect as compareAnswers } from "./js/core/utils.js";
+
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -55,10 +68,16 @@ const modeLabels = {
 
 const missingAnswerMessage = "정답 키가 없어 채점할 수 없습니다. 세션을 다시 생성해 주세요.";
 
-// Normalize answers for comparison (trim, drop wrapping quotes, strip whitespace, lowercase)
+// Normalize answers for comparison (trim, drop wrapping quotes, normalize quotes/whitespace, lowercase)
 function normalizeAnswerText(value) {
   if (!value) return "";
-  return value.trim().replace(/^['"`]+|['"`]+$/g, "").replace(/\s+/g, "").toLowerCase();
+  return value
+    .trim()
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/^['"`]+|['"`]+$/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
 }
 
 function pickFirstCodeBlock(text) {
@@ -114,7 +133,7 @@ async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null)
   const apiKey = getApiKey();
   if (!apiKey) {
     showApiKeyModal();
-    throw new Error("API ?? ?????.");
+    throw new Error("API key is required.");
   }
 
   const basePrompt = await loadBaseSystemPrompt();
@@ -150,7 +169,7 @@ async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null)
 
   if (!response.ok) {
     const error = await response.json();
-    const msg = (error && error.error && error.error.message) ? error.error.message : "API ?? ??";
+    const msg = (error && error.error && error.error.message) ? error.error.message : "API request failed";
     throw new Error(msg);
   }
 
@@ -186,7 +205,7 @@ function closeAIPanel() {
 async function explainBlank(key) {
   const answer = answerKeyMap[key];
   if (!answer) return;
-  const msg = `${key}번 힌트 좀 줘`;
+  const msg = `Give me a hint for blank ${key}.`;
   fillChatAndOpen(msg);
 }
 
@@ -195,14 +214,14 @@ function explainWhyWrongBlank(key) {
   const input = document.querySelector(`input.blank[data-key="${key}"]`);
   const userAnswer = input?.value || "";
   if (!answer) return;
-  const msg = `${key}번 빈칸이 왜 틀렸는지 설명해줘 (입력: ${userAnswer || "-"}, 정답: ${answer})`;
+  const msg = `Explain why blank ${key} is wrong (input: ${userAnswer || "-"}, answer: ${answer}).`;
   fillChatAndOpen(msg);
 }
 
 function explainSelection(text) {
   if (!text || !text.trim()) return;
   const truncatedCode = text.length > 200 ? text.slice(0, 200) + '...' : text;
-  const msg = `이 코드 블록을 설명해줘:
+  const msg = `Explain this code block:
 ${truncatedCode}`;
   fillChatAndOpen(msg);
 }
@@ -240,7 +259,7 @@ async function sendChatMessage() {
   const context = buildChatContext(message);
   const prompt = context ? `${context}
 
-사용자 입력: ${message}` : message;
+User input: ${message}` : message;
 
   try {
     const response = await callGeminiAPI(prompt, "", chatHistory.slice(-20));
@@ -261,14 +280,14 @@ function buildChatContext(message) {
       const questionList = currentQuestions.map((q, idx) => {
         const displayIdx = idx + 1;
         const qId = q.id;
-        const qType = q.type === "short_answer" ? "단답" :
-          q.type === "fill_blank" ? "빈칸" : "객관식";
-        const codeSnippet = q.code ? `\n코드: ${q.code.slice(0, 100)}...` : "";
-        return `${displayIdx}번 [Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
+        const qType = q.type === "short_answer" ? "short answer" :
+          q.type === "fill_blank" ? "fill blank" : "multiple choice";
+        const codeSnippet = q.code ? `\nCode: ${q.code.slice(0, 100)}...` : "";
+        return `#${displayIdx} [Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
       }).join("\n");
-      context = `현재 문제 목록 (총 ${currentQuestions.length}개):\n---\n${questionList}\n---`;
+      context = `Current question list (total ${currentQuestions.length}):\n---\n${questionList}\n---`;
     } else if (currentSession?.question) {
-      context = `현재 풀이 코드:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
+      context = `Current working code:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
     }
   }
 
@@ -276,10 +295,10 @@ function buildChatContext(message) {
     const qNum = parseInt(numMatch[1], 10);
     if (qNum >= 1 && qNum <= currentQuestions.length) {
       const targetQ = currentQuestions[qNum - 1];
-      const codeSnippet = targetQ.code ? `- 코드:\n\`\`\`\n${targetQ.code}\n\`\`\`` : "";
-      const options = targetQ.options ? `- 보기:\n${targetQ.options.map(o => `  ${o.num}. ${o.text}`).join("\n")}` : "";
-      const correct = targetQ.correct ? `- 정답: ${targetQ.correct}` : "";
-      context = `문제 ${qNum} 상세:\n- 문제 ID: [Q${targetQ.id}]\n- 유형: ${targetQ.type}\n- 내용: ${targetQ.text}\n${codeSnippet}\n${options}\n${correct}`;
+      const codeSnippet = targetQ.code ? `- Code:\n\`\`\`\n${targetQ.code}\n\`\`\`` : "";
+      const options = targetQ.options ? `- Choices:\n${targetQ.options.map(o => `  ${o.num}. ${o.text}`).join("\n")}` : "";
+      const correct = targetQ.correct ? `- Answer: ${targetQ.correct}` : "";
+      context = `Question ${qNum} detail:\n- Question ID: [Q${targetQ.id}]\n- Type: ${targetQ.type}\n- Text: ${targetQ.text}\n${codeSnippet}\n${options}\n${correct}`;
     }
   } else if (numMatch) {
     const qNum = parseInt(numMatch[1], 10);
@@ -300,12 +319,12 @@ function buildChatContext(message) {
       const codeEl = card?.querySelector("pre, code, .code-content");
       const answer = inputEl.dataset?.answer;
       const codeSnippet = codeEl ? codeEl.textContent.slice(0, 400) : "";
-      context = `[Blank ${qNum}]\n입력: ${inputEl.value || "-"}\n정답: ${answer || "-"}\n${codeSnippet ? `코드:\n${codeSnippet}` : ""}`;
+      context = `[Blank ${qNum}]\nInput: ${inputEl.value || "-"}\nAnswer: ${answer || "-"}\n${codeSnippet ? `Code:\n${codeSnippet}` : ""}`;
     }
   }
 
   if (!context && currentSession?.question) {
-    context = `현재 풀이 코드:\n\`\`\`\n${currentSession.question.slice(0, 1500)}\n\`\`\``;
+    context = `Current working code:\n\`\`\`\n${currentSession.question.slice(0, 1500)}\n\`\`\``;
   }
 
   return context;
@@ -328,22 +347,6 @@ function replaceChatMessage(id, text) {
     el.id = "";
   }
   if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function formatMarkdown(text) {
-  if (!text) return "";
-  return text
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;overflow-x:auto;font-size:12px;">$2</pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>');
 }
 
 // ========== REGENERATE BLANKS ==========
@@ -458,7 +461,7 @@ async function executeRegenerate(targetCount) {
           </div>`;
       }
     } else {
-      throw new Error("빈칸 생성 실패");
+      throw new Error("Failed to generate blanks");
     }
   } catch (err) {
     console.error("Regenerate error:", err);
@@ -956,7 +959,7 @@ function deriveAnswerKeyFromAnswer(questionCode, answerCode) {
 function loadSessionFromUrl(url, fallback = true) {
   fetch(url + "?t=" + Date.now())
     .then((r) => {
-      if (!r.ok) throw new Error("세션을 불러오지 못했습니다.");
+      if (!r.ok) throw new Error("Failed to load session.");
       return r.json();
     })
     .then((data) => setSession(data))
@@ -973,7 +976,7 @@ function loadSessionFromUrl(url, fallback = true) {
 // === Mode 2 inline blank conversion ===
 function buildInlineBlankCode(originalCode, blanks, answerKey) {
   /**
-   * 원본 코드와 빈칸 정보를 받아서 __[N]__ 형식의 인라인 빈칸 코드로 변환
+   * Convert source code + blank info into inline __[N]__ markers.
    * blanks: [{line_num, answer, full_line, context}, ...]
    */
   const lines = originalCode.split('\n');
@@ -1035,7 +1038,7 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
 // === Mode 3 Inline blank conversion (function body to blank) ===
 function buildInlineChallengeCode(originalCode, challenges, answerKey) {
   /**
-   * 원본 코드와 챌린지 정보를 받아서 함수 본문을 __[N]__ 형식으로 변환
+   * Convert function bodies to __[N]__ markers based on challenge info.
    * challenges: [{signature, body, line_num}, ...]
    */
   const lines = originalCode.split('\n');
@@ -1079,7 +1082,7 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
 
         // Replace body lines with blank spaces
         const indent = resultLines[sigLineIdx + 1]?.match(/^(\s*)/)?.[1] || '    ';
-        const blankPlaceholder = `${indent}# __[${challengeNum}]__ 이 함수의 구현부를 작성하세요`;
+        const blankPlaceholder = `${indent}# __[${challengeNum}]__ Implement this function body`;
 
         // Comment out the original lines or replace them with blank spaces.
         for (let i = bodyStartIdx; i < bodyEndIdx && i < resultLines.length; i++) {
@@ -2271,37 +2274,6 @@ function renderBlankCards(blanks, answerKey, language) {
   updateBlankCardScore();
 }
 
-/**
- * Flexible answer comparison for code blanks
- * - Normalizes whitespace (multiple spaces → single space)
- * - CASE SENSITIVE (대소문자 구분)
- * - Ignores leading/trailing whitespace
- * - Handles common quote formatting differences
- */
-function isAnswerCorrect(userAnswer, expected) {
-  if (!userAnswer || !expected) return false;
-
-  // Normalize both answers (BUT keep case sensitivity!)
-  const normalize = (s) => s
-    .trim()
-    .replace(/\s+/g, ' ')  // Normalize multiple spaces to single space
-    .replace(/['']/g, "'")  // Normalize fancy quotes
-    .replace(/[""]/g, '"');
-
-  const normalizedUser = normalize(userAnswer);
-  const normalizedExpected = normalize(expected);
-
-  // Exact match after normalization (case sensitive)
-  if (normalizedUser === normalizedExpected) return true;
-
-  // Try removing all whitespace for code comparisons (still case sensitive)
-  const noSpaceUser = normalizedUser.replace(/\s/g, '');
-  const noSpaceExpected = normalizedExpected.replace(/\s/g, '');
-  if (noSpaceUser === noSpaceExpected) return true;
-
-  return false;
-}
-
 function handleBlankCardEnter(input) {
   const cardNum = parseInt(input.dataset.key);
   const expected = input.dataset.answer;
@@ -2309,7 +2281,7 @@ function handleBlankCardEnter(input) {
 
   if (!userAnswer) return;
 
-  const isCorrect = isAnswerCorrect(userAnswer, expected);
+  const isCorrect = compareAnswers(userAnswer, expected);
   const state = blankCardStates.find(s => s.cardNum === cardNum);
 
   if (state) {
@@ -2576,9 +2548,14 @@ function renderImplementationChallenge(challenges, answerKey, language) {
 
 async function handleChallengeCheck(num) {
   const card = document.getElementById(`challenge-${num}`);
-  const textarea = card.querySelector("textarea");
+  const textarea = card?.querySelector("textarea");
   const state = challengeStates.find(s => s.challengeNum === num);
   const resultDiv = document.getElementById(`challenge-result-${num}`);
+
+  if (!card || !textarea || !state || !resultDiv) {
+    console.warn("Challenge card missing for grading:", num);
+    return;
+  }
 
   const userAnswer = textarea.value.trim();
 
@@ -2749,27 +2726,10 @@ async function explainWhyWrong(num, mode) {
 
   resultDiv.innerHTML = `<span style="color: var(--accent-2);">🤔 차이점 분석 중...</span>`;
 
-  // A more concise prompt - only 2-3 lines of difference
-  const prompt = `정답 코드와 내 코드를 비교해서 뭐가 틀렸는지 2-3줄로만 알려줘.
-
-정답:
-\`\`\`
-${correctAnswer}
-\`\`\`
-
-내 코드:
-\`\`\`
-${userAnswer}
-\`\`\`
-
-요구사항:
-- 전체 코드 흐름 설명 절대 금지
-- 빠진 줄이나 틀린 부분만 콕 집어서 말해
-- "~줄이 빠짐" 또는 "~대신 ~써야함" 형태로 간단하게
-- 최대 2-3줄`;
+  const prompt = buildDifferencePrompt(correctAnswer, userAnswer);
 
   try {
-    const response = await callGeminiAPI(prompt, "2-3줄로 차이점만 말해. 설명하지 마.");
+    const response = await callGeminiAPI(prompt, "List only the differences in 2-3 short sentences.");
     resultDiv.innerHTML = `
       <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; padding: 12px; margin-top: 8px;">
         <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 6px;">❓ 왜 틀렸나요?</div>
@@ -2782,8 +2742,10 @@ ${userAnswer}
 
 function handleChallengeShow(num) {
   const card = document.getElementById(`challenge-${num}`);
-  const textarea = card.querySelector("textarea");
+  const textarea = card?.querySelector("textarea");
   const state = challengeStates.find(s => s.challengeNum === num);
+
+  if (!card || !textarea || !state) return;
 
   textarea.value = state.answer;
   textarea.disabled = true;
@@ -2794,6 +2756,7 @@ function handleChallengeShow(num) {
   state.isCorrect = false;
 
   const resultDiv = document.getElementById(`challenge-result-${num}`);
+  if (!resultDiv) return;
   resultDiv.innerHTML = `<span class="mc-wrong">정답이 표시되었습니다</span>`;
 
   const nav = document.getElementById(`nav-challenge-${num}`);
@@ -2913,7 +2876,7 @@ function checkOne(input) {
   }
   const user = input.value.trim();
   const key = input.dataset.key;
-  const isCorrect = isAnswerCorrect(user, expected);
+  const isCorrect = compareAnswers(user, expected);
 
   // Show/hide red question mark button
   const whyBtn = input.parentElement?.querySelector('.why-wrong-btn');
@@ -3688,13 +3651,22 @@ function initializeButtonHandlers() {
 // Attach AI panel header button event listener
 function attachAIHeaderListeners() {
   const btnAiNew = document.getElementById("btn-ai-new");
-  if (btnAiNew) btnAiNew.addEventListener("click", startNewChatSession);
+  if (btnAiNew && !btnAiNew.dataset.listenerAttached) {
+    btnAiNew.dataset.listenerAttached = "true";
+    btnAiNew.addEventListener("click", startNewChatSession);
+  }
 
   const btnAiHistory = document.getElementById("btn-ai-history");
-  if (btnAiHistory) btnAiHistory.addEventListener("click", toggleChatHistory);
+  if (btnAiHistory && !btnAiHistory.dataset.listenerAttached) {
+    btnAiHistory.dataset.listenerAttached = "true";
+    btnAiHistory.addEventListener("click", toggleChatHistory);
+  }
 
   const btnClosePanel = document.getElementById("btn-close-panel");
-  if (btnClosePanel) btnClosePanel.addEventListener("click", toggleAIPanel);
+  if (btnClosePanel && !btnClosePanel.dataset.listenerAttached) {
+    btnClosePanel.dataset.listenerAttached = "true";
+    btnClosePanel.addEventListener("click", toggleAIPanel);
+  }
 }
 
 // Wire chat send button and Enter key
@@ -3893,34 +3865,10 @@ async function checkDefinitionWithAI(term, userAnswer, correctAnswer) {
     return false;
   }
 
-  const prompt = `당신은 매우 엄격한 OOP 기말시험 채점관입니다. 학점 인플레를 허용하지 않습니다.
-
-**용어**: "${term}"
-**모범 답안**: "${correctAnswer}"
-**학생의 답**: "${userAnswer}"
-
-## 채점 기준 (엄격하게 적용)
-1. **핵심 키워드 필수**: 모범 답안의 핵심 기술 용어가 포함되어야 함
-2. **개념의 완전성**: 정의의 핵심 요소가 모두 설명되어야 함
-3. **기술적 정확성**: CS 전공자가 보기에 정확한 설명이어야 함
-
-## 반드시 오답 처리하는 경우
-- "~지 뭐", "~인듯", "~같음" 등 애매한 표현
-- 핵심 개념 없이 용어만 반복 (예: "쓰레드는 쓰레드다")
-- 지나치게 짧거나 불성실한 답변
-- 정의가 아닌 예시만 나열
-- 기술적으로 부정확한 설명
-
-## 정답으로 인정하는 경우
-- 모범 답안과 표현은 다르지만 핵심 개념이 정확히 일치
-- 추가 설명이 있지만 핵심이 맞음
-
-**판정**: 위 기준에 따라 엄격하게 판단하세요.
-JSON 형식으로만 응답 (다른 텍스트 없이):
-{"correct": true 또는 false}`;
+  const prompt = buildDefinitionGradePrompt({ term, correctAnswer, userAnswer });
 
   try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요. 채점은 엄격하게.");
+    const response = await callGeminiAPI(prompt, "Respond with JSON only. Grade strictly.");
     const jsonMatch = response.match(/\{[^}]+\}/);
     if (jsonMatch) {
       const result = JSON.parse(jsonMatch[0]);
@@ -3931,8 +3879,7 @@ JSON 형식으로만 응답 (다른 텍스트 없이):
   } catch (err) {
     console.error("AI grading error:", err);
     // Strictly even in case of AI failure - the correct answer must be an exact match
-    const normalize = s => s.replace(/\s+/g, '').toLowerCase();
-    return normalize(userAnswer) === normalize(correctAnswer);
+    return normalizeAnswerText(userAnswer) === normalizeAnswerText(correctAnswer);
   }
 }
 
@@ -3996,7 +3943,7 @@ function renderVocabularyCards(words, answerKey, language) {
 
   words.forEach((word, idx) => {
     const wordNum = idx + 1;
-    const correctAnswer = word.korean || "[AI 생성 필요]";
+    const correctAnswer = word.korean || "[AI generation needed]";
 
     const cardDiv = document.createElement("div");
     cardDiv.className = "vocab-card";
@@ -4074,19 +4021,13 @@ function renderVocabularyCards(words, answerKey, language) {
 
 async function generateVocabMeaning(wordNum, english) {
   const resultDiv = document.getElementById(`vocab-gen-${wordNum}`);
+  if (!resultDiv) return;
   resultDiv.innerHTML = `<span class="definition-loading">🤖 AI가 뜻을 생성 중...</span>`;
 
-  const prompt = `영어 단어 "${english}"의 한국어 뜻을 알려주세요.
-
-중요 규칙:
-1. 단순 음역(code→코드, interface→인터페이스)은 절대 안 됩니다.
-2. 실제 의미를 한국어로 설명해주세요.
-3. 간결하게 1-2줄로 작성하세요.
-
-JSON 형식으로만 응답: {"meaning": "한국어 뜻"}`;
+  const prompt = buildVocabMeaningPrompt(english);
 
   try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요.");
+    const response = await callGeminiAPI(prompt, "Respond with JSON only.");
     const jsonMatch = response.match(/\{[^}]+\}/);
     if (jsonMatch) {
       const result = JSON.parse(jsonMatch[0]);
@@ -4127,7 +4068,7 @@ function handleVocabCheck(wordNum) {
 
   if (!userAnswer) return;
 
-  const normalize = s => s.replace(/\s+/g, '').toLowerCase();
+  const normalize = (s) => normalizeAnswerText(s);
   const userNorm = normalize(userAnswer);
 
   const correctAnswers = state.correctAnswer.split(',').map(a => normalize(a.trim()));
@@ -4143,6 +4084,7 @@ function handleVocabCheck(wordNum) {
   textarea.classList.remove("correct", "wrong", "revealed", "retried");
 
   const resultDiv = document.getElementById(`vocab-result-${wordNum}`);
+  if (!resultDiv) return;
 
   if (isCorrect) {
     if (state.hasBeenWrong) {
@@ -4282,7 +4224,7 @@ function initializeFileModeModal() {
   function checkSessionAndShowModal() {
     // Check if currentSession does not exist or is a fallback session
     if (!currentSession) {
-      console.log("세션 없음 - 모달 표시");
+      console.log("No session detected - showing modal");
       showFileModeModal();
       return;
     }
@@ -4295,7 +4237,7 @@ function initializeFileModeModal() {
         (!currentSession.answer_key._challenges || currentSession.answer_key._challenges.length === 0));
 
     if (isFallbackSession) {
-      console.log("폴백 세션 감지 - 모달 표시");
+      console.log("Fallback session detected - showing modal");
       showFileModeModal();
     }
   }
@@ -4751,32 +4693,7 @@ async function renderMode6CodeWriting() {
     "Use at least one simple if/elif/else branch."
   ];
 
-  // AI prompt: simple menu + four arithmetic operations + CSV/pandas/matplotlib + only small constraints added
-  const aiPrompt = `
-당신은 전산수학 교수이자 실습 출제자입니다.
-다음 '기본 요구사항'을 절대 벗어나지 말고, 요구사항에 꼭 맞는 단순 문제를 만들어 주세요.
-
-[기본 요구사항]
-${baseLines.map(l => "- " + l).join("\\n")}
-
-[추가 제약 (아주 작게 1~2개만)]
-- while True 또는 if/elif/else를 최소 한 번 포함
-- 사용자 정의 함수 1개(run_menu 같은 이름) 포함
-- 0으로 나누기 방지 로직 추가
-
-출제 규칙:
-- 새로운 도메인(환율, BMI, 가계부 등)을 만들지 말 것. 위 요구사항 그대로 콘솔 메뉴/계산기 흐름만 사용.
-- 학생이 따라야 할 명령/단계만 작성. 불필요한 스토리/장식 금지.
-- 코드 전체를 작성하라고 요구하지 말고, "위 요구사항에 맞춰 코드를 작성하시오" 수준으로 설명.
-- JSON으로만 응답. 코드 블록이나 마크다운 금지.
-
-응답 형식(JSON):
-{
-  "problem_title": "제목",
-  "problem_description": "요구사항을 그대로 반영한 간단한 설명 (2~4줄)",
-  "requirements": ["요구사항1", "요구사항2", "..."],
-  "hints": ["힌트1", "힌트2"]
-}`;
+  const aiPrompt = buildMode6ProblemPrompt(baseLines, minorExtras);
 
   try {
     const response = await callGeminiAPI(aiPrompt, "JSON only. No code fences, no markdown.");
@@ -4787,10 +4704,10 @@ ${baseLines.map(l => "- " + l).join("\\n")}
       if (jsonMatch) {
         problemData = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error("JSON 파싱 실패");
+        throw new Error("JSON parse failed");
       }
     } catch (e) {
-      throw new Error("문제 생성 실패: " + e.message);
+      throw new Error("Problem generation failed: " + e.message);
     }
 
     const requirementList = problemData.requirements && problemData.requirements.length
@@ -4922,11 +4839,15 @@ ${userCode}
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error("JSON 파싱 실패");
+        throw new Error("JSON parse failed");
       }
     } catch (e) {
       // Judging from text when JSON parsing fails
-      const passed = response.includes('passed": true') || response.includes('정답') || response.includes('합격');
+      const lowerResponse = (response || "").toLowerCase();
+      const passed = lowerResponse.includes('passed": true') ||
+        lowerResponse.includes('"passed":true') ||
+        lowerResponse.includes("correct") ||
+        lowerResponse.includes("pass");
       result = { score: passed ? 80 : 50, passed, feedback: response, missing: [] };
     }
 
@@ -4974,7 +4895,7 @@ ${userCode}
 }
 
 /**
- * 모드 6 초기화
+ * Mode 6 reset
  */
 function resetMode6() {
   const codeInput = document.getElementById('mode6-code-input');
@@ -4989,23 +4910,16 @@ function resetMode6() {
 }
 
 /**
- * 모드 6 힌트 보기
+ * Mode 6 hint display
  */
 async function showMode6Hint() {
   const resultDiv = document.getElementById('mode6-result');
   resultDiv.innerHTML = `<div class="definition-loading">💡 힌트 생성 중...</div>`;
 
-  const prompt = `문제: ${mode6State.problem}
-
-이 문제를 풀기 위한 핵심 힌트를 알려주세요:
-1. 필수 import문
-2. 기본 코드 구조 (의사 코드 수준)
-3. 주의할 점
-
-정답 코드를 직접 주지 말고, 힌트만 주세요.`;
+  const prompt = buildMode6HintPrompt(mode6State.problem);
 
   try {
-    const response = await callGeminiAPI(prompt, "힌트만 제공하세요. 정답 코드는 주지 마세요.");
+    const response = await callGeminiAPI(prompt, "Provide hints only. Do not provide the full answer code.");
     resultDiv.innerHTML = `
       <div style="background: rgba(247, 215, 116, 0.1); border: 1px solid rgba(247, 215, 116, 0.3); border-radius: 12px; padding: 20px;">
         <h3 style="color: var(--yellow); margin: 0 0 12px 0;">💡 힌트</h3>
@@ -5031,15 +4945,15 @@ let mode1State = {
 };
 
 /**
- * CSharp_코드문제.txt 파일을 파싱하여 문제 배열 반환
+ * Parse CSharp_코드문제.txt into a problem array.
  */
 function parseCSharpQuestions(text) {
-  console.log('[Mode1] 파싱 시작, 텍스트 길이:', text.length);
+  console.log('[Mode1] Parsing start, text length:', text.length);
   const questions = [];
 
   // ===== Problem N: separated by
   const blocks = text.split(/={5,}\s*문제\s*\d+\s*:\s*/);
-  console.log('[Mode1] 분리된 블록 수:', blocks.length);
+  console.log('[Mode1] Split block count:', blocks.length);
 
   blocks.forEach((block, idx) => {
     if (idx === 0) return; // The first block is the file header
@@ -5089,7 +5003,7 @@ function parseCSharpQuestions(text) {
     const blankCount = (code.match(/_____/g) || []).length;
     const answerCount = Object.keys(answers).length;
 
-    console.log(`[Mode1] 문제 ${idx}: topic="${topic}", 빈칸=${blankCount}, 정답=${answerCount}`);
+    console.log(`[Mode1] Question ${idx}: topic="${topic}", blanks=${blankCount}, answers=${answerCount}`);
 
     if (topic && code.trim() && blankCount > 0 && answerCount > 0) {
       // Create blank information
@@ -5114,15 +5028,15 @@ function parseCSharpQuestions(text) {
     }
   });
 
-  console.log('[Mode1] 파싱 완료, 문제 수:', questions.length);
+  console.log('[Mode1] Parsing complete, questions:', questions.length);
   return questions;
 }
 
 /**
- * 모드 1 렌더링 함수 (완전 AI 기반)
- * - C# 코드 파일 로드
- * - AI가 랜덤 빈칸 생성
- * - AI 채점/정답 표시
+ * Mode 1 rendering (full AI)
+ * - Load C# code file
+ * - AI generates random blanks
+ * - AI grading/answer reveal
  */
 async function renderMode1OOPBlanks(difficulty = 'normal') {
   const codeArea = document.getElementById('code-area');
@@ -5138,14 +5052,14 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
     const legacyUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
     let resp = await fetch(primaryUrl);
     if (!resp.ok) resp = await fetch(legacyUrl);
-    if (!resp.ok) throw new Error('파일을 찾을 수 없습니다');
+    if (!resp.ok) throw new Error('Source file not found');
     const rawText = await resp.text();
 
     // Extract original C# code blocks (without spaces)
     const codeBlocks = extractCSharpCodeBlocks(rawText);
 
     if (codeBlocks.length === 0) {
-      throw new Error('코드 블록을 찾을 수 없습니다');
+      throw new Error('Code block not found');
     }
 
     // Create blank space in every code block (randomly select X → cover all)
@@ -5166,7 +5080,7 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
     }
 
     if (aiGeneratedQuestions.length === 0) {
-      throw new Error('AI 빈칸 생성 실패');
+      throw new Error('AI blank generation failed');
     }
 
     // Save state (AI generated data)
@@ -5244,7 +5158,7 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
 }
 
 /**
- * C# 코드 블록 추출 (파일에서 원본 코드만 추출)
+ * Extract C# code blocks (source only) from file content
  */
 function extractCSharpCodeBlocks(text) {
   const blocks = [];
@@ -5393,7 +5307,7 @@ ${code}
 }
 
 /**
- * Mode 1 AI 이벤트 리스너 설정 (Enter 시 AI 채점)
+ * Mode 1 AI event listeners (Enter triggers AI grading)
  */
 function setupMode1AIEventListeners() {
   const inputs = document.querySelectorAll('.mode1-input');
@@ -5424,7 +5338,7 @@ function setupMode1AIEventListeners() {
 }
 
 /**
- * AI 채점
+ * AI grading
  */
 async function checkMode1AnswerAI(input) {
   const qNum = parseInt(input.dataset.q);
@@ -5442,22 +5356,14 @@ async function checkMode1AnswerAI(input) {
   // loading indicator
   input.style.borderColor = 'var(--yellow)';
 
-  // Pass full original code and blank information
-  const prompt = `C# 빈칸 문제 채점.
-
-## 원본 전체 코드
-\`\`\`csharp
-${question.originalCode || question.codeWithBlanks}
-\`\`\`
-
-## 빈칸 ${blankNum}번
-학생 답: "${userAnswer}"
-
-빈칸 ${blankNum}에 "${userAnswer}"가 맞으면 CORRECT, 틀리면 WRONG.
-대소문자 무시. 한 단어만 응답.`;
+  const prompt = buildMode1GradePrompt({
+    code: question.originalCode || question.codeWithBlanks,
+    blankNum,
+    userAnswer
+  });
 
   try {
-    const response = await callGeminiAPI(prompt, "CORRECT 또는 WRONG 한 단어만 응답.");
+    const response = await callGeminiAPI(prompt, "Reply with only CORRECT or WRONG.");
     const isCorrect = response.toUpperCase().includes('CORRECT') && !response.toUpperCase().includes('WRONG');
 
     input.classList.remove('correct', 'wrong');
@@ -5488,7 +5394,7 @@ ${question.originalCode || question.codeWithBlanks}
 }
 
 /**
- * AI 정답 표시
+ * AI answer reveal
  */
 async function revealMode1AnswerAI(input) {
   const qNum = parseInt(input.dataset.q);
@@ -5502,25 +5408,18 @@ async function revealMode1AnswerAI(input) {
   input.value = "정답 로딩중...";
   input.disabled = true;
 
-  // Request correct answer with full original code
-  const prompt = `C# 코드의 빈칸 정답 알려줘.
-
-## 원본 전체 코드
-\`\`\`csharp
-${question.originalCode || question.codeWithBlanks}
-\`\`\`
-
-위 코드에서 빈칸 ${blankNum}번의 정답은?
-설명 없이 정답 단어/키워드만 응답. 예: public, try, catch 등`;
+  const prompt = buildMode1AnswerPrompt({
+    code: question.originalCode || question.codeWithBlanks,
+    blankNum
+  });
 
   try {
-    const response = await callGeminiAPI(prompt, "정답 단어만 응답해. 다른 설명 없이 한 단어.");
+    const response = await callGeminiAPI(prompt, "Return only the answer token. No other text.");
     // Remove unnecessary parts from the response
     let answer = response.trim()
       .replace(/```/g, '')
       .replace(/\n/g, ' ')
-      .replace(/정답[은:]?\s*/gi, '')
-      .replace(/빈칸\s*\d+[번:]?\s*/gi, '')
+      .replace(/\b(answer|blank\s*\d+|correct answer)[:\s-]*/gi, '')
       .replace(/^\s*["`']|["`']\s*$/g, '')
       .trim();
 
@@ -5545,7 +5444,7 @@ ${question.originalCode || question.codeWithBlanks}
 }
 
 /**
- * 힌트 보기 (노란 물음표)
+ * Hint (yellow question mark)
  */
 async function explainMode1BlankAI(questionNum, blankNum) {
   const question = mode1State.questions[questionNum - 1];
@@ -5554,21 +5453,13 @@ async function explainMode1BlankAI(questionNum, blankNum) {
   openAIPanel();
   explanationArea.innerHTML = `<div class="explanation-loading">💡 힌트 생성 중...</div>`;
 
-  const prompt = `C# 코드에서 빈칸 ${blankNum}번에 대한 힌트를 줘.
-
-## 전체 코드
-\`\`\`csharp
-${question.originalCode || question.codeWithBlanks}
-\`\`\`
-
-## 힌트 형식
-1. 이 위치에 무엇이 필요한지 (정답은 알려주지 마!)
-2. 관련 C# 개념 설명 (1-2줄)
-
-정답을 직접 알려주지 말고 힌트만!`;
+  const prompt = buildMode1HintPrompt({
+    code: question.originalCode || question.codeWithBlanks,
+    blankNum
+  });
 
   try {
-    const response = await callGeminiAPI(prompt, "힌트만 주고 정답은 절대 알려주지 마.");
+    const response = await callGeminiAPI(prompt, "Give a hint only and never reveal the exact answer.");
     explanationArea.innerHTML = `
       <div class="explanation-content">
         <strong style="color: var(--yellow);">💡 빈칸 ${blankNum}번 힌트</strong>
@@ -5581,7 +5472,7 @@ ${question.originalCode || question.codeWithBlanks}
 }
 
 /**
- * 왜 틀렸어요? (빨간 물음표)
+ * Why wrong? (red question mark)
  */
 async function explainMode1WhyWrong(questionNum, blankNum) {
   const question = mode1State.questions[questionNum - 1];
@@ -5593,20 +5484,14 @@ async function explainMode1WhyWrong(questionNum, blankNum) {
   openAIPanel();
   explanationArea.innerHTML = `<div class="explanation-loading">❓ 분석 중...</div>`;
 
-  const prompt = `C# 코드에서 학생의 답이 왜 틀렸는지 설명해줘.
-
-## 전체 코드
-\`\`\`csharp
-${question.originalCode || question.codeWithBlanks}
-\`\`\`
-
-## 빈칸 ${blankNum}번
-학생의 답: "${userAnswer}"
-
-왜 틀렸는지, 정답이 무엇인지 간단히 설명해줘.`;
+  const prompt = buildMode1WhyWrongPrompt({
+    code: question.originalCode || question.codeWithBlanks,
+    blankNum,
+    userAnswer
+  });
 
   try {
-    const response = await callGeminiAPI(prompt, "왜 틀렸는지 친절하게 설명.");
+    const response = await callGeminiAPI(prompt, "Explain briefly why it is wrong and what should be there.");
     explanationArea.innerHTML = `
       <div class="explanation-content">
         <strong style="color: var(--red);">❓ 왜 틀렸나요?</strong>
@@ -5621,7 +5506,7 @@ ${question.originalCode || question.codeWithBlanks}
 
 
 /**
- * C# 코드 구문 강조
+ * C# syntax highlighting
  */
 function highlightCSharpSyntax(code) {
   // Keyword Highlighting
@@ -5657,7 +5542,7 @@ function highlightCSharpSyntax(code) {
 }
 
 /**
- * Mode 1 이벤트 리스너 설정
+ * Mode 1 event listeners
  */
 function setupMode1EventListeners() {
   const inputs = document.querySelectorAll('.mode1-input');
@@ -5706,7 +5591,7 @@ function focusNextMode1Input(current) {
 }
 
 /**
- * Mode 1 개별 빈칸 체크 (AI 채점 우선, 실패 시 로컬 폴백)
+ * Mode 1 single blank check (AI-first, fallback to local)
  */
 async function checkMode1Single(input, showAnswer = false) {
   const qNum = input.dataset.q;
@@ -5859,7 +5744,7 @@ Share only hints—never the exact answer.`;
 }
 
 /**
- * Mode 1 AI 기반 채점 (코드 맥락 이해)
+ * Mode 1 AI grading with code context
  */
 async function checkMode1WithAI(input, showAnswer = false) {
   const qNum = parseInt(input.dataset.q);
@@ -5896,27 +5781,15 @@ async function checkMode1WithAI(input, showAnswer = false) {
     return;
   }
 
-  // AI Grading Prompts
-  const prompt = `C# 코드에서 빈칸에 들어갈 답을 채점해줘.
-
-## 코드 맥락
-${question.code.split('\n').slice(0, 30).join('\n')}
-
-## 빈칸 ${blankNum}번
-- 저장된 정답: "${storedAnswer}"
-- 학생 답변: "${userAnswer}"
-
-## 채점 기준
-1. 정확히 일치하면 CORRECT
-2. 대소문자 차이만 있으면 Wrong
-3. 공백 차이만 있어도 CORRECT
-4. 같은 의미의 다른 표현이면 CORRECT (예: "new int[]"와 "new int []")
-5. 그 외는 WRONG
-
-반드시 CORRECT 또는 WRONG 중 하나만 응답해.`;
+  const prompt = buildMode1GradePrompt({
+    code: question.code.split('\n').slice(0, 30).join('\n'),
+    blankNum,
+    userAnswer,
+    storedAnswer
+  });
 
   try {
-    const response = await callGeminiAPI(prompt, "CORRECT 또는 WRONG 중 하나만 응답해.");
+    const response = await callGeminiAPI(prompt, "Respond with CORRECT or WRONG only.");
     const isCorrect = response.toUpperCase().includes('CORRECT');
 
     input.classList.remove('correct', 'wrong', 'revealed');
@@ -5944,7 +5817,7 @@ ${question.code.split('\n').slice(0, 30).join('\n')}
 }
 
 /**
- * Mode 1 로컬 채점 (폴백용)
+ * Mode 1 local grading fallback
  */
 function checkMode1SingleLocal(input, showAnswer = false) {
   const qNum = input.dataset.q;
@@ -5980,3 +5853,15 @@ function checkMode1SingleLocal(input, showAnswer = false) {
 
   updateMode1Score();
 }
+
+// Expose functions needed by inline event handlers
+Object.assign(window, {
+  explainMode1BlankAI,
+  explainMode1WhyWrong,
+  explainWhyWrong,
+  renderMode1OOPBlanks,
+  renderMode6CodeWriting,
+  resetMode6,
+  showMode6Hint,
+  submitMode6Code,
+});
