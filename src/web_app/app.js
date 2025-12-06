@@ -4675,12 +4675,17 @@ function initializeFileModeModal() {
         if (modeBtn) modeBtn.classList.add("active");
       }
 
-      // C# OOP 코드 선택 시 AI 방식 자동 선택
-      if (selectedPreset === "oop_code") {
+      // 기본 방식 자동 선택: 모드/파일에 따라
+      if (selectedPreset === "oop_code" || selectedPreset === "math_practice") {
         selectedMethod = "ai";
         document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
         const aiMethodBtn = document.querySelector('.fm-method[data-method="ai"]');
         if (aiMethodBtn) aiMethodBtn.classList.add("active");
+      } else {
+        selectedMethod = "local";
+        document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
+        const localBtn = document.querySelector('.fm-method[data-method="local"]');
+        if (localBtn) localBtn.classList.add("active");
       }
     });
   });
@@ -4735,6 +4740,18 @@ function initializeFileModeModal() {
       document.querySelectorAll(".fm-mode").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedMode = parseInt(btn.dataset.mode, 10);
+      // 모드 1, 6은 AI 필수, 나머지는 로컬 기본
+      if (selectedMode === 1 || selectedMode === 6) {
+        selectedMethod = "ai";
+        document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
+        const aiBtn = document.querySelector('.fm-method[data-method="ai"]');
+        if (aiBtn) aiBtn.classList.add("active");
+      } else {
+        selectedMethod = "local";
+        document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
+        const localBtn = document.querySelector('.fm-method[data-method="local"]');
+        if (localBtn) localBtn.classList.add("active");
+      }
     });
   });
 
@@ -4742,6 +4759,14 @@ function initializeFileModeModal() {
   let selectedMethod = "local";
   document.querySelectorAll(".fm-method").forEach(btn => {
     btn.addEventListener("click", () => {
+      // 모드 1,6은 AI 고정
+      if (selectedMode === 1 || selectedMode === 6) {
+        selectedMethod = "ai";
+        document.querySelectorAll(".fm-method").forEach(b => b.classList.remove("active"));
+        const aiBtn = document.querySelector('.fm-method[data-method="ai"]');
+        if (aiBtn) aiBtn.classList.add("active");
+        return;
+      }
       document.querySelectorAll(".fm-method").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedMethod = btn.dataset.method;
@@ -4904,66 +4929,80 @@ window.addEventListener("unload", () => {
 });
 
 // ============================================================================
-// 모드 6: 전산수학 코드 작성 모드
-// ----------------------------------------------------------------------------
-// 목적: 교수님의 전산수학 시험 대비
-// - AI가 "메뉴 → 계산기 → CSV 저장 → 판다스 → 그래프" 흐름에 기반한 문제 생성
-// - 학생이 전체 코드를 직접 작성
-// - AI가 로직/흐름이 맞으면 정답으로 채점 (융통성 있게)
+// 모드 6: 전산수학 코드 작성 모드 (간단 요구사항 고정)
 // ============================================================================
 
-// 모드 6 상태 관리
 let mode6State = {
-  problem: '',       // 문제 설명
-  sampleCode: '',    // 참고용 샘플 코드 (채점 시 비교용)
-  userCode: '',      // 사용자가 작성한 코드
-  submitted: false,  // 제출 여부
-  isCorrect: null    // 채점 결과
+  problem: '',
+  sampleCode: '',
+  userCode: '',
+  submitted: false,
+  isCorrect: null
 };
 
-/**
- * 모드 6 렌더링 함수
- * - AI가 전산수학 스타일의 코드 작성 문제를 생성하고 화면에 표시
- * - 메뉴/계산기/CSV/판다스/그래프 흐름을 변형한 문제
- */
 async function renderMode6CodeWriting() {
   const codeArea = document.getElementById('code-area');
-  codeArea.innerHTML = `<div class="definition-loading">🤖 AI가 전산수학 코드 작성 문제를 생성 중...</div>`;
+  codeArea.innerHTML = `<div class="definition-loading">🤖 전산수학 기본 실습 프롬프트를 생성 중...</div>`;
 
-  // 제목 업데이트
   sessionTitle.textContent = "전산수학 코드 작성";
-  sessionMode.textContent = "코드 작성 (AI 채점)";
+  sessionMode.textContent = "코드 작성 (AI)";
 
-  // AI에게 문제 생성 요청
-  const prompt = `당신은 전산수학 시험 출제자입니다.
+  // 기본 요구사항 로드 (파일 없으면 하드코딩)
+  let baseLines = [];
+  try {
+    const resp = await fetch('/data/6_Computational_Math_Practice.txt?t=' + Date.now());
+    if (!resp.ok) throw new Error('base file fetch failed');
+    const text = await resp.text();
+    baseLines = text
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.startsWith('- '))
+      .map(l => l.replace(/^-\s*/, '').trim());
+  } catch (e) {
+    baseLines = [
+      "Build a console menu loop in Python (while True + if/elif/else branching).",
+      "Perform basic arithmetic (+, -, *, /) and log each operation.",
+      "On exit, save the log to CSV (utf-8-sig) and support reload.",
+      "Use pandas + matplotlib to plot the log."
+    ];
+  }
 
-아래 패턴을 변형하여 "전체 코드를 작성하시오" 형태의 문제를 출제하세요:
-- 메뉴(while 루프) 기반 프로그램
-- 사칙연산 계산기 (덧셈, 뺄셈, 곱셈, 나눗셈)
-- 결과를 리스트/딕셔너리에 저장
-- CSV 파일 저장 (pandas 또는 csv 모듈)
-- 판다스 DataFrame 생성
-- matplotlib 그래프 출력
+  const minorExtras = [
+    "Add one user-defined function (e.g., run_menu).",
+    "Guard divide-by-zero before performing division.",
+    "Use at least one simple if/elif/else branch."
+  ];
 
-아래 중 하나를 선택해서 변형하세요:
-1. 온도 변환기 (섭씨↔화씨) + CSV 저장 + 그래프
-2. 성적 관리 프로그램 + 평균 계산 + 그래프
-3. 가계부 프로그램 + 수입/지출 + 파이 차트
-4. BMI 계산기 + 기록 저장 + 추이 그래프
-5. 단위 변환기 (km/ml, kg/lb 등) + 기록
+  // AI 프롬프트: 단순 메뉴 + 사칙연산 + CSV/pandas/matplotlib + 소형 제약만 추가
+  const aiPrompt = `
+당신은 전산수학 교수이자 실습 출제자입니다.
+다음 '기본 요구사항'을 절대 벗어나지 말고, 요구사항에 꼭 맞는 단순 문제를 만들어 주세요.
 
-## 응답 형식 (JSON으로만 응답):
+[기본 요구사항]
+${baseLines.map(l => "- " + l).join("\\n")}
+
+[추가 제약 (아주 작게 1~2개만)]
+- while True 또는 if/elif/else를 최소 한 번 포함
+- 사용자 정의 함수 1개(run_menu 같은 이름) 포함
+- 0으로 나누기 방지 로직 추가
+
+출제 규칙:
+- 새로운 도메인(환율, BMI, 가계부 등)을 만들지 말 것. 위 요구사항 그대로 콘솔 메뉴/계산기 흐름만 사용.
+- 학생이 따라야 할 명령/단계만 작성. 불필요한 스토리/장식 금지.
+- 코드 전체를 작성하라고 요구하지 말고, "위 요구사항에 맞춰 코드를 작성하시오" 수준으로 설명.
+- JSON으로만 응답. 코드 블록이나 마크다운 금지.
+
+응답 형식(JSON):
 {
-  "problem_title": "프로그램 제목",
-  "problem_description": "상세한 문제 설명 (어떤 기능을 구현해야 하는지 명확하게)",
-  "requirements": ["요구사항1", "요구사항2", "요구사항3"],
-  "sample_code": "정답 예시 코드 (채점 기준용, 학생에게는 보이지 않음)"
+  "problem_title": "제목",
+  "problem_description": "요구사항을 그대로 반영한 간단한 설명 (2~4줄)",
+  "requirements": ["요구사항1", "요구사항2", "..."],
+  "hints": ["힌트1", "힌트2"]
 }`;
 
   try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요. 코드 블록 없이 순수 JSON만.");
+    const response = await callGeminiAPI(aiPrompt, "JSON only. No code fences, no markdown.");
 
-    // JSON 파싱
     let problemData;
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -4976,63 +5015,58 @@ async function renderMode6CodeWriting() {
       throw new Error("문제 생성 실패: " + e.message);
     }
 
-    // 상태 저장
+    const requirementList = problemData.requirements && problemData.requirements.length
+      ? problemData.requirements
+      : [...baseLines, ...minorExtras.slice(0, 2)];
+
     mode6State = {
-      problem: problemData.problem_description,
-      sampleCode: problemData.sample_code || '',
+      problem: problemData.problem_description || "",
+      sampleCode: '',
       userCode: '',
       submitted: false,
       isCorrect: null
     };
 
-    // UI 렌더링
     codeArea.innerHTML = `
       <div class="mode6-container" style="max-width: 900px; margin: 0 auto;">
-        <!-- 문제 설명 카드 -->
         <div class="mode6-problem-card" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-          <h2 style="color: #667eea; margin: 0 0 12px 0;">📝 ${escapeHtml(problemData.problem_title)}</h2>
-          <p style="color: var(--text); line-height: 1.7; white-space: pre-line;">${escapeHtml(problemData.problem_description)}</p>
-          
+          <h2 style="color: #667eea; margin: 0 0 12px 0;">📝 ${escapeHtml(problemData.problem_title || "Computational Math Practice")}</h2>
+          <p style="color: var(--text); line-height: 1.7; white-space: pre-line;">${escapeHtml(problemData.problem_description || "")}</p>
           <div style="margin-top: 16px;">
-            <h4 style="color: var(--accent-2); margin: 0 0 8px 0;">✅ 요구사항</h4>
+            <h4 style="color: var(--accent-2); margin: 0 0 8px 0;">✅ Requirements</h4>
             <ul style="color: var(--text); margin: 0; padding-left: 20px;">
-              ${problemData.requirements.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+              ${requirementList.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
             </ul>
           </div>
+          ${problemData.hints && problemData.hints.length ? `
+            <div style="margin-top: 12px;">
+              <h4 style="color: var(--accent); margin: 0 0 8px 0;">💡 Hints</h4>
+              <ul style="color: var(--text); margin: 0; padding-left: 20px;">
+                ${problemData.hints.map(h => `<li>${escapeHtml(h)}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ""}
         </div>
-        
-        <!-- 코드 입력 영역 -->
+
         <div class="mode6-input-area" style="margin-bottom: 20px;">
           <h3 style="color: var(--accent); margin: 0 0 12px 0;">💻 코드 작성</h3>
-          <textarea id="mode6-code-input" 
-            class="challenge-textarea" 
-            placeholder="# 여기에 전체 코드를 작성하세요...
-import pandas as pd
-import matplotlib.pyplot as plt
-
-def main():
-    # 메뉴 기반 프로그램 시작
-    ...
-
-if __name__ == '__main__':
-    main()"
+          <textarea id="mode6-code-input"
+            class="challenge-textarea"
+            placeholder="# Write the full code here following the given requirements.\n# Keep it simple: menu loop, arithmetic log, CSV save/reload, pandas + matplotlib."
             style="width: 100%; min-height: 400px; font-family: var(--font-code); font-size: 14px; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); resize: vertical;"
             spellcheck="false"></textarea>
         </div>
-        
-        <!-- 버튼 영역 -->
+
         <div class="mode6-buttons" style="display: flex; gap: 12px; flex-wrap: wrap;">
           <button id="mode6-submit-btn" onclick="submitMode6Code()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600;">🚀 제출 및 AI 채점</button>
           <button onclick="resetMode6()" style="padding: 12px 24px; background: var(--muted); color: var(--text); border: none; border-radius: 8px; cursor: pointer;">🔄 초기화</button>
           <button onclick="showMode6Hint()" style="padding: 12px 24px; background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; cursor: pointer;">💡 힌트 보기</button>
         </div>
-        
-        <!-- 결과 영역 -->
+
         <div id="mode6-result" class="mode6-result" style="margin-top: 20px;"></div>
       </div>
     `;
 
-    // 코드 입력 시 Tab 처리
     const codeInput = document.getElementById('mode6-code-input');
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Tab') {
@@ -5044,9 +5078,7 @@ if __name__ == '__main__':
       }
     });
 
-    // 세션 카운트 업데이트
     sessionCount.textContent = "1";
-
   } catch (err) {
     codeArea.innerHTML = `<div class="mc-wrong" style="padding: 20px;">❌ 문제 생성 오류: ${err.message}<br><br><button onclick="renderMode6CodeWriting()" style="padding: 10px 20px; background: var(--accent-2); border: none; border-radius: 6px; cursor: pointer;">🔄 다시 시도</button></div>`;
   }
