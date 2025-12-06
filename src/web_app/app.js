@@ -700,9 +700,12 @@ async function sendChatMessage() {
   chatMessages.innerHTML += `<div class="chat-message assistant" id="loading-${loadingId}">🤔 생각 중...</div>`;
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
-  // Build context with question information (첫 메시지에만)
+  // Check if user is asking about a specific question number
+  const numMatch = message.match(/(\d+)\s*번/);
+
+  // Build context with question information (First message only, AND if not asking specific Q)
   let context = "";
-  if (chatHistory.length === 0) {
+  if (chatHistory.length === 0 && !numMatch) {
     // If parsed quiz mode, include question list for AI to understand question numbers
     if (currentSession?.answer_key?._questions && currentQuestions.length > 0) {
       const questionList = currentQuestions.map((q, idx) => {
@@ -720,9 +723,6 @@ async function sendChatMessage() {
     }
   }
 
-  // Check if user is asking about a specific question number
-  const numMatch = message.match(/(\d+)\s*번/);
-
   // Case A: Parsed Quiz (currentQuestions exists)
   if (numMatch && currentQuestions.length > 0) {
     const qNum = parseInt(numMatch[1]);
@@ -738,38 +738,84 @@ ${targetQ.correct ? `- 정답: ${targetQ.correct}번` : ""}
 `;
     }
   }
-  // Case B: Blank Mode (Mode 1, 2, 3...) - dynamic look up
-  else if (numMatch && inputs.length > 0) {
+  // Case B: Blank Mode (Mode 1, 2, 3...) - dynamic look up with multiple selectors
+  else if (numMatch) {
     const qNum = parseInt(numMatch[1]);
-    // inputs are 0-indexed in array, but 1-indexed in UI usually
-    // We need to find the input with data-key=qNum or just index
-    // Let's assume user says "22번" means data-key="22"
-    const inputEl = document.querySelector(`input.blank[data-key="${qNum}"]`);
-    if (inputEl) {
-      // Find line context
-      const parentLine = inputEl.closest('.code-line');
-      if (parentLine) {
-        const lineNum = parentLine.dataset.line;
-        // Get surrounding lines
-        const allLines = document.querySelectorAll('.code-line');
-        let contextLines = [];
-        allLines.forEach(line => {
-          const ln = parseInt(line.dataset.line);
-          if (Math.abs(ln - lineNum) <= 5) { // +/- 5 lines
-            contextLines.push(`${ln}| ${line.textContent}`);
-          }
-        });
-        const answer = answerKeyMap[qNum] || "정보 없음";
-        context += `\n\n🎯 ${qNum}번 빈칸 상세:
-- 정답: ${answer}
-- 학생 답안: ${inputEl.value}
-- 문맥 코드:
-\`\`\`python
-${contextLines.join('\n')}
-\`\`\`
-AI 지침: 위 문맥 코드를 보고, 이 빈칸의 정답이 왜 '${answer}'인지, 혹은 학생의 질문에 대해 정확히 답변해줘. 위치를 착각하지 마.
-`;
+
+    // Try multiple input selectors for different modes
+    let inputEl = document.querySelector(`input[data-global-idx="${qNum}"]`)
+      || document.querySelector(`input.mode1-input[data-global-idx="${qNum}"]`)
+      || document.querySelector(`input.blank-card-input[data-key="${qNum}"]`)
+      || document.querySelector(`input.blank[data-key="${qNum}"]`);
+
+    // If not found by data attribute, try index-based lookup
+    if (!inputEl) {
+      const allModeInputs = document.querySelectorAll('.mode1-input, .blank-card-input, input.blank');
+      if (qNum >= 1 && qNum <= allModeInputs.length) {
+        inputEl = allModeInputs[qNum - 1];
       }
+    }
+
+    if (inputEl) {
+      // Get the answer from various sources
+      const answer = inputEl.dataset.answer
+        || answerKeyMap[qNum]
+        || answerKeyMap[inputEl.dataset.key]
+        || "정보 없음";
+
+      // Find function context - look for containing code card or code area
+      const card = inputEl.closest('.blank-card') || inputEl.closest('.code-line')?.parentElement;
+      let functionContext = "";
+      let codeContext = "";
+
+      if (card) {
+        // Get the question/card header for function name
+        const header = card.querySelector('.blank-card-header, .blank-card-num');
+        if (header) {
+          functionContext = header.textContent.trim();
+        }
+
+        // Get the code from the card
+        const codeBlock = card.querySelector('.blank-card-code, pre');
+        if (codeBlock) {
+          codeContext = codeBlock.textContent.trim();
+          // Highlight where the blank is
+          const blankNum = inputEl.dataset.blank || inputEl.dataset.key || qNum;
+          codeContext = `빈칸 ${qNum}번 위치의 코드 전체:\n\`\`\`python\n${codeContext}\n\`\`\``;
+        }
+      }
+
+      // Fallback to line context
+      if (!codeContext) {
+        const parentLine = inputEl.closest('.code-line');
+        if (parentLine) {
+          const lineNum = parseInt(parentLine.dataset.line);
+          const allLines = document.querySelectorAll('.code-line');
+          let contextLines = [];
+          allLines.forEach(line => {
+            const ln = parseInt(line.dataset.line);
+            if (Math.abs(ln - lineNum) <= 8) {
+              contextLines.push(`${ln}| ${line.textContent}`);
+            }
+          });
+          codeContext = `\`\`\`python\n${contextLines.join('\n')}\n\`\`\``;
+        }
+      }
+
+      // Build detailed context with clear instructions
+      context += `\n\n[빈칸 ${qNum}번 정보]
+${functionContext ? `함수/위치: ${functionContext}` : ""}
+정답: "${answer}"
+학생 답안: "${inputEl.value || "(미입력)"}"
+
+${codeContext}
+
+[AI 필수 지침]
+1. 위 코드 블록에서만 ${qNum}번 빈칸의 정답을 판단해.
+2. 다른 함수(예: insertAt)의 변수명(newNode)과 이 함수(예: insertNode)의 변수명(node)을 혼동하지 마.
+3. 정답을 설명할 때: "이 위치는 ~하는 부분이라 정답은 '${answer}'이다" 형식으로 간략히 핵심만 설명해.
+4. 절대로 코드를 그대로 복붙하지 말고 논리만 설명해.
+`;
     }
   }
 
@@ -1333,6 +1379,75 @@ window.addEventListener("scroll", () => {
 // AI Panel close button - with null check
 const btnClosePanel = document.getElementById("btn-close-panel");
 if (btnClosePanel) btnClosePanel.addEventListener("click", closeAIPanel);
+
+// ========== AI PANEL RESIZE FUNCTIONALITY ==========
+(function initAIPanelResize() {
+  const resizeHandle = document.getElementById("ai-panel-resize");
+  const panel = document.getElementById("ai-panel");
+  if (!resizeHandle || !panel) return;
+
+  let isResizing = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  // Make entire left edge resizable
+  resizeHandle.addEventListener("mousedown", (e) => {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = panel.offsetWidth;
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!isResizing) return;
+
+    // Calculate new width (dragging left edge means subtract delta)
+    const deltaX = startX - e.clientX;
+    let newWidth = startWidth + deltaX;
+
+    // More flexible limits: min 200px, max 80% of window
+    const minWidth = 200;
+    const maxWidth = window.innerWidth * 0.8;
+
+    newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+    panel.style.width = `${newWidth}px`;
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+  });
+
+  // Make cursor change on hover for entire left edge
+  panel.addEventListener("mousemove", (e) => {
+    const rect = panel.getBoundingClientRect();
+    const leftEdge = e.clientX - rect.left;
+    if (leftEdge <= 8) {
+      panel.style.cursor = "ew-resize";
+    } else {
+      panel.style.cursor = "";
+    }
+  });
+
+  // Allow clicking anywhere on left edge to start resize
+  panel.addEventListener("mousedown", (e) => {
+    const rect = panel.getBoundingClientRect();
+    const leftEdge = e.clientX - rect.left;
+    if (leftEdge <= 8) {
+      isResizing = true;
+      startX = e.clientX;
+      startWidth = panel.offsetWidth;
+      document.body.style.cursor = "ew-resize";
+      document.body.style.userSelect = "none";
+      e.preventDefault();
+    }
+  });
+})();
 
 // Ctrl+L keyboard shortcut for AI panel
 document.addEventListener("keydown", (e) => {
@@ -2838,6 +2953,37 @@ function renderBlankCards(blanks, answerKey, language) {
   updateBlankCardScore();
 }
 
+/**
+ * Flexible answer comparison for code blanks
+ * - Normalizes whitespace (multiple spaces → single space)
+ * - CASE SENSITIVE (대소문자 구분)
+ * - Ignores leading/trailing whitespace
+ * - Handles common quote formatting differences
+ */
+function isAnswerCorrect(userAnswer, expected) {
+  if (!userAnswer || !expected) return false;
+
+  // Normalize both answers (BUT keep case sensitivity!)
+  const normalize = (s) => s
+    .trim()
+    .replace(/\s+/g, ' ')  // Normalize multiple spaces to single space
+    .replace(/['']/g, "'")  // Normalize fancy quotes
+    .replace(/[""]/g, '"');
+
+  const normalizedUser = normalize(userAnswer);
+  const normalizedExpected = normalize(expected);
+
+  // Exact match after normalization (case sensitive)
+  if (normalizedUser === normalizedExpected) return true;
+
+  // Try removing all whitespace for code comparisons (still case sensitive)
+  const noSpaceUser = normalizedUser.replace(/\s/g, '');
+  const noSpaceExpected = normalizedExpected.replace(/\s/g, '');
+  if (noSpaceUser === noSpaceExpected) return true;
+
+  return false;
+}
+
 function handleBlankCardEnter(input) {
   const cardNum = parseInt(input.dataset.key);
   const expected = input.dataset.answer;
@@ -2845,7 +2991,7 @@ function handleBlankCardEnter(input) {
 
   if (!userAnswer) return;
 
-  const isCorrect = userAnswer === expected;
+  const isCorrect = isAnswerCorrect(userAnswer, expected);
   const state = blankCardStates.find(s => s.cardNum === cardNum);
 
   if (state) {
@@ -3449,7 +3595,7 @@ function checkOne(input) {
   }
   const user = input.value.trim();
   const key = input.dataset.key;
-  const isCorrect = user === expected.trim();
+  const isCorrect = isAnswerCorrect(user, expected);
 
   // 빨간 물음표 버튼 표시/숨김
   const whyBtn = input.parentElement?.querySelector('.why-wrong-btn');
@@ -3540,6 +3686,37 @@ function checkAll() {
 }
 
 function revealAll() {
+  // Mode 1 AI 빈칸 처리 (.mode1-input)
+  const mode1Inputs = document.querySelectorAll('.mode1-input');
+  if (mode1Inputs.length > 0) {
+    mode1Inputs.forEach((input) => {
+      if (input.classList.contains('correct') || input.classList.contains('revealed')) {
+        return; // 이미 처리됨
+      }
+
+      // data-answer 속성에서 정답 가져오기 (로컬 정답 표시)
+      const answer = input.dataset.answer;
+      if (answer) {
+        input.value = answer;
+        input.classList.remove('wrong', 'pending');
+        input.classList.add('revealed');
+        input.style.borderColor = 'var(--yellow)';
+
+        // Nav pill 업데이트
+        const qNum = input.dataset.q;
+        const blankNum = input.dataset.blank;
+        const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
+        if (navPill) {
+          navPill.classList.remove('wrong', 'pending');
+          navPill.classList.add('revealed');
+        }
+      }
+    });
+    updateMode1Score();
+    return;
+  }
+
+  // 일반 빈칸 처리
   inputs.forEach((input) => revealOne(input, { autoAdvance: false }));
   updateScore();
 }
@@ -4190,12 +4367,28 @@ function initializeButtonHandlers() {
   }
 }
 
+// AI 패널 헤더 버튼 이벤트 리스너 부착
+function attachAIHeaderListeners() {
+  const btnAiNew = document.getElementById("btn-ai-new");
+  if (btnAiNew) btnAiNew.addEventListener("click", startNewChatSession);
+
+  const btnAiHistory = document.getElementById("btn-ai-history");
+  if (btnAiHistory) btnAiHistory.addEventListener("click", toggleChatHistory);
+
+  const btnClosePanel = document.getElementById("btn-close-panel");
+  if (btnClosePanel) btnClosePanel.addEventListener("click", toggleAIPanel);
+}
+
 // DOMContentLoaded 이벤트가 이미 발생했는지 확인 (동적 스크립트 로드 시)
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeButtonHandlers);
+  document.addEventListener('DOMContentLoaded', () => {
+    initializeButtonHandlers();
+    attachAIHeaderListeners();
+  });
 } else {
   // 이미 DOM이 로드된 상태면 즉시 실행
   initializeButtonHandlers();
+  attachAIHeaderListeners();
 }
 
 // ========== DEFINITION QUIZ (Mode 5) ==========

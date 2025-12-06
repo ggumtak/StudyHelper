@@ -2915,3 +2915,19 @@ textarea:focus-visible,
 
 /* Resizable Code Area */
 .code-shell { resize: horizontal !important; overflow: auto !important; min-width: 300px; max-width: 90vw; border-right: 4px solid var(--border); }
+/* AI Chat Header Icon Buttons */
+.ai-panel-header-btns .icon-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  color: var(--text-color, #e0e0e0);
+}
+
+.ai-panel-header-btns .icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
