@@ -286,21 +286,33 @@ const KeyboardShortcuts = (window.KeyboardShortcuts = {
     document.addEventListener("keydown", (e) => {
       if (!this.enabled) return;
 
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      const key = (e.key || "").toLowerCase();
+      const inInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+
+      // Core grading shortcut
+      if ((e.ctrlKey || e.metaKey) && key === "enter") {
         e.preventDefault();
         if (typeof checkAll === "function") checkAll();
         return;
       }
 
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
-        if (e.key === "Escape") {
-          e.target.blur();
-          return;
-        }
+      // AI panel toggle should work even while typing
+      if ((e.ctrlKey || e.metaKey) && key === "l") {
+        e.preventDefault();
+        if (typeof toggleAIPanel === "function") toggleAIPanel();
         return;
       }
 
-      switch (e.key.toLowerCase()) {
+      if (inInput) {
+        if (key === "escape") {
+          e.target.blur();
+          if (typeof closeAIPanel === "function") closeAIPanel();
+        }
+        // Prevent stealing plain typing shortcuts while focused
+        return;
+      }
+
+      switch (key) {
         case "a":
           if (typeof toggleAIPanel === "function") toggleAIPanel();
           break;

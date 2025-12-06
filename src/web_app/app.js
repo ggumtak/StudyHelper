@@ -201,6 +201,11 @@ function closeAIPanel() {
   document.body.classList.remove("panel-open");
 }
 
+// Expose to legacy scripts so global shortcuts can reach the panel
+window.toggleAIPanel = toggleAIPanel;
+window.openAIPanel = openAIPanel;
+window.closeAIPanel = closeAIPanel;
+
 // ========== EXPLAIN FEATURE ==========
 async function explainBlank(key) {
   const answer = answerKeyMap[key];
