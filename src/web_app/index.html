@@ -113,7 +113,13 @@
           <div class="nav-title">빈칸 목록</div>
           <button id="btn-toggle-nav" class="toggle-nav-btn" title="목록 닫기">목록 닫기</button>
         </div>
-        <div class="nav-sub">상태: 미답 / 정답 / 힌트 사용 / 오답</div>
+        <div class="nav-sub status-legend">
+          <span>상태:</span>
+          <span class="legend-dot pending"></span><span class="legend-label">미답</span>
+          <span class="legend-dot correct"></span><span class="legend-label">정답</span>
+          <span class="legend-dot revealed"></span><span class="legend-label">힌트 사용</span>
+          <span class="legend-dot wrong"></span><span class="legend-label">오답</span>
+        </div>
         <div id="blank-list" class="blank-list"></div>
       </aside>
       <button id="btn-show-nav" class="show-nav-btn" title="목록 보기">목록</button>
@@ -148,9 +154,22 @@
     <div class="ai-panel-header">
       <h3>AI에게 질문</h3>
       <div class="ai-panel-header-btns">
-        <button id="btn-ai-new" class="icon-btn" title="새 대화">?</button>
-        <button id="btn-ai-history" class="icon-btn" title="대화 기록">??</button>
-        <button id="btn-close-panel" class="icon-btn" title="닫기">?</button>
+        <button id="btn-ai-new" class="icon-btn" title="새 대화" aria-label="새 대화">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 8h10M8 3v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button id="btn-ai-history" class="icon-btn" title="대화 기록" aria-label="대화 기록">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M8 4.5v4l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button id="btn-close-panel" class="icon-btn" title="닫기" aria-label="닫기">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -234,7 +253,7 @@
           <button class="fm-diff" data-diff="hard">어려움</button>
           <button class="fm-diff" data-diff="extreme">극한</button>
         </div>
-        <p class="fm-diff-hint" id="diff-hint">보통: 힌트 30% + 빈칸 40%</p>
+        <p class="fm-diff-hint" id="diff-hint">보통: 중간 정도의 빈칸 비율</p>
       </div>
 
       <div class="fm-section">

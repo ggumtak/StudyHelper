@@ -318,6 +318,30 @@ header {
   margin-top: 4px;
 }
 
+.status-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.status-legend .legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+
+.status-legend .legend-label {
+  margin-right: 6px;
+}
+
+.status-legend .legend-dot.pending { background: #3b465b; }
+.status-legend .legend-dot.correct { background: #5ee6a7; }
+.status-legend .legend-dot.revealed { background: #f7d774; }
+.status-legend .legend-dot.wrong { background: #ff6b6b; }
+
 .blank-list {
   overflow: auto;
   flex: 1;
@@ -979,10 +1003,38 @@ summary {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    justify-content: space-between;
   }
 
   .info {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  /* More comfortable mobile buttons */
+  .controls-right button {
+    flex: 1 1 45%;
+    min-height: 44px;
+  }
+
+  /* Blank list tiles and nav spacing */
+  .blank-nav {
+    padding: 12px 10px;
+    max-height: none;
+  }
+
+  .blank-list {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+  }
+
+  .nav-header .nav-sub {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  /* AI panel height on small screens */
+  .ai-panel {
+    max-height: 70vh;
   }
 }
 
