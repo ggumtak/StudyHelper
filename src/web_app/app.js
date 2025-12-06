@@ -553,7 +553,7 @@ async function loadBaseSystemPrompt() {
   return baseSystemPromptCache;
 }
 
-async function callGeminiAPI(prompt, systemInstruction = "") {
+async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null) {
   const apiKey = getApiKey();
   if (!apiKey) {
     showApiKeyModal();
@@ -563,8 +563,20 @@ async function callGeminiAPI(prompt, systemInstruction = "") {
   const basePrompt = await loadBaseSystemPrompt();
   const mergedSystemInstruction = [basePrompt, systemInstruction].filter(Boolean).join("\n\n");
 
+  // 채팅 히스토리가 있으면 multi-turn 대화 구성
+  let contents;
+  if (chatHistory && chatHistory.length > 0) {
+    // 이전 대화 + 현재 메시지
+    contents = [
+      ...chatHistory,
+      { role: "user", parts: [{ text: prompt }] }
+    ];
+  } else {
+    contents = [{ role: "user", parts: [{ text: prompt }] }];
+  }
+
   const body = {
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    contents: contents,
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 2048,
@@ -719,11 +731,33 @@ ${text}
 }
 
 // ========== CHAT FEATURE ==========
+// 채팅 히스토리 저장 (세션 유지)
+let chatHistory = [];
+
+// 새 채팅 세션 시작
+function startNewChatSession() {
+  chatHistory = [];
+  chatMessages.innerHTML = `<div class="chat-message system">🆕 새 대화가 시작되었습니다</div>`;
+}
+
+// 채팅 히스토리 보기/숨기기
+function toggleChatHistory() {
+  if (chatHistory.length === 0) {
+    alert('저장된 대화 기록이 없습니다.');
+    return;
+  }
+
+  // 간단하게 히스토리 개수 표시
+  const userMsgs = chatHistory.filter(h => h.role === 'user').length;
+  const aiMsgs = chatHistory.filter(h => h.role === 'model').length;
+  alert(`📜 대화 기록\n\n사용자 메시지: ${userMsgs}개\nAI 응답: ${aiMsgs}개\n\n총 ${chatHistory.length}개의 메시지가 저장되어 있습니다.`);
+}
+
 async function sendChatMessage() {
   const message = chatInput.value.trim();
   if (!message) return;
 
-  // Add user message
+  // Add user message to UI
   addChatMessage(message, "user");
   chatInput.value = "";
 
@@ -732,29 +766,24 @@ async function sendChatMessage() {
   chatMessages.innerHTML += `<div class="chat-message assistant" id="loading-${loadingId}">🤔 생각 중...</div>`;
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
-  // Build context with question information
+  // Build context with question information (첫 메시지에만)
   let context = "";
+  if (chatHistory.length === 0) {
+    // If parsed quiz mode, include question list for AI to understand question numbers
+    if (currentSession?.answer_key?._questions && currentQuestions.length > 0) {
+      const questionList = currentQuestions.map((q, idx) => {
+        const displayIdx = idx + 1;  // 현재 표시 순서 (1, 2, 3...)
+        const qId = q.id;            // 전역 고유 ID
+        const qType = q.type === "short_answer" ? "단답형" :
+          q.type === "fill_blank" ? "빈칸" : "객관식";
+        const codeSnippet = q.code ? `\n코드: ${q.code.slice(0, 100)}...` : "";
+        return `${displayIdx}번 [Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
+      }).join("\n");
 
-  // If parsed quiz mode, include question list for AI to understand question numbers
-  if (currentSession?.answer_key?._questions && currentQuestions.length > 0) {
-    const questionList = currentQuestions.map((q, idx) => {
-      const displayIdx = idx + 1;  // 현재 표시 순서 (1, 2, 3...)
-      const qId = q.id;            // 전역 고유 ID
-      const qType = q.type === "short_answer" ? "단답형" :
-        q.type === "fill_blank" ? "빈칸" : "객관식";
-      const codeSnippet = q.code ? `\n코드: ${q.code.slice(0, 100)}...` : "";
-      return `${displayIdx}번 [Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
-    }).join("\n");
-
-    context = `현재 문제 목록 (총 ${currentQuestions.length}개):
----
-${questionList}
----
-※ 학생이 "N번 문제"라고 하면 위 목록에서 N번에 해당하는 문제입니다.
-※ [Q숫자]는 전역 고유 ID입니다.
-`;
-  } else if (currentSession?.question) {
-    context = `현재 학습 중인 코드:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
+      context = `현재 문제 목록 (총 ${currentQuestions.length}개):\n---\n${questionList}\n---\n`;
+    } else if (currentSession?.question) {
+      context = `현재 학습 중인 코드:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
+    }
   }
 
   // Check if user is asking about a specific question number
@@ -774,10 +803,21 @@ ${targetQ.correct ? `- 정답: ${targetQ.correct}번` : ""}
     }
   }
 
-  const prompt = `${context}\n\n학생의 질문: ${message}`;
+  const prompt = context ? `${context}\n\n학생의 질문: ${message}` : message;
 
   try {
-    const response = await callGeminiAPI(prompt, "당신은 친절한 프로그래밍 튜터입니다. 현재 학생이 객관식/단답형 문제를 풀고 있습니다. 학생이 N번 문제라고 하면 위 문제 목록에서 해당 번호의 문제를 찾아 설명해주세요. 간결하고 명확하게 답변해주세요.");
+    // 채팅 히스토리와 함께 API 호출 (대화 맥락 유지)
+    const response = await callGeminiAPI(prompt, "", chatHistory);
+
+    // 히스토리에 현재 대화 추가
+    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+    chatHistory.push({ role: "model", parts: [{ text: response }] });
+
+    // 히스토리가 너무 길면 오래된 것 제거 (최근 20개 유지)
+    if (chatHistory.length > 40) {
+      chatHistory = chatHistory.slice(-40);
+    }
+
     document.getElementById(`loading-${loadingId}`).outerHTML =
       `<div class="chat-message assistant">${formatMarkdown(response)}</div>`;
   } catch (err) {
@@ -5570,9 +5610,9 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
             data-q="${questionNum}" data-blank="${blankCounter}" data-global-idx="${globalBlankIdx}" 
             placeholder="[${globalBlankIdx}]" autocomplete="off"
             style="width: 100px; padding: 6px 10px; border-radius: 6px; border: 2px solid #6fb3ff; background: rgba(111, 179, 255, 0.15); color: #e5e9f0; font-family: var(--font-code); font-size: 13px;">
-          <button class="mode1-hint-btn" onclick="explainMode1BlankAI(${questionNum}, ${blankCounter})" title="힌트 보기" 
+          <button class="mode1-hint-btn" tabindex="-1" onclick="explainMode1BlankAI(${questionNum}, ${blankCounter})" title="힌트 보기" 
             style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background: rgba(247, 215, 116, 0.2); border: 1px solid rgba(247, 215, 116, 0.5); color: #f7d774; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;">?</button>
-          <button class="mode1-why-btn" onclick="explainMode1WhyWrong(${questionNum}, ${blankCounter})" title="왜 틀렸어요?" 
+          <button class="mode1-why-btn" tabindex="-1" onclick="explainMode1WhyWrong(${questionNum}, ${blankCounter})" title="왜 틀렸어요?" 
             style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #ff6b6b; font-size: 11px; cursor: pointer; display: none; align-items: center; justify-content: center;">?</button>
         </span>`;
         blankCounter++;
