@@ -38,8 +38,8 @@ let hasAnswers = false;
 let warnedMissingAnswers = false;
 let hideCompletedNav = false;
 
-// 사용된 위치 추적 (재생성 시 중복 방지)
-let usedPositions = {}; // { "1": 3, "2": 1 } = 위치별 사용 횟수
+// Track used blank positions to avoid duplicates when regenerating
+let usedPositions = {}; // { "1": 3, "2": 1 } = usage count per position
 
 const placeholderRegexFlex = /_{3,10}/g;
 const placeholderRegexIndexed = /__\[(\d+)\]__/g;
@@ -347,25 +347,25 @@ function formatMarkdown(text) {
 }
 
 // ========== REGENERATE BLANKS ==========
-// 이전 빈칸 정답들 저장 (중복 체크용)
+// Store previous blank answers to detect duplicates
 let previousAnswers = new Set();
 
 async function regenerateBlanks() {
-  // Mode 1 (C# OOP 빈칸)인 경우 메시지 표시
+  // Show message instead when Mode 1 (C# OOP blanks) is active
   if (currentSession?.mode === 1 && mode1State && mode1State.questions && mode1State.questions.length > 0) {
     LegacyAlerts.mode1Reload();
     return;
   }
 
   if (!currentSession?.answer) {
-LegacyAlerts.noAnswerCode();
+    LegacyAlerts.noAnswerCode();
     return;
   }
 
-  // 모달 요소 찾기
+  // Locate the modal element
   let modal = document.getElementById("regenerate-modal");
 
-  // 모달이 없으면 동적으로 생성 (방어 코드)
+  // Create the modal dynamically if missing (defensive)
   if (!modal) {
     const modalHtml = `
       <div id="regenerate-modal" class="modal" style="display:none;">
@@ -384,7 +384,7 @@ LegacyAlerts.noAnswerCode();
     modal = document.getElementById("regenerate-modal");
   }
 
-  // 이벤트 리스너 연결 (중복 방지 - 한 번만 등록)
+  // Attach listeners once to avoid duplicates
   const btnConfirm = document.getElementById("btn-confirm-regen");
   const btnCancel = document.getElementById("btn-cancel-regen");
   const input = document.getElementById("regen-count-input");
@@ -405,7 +405,7 @@ LegacyAlerts.noAnswerCode();
     });
   }
 
-  // 모달 열기
+  // Open modal
   if (modal) {
     modal.style.display = "flex";
     if (input) input.focus();
@@ -416,20 +416,20 @@ async function executeRegenerate(targetCount) {
   if (isNaN(targetCount) || targetCount < 5) targetCount = 20;
   if (targetCount > 100) targetCount = 100;
 
-  // openAIPanel(); // 제거: 사용자가 요청한대로 채팅창 열지 않음
+  // openAIPanel(); // removed per request: do not auto-open the chat panel
   if (explanationArea) {
     explanationArea.innerHTML = `<div class="explanation-loading">새로운 빈칸 ${targetCount}개를 생성하고 있습니다...</div>`;
   }
 
-  // 현재 정답들을 이전 정답에 저장
+  // Save current answers into the previous answer set
   const currentAnswers = new Set(Object.values(answerKeyMap));
 
   try {
-    // 로컬에서 빈칸 생성 (API보다 안정적)
+    // Generate blanks locally (more stable than using the API)
     const result = generateBlanksLocally(currentSession.answer, targetCount, currentAnswers, 5);
 
     if (result.answerKey && Object.keys(result.answerKey).length > 0) {
-      // 이전 정답 업데이트
+      // Update previous answers
       previousAnswers = currentAnswers;
 
       // Update session
@@ -472,7 +472,7 @@ async function executeRegenerate(targetCount) {
   }
 }
 
-// 모달 이벤트 리스너 설정
+// Regenerate modal event listeners
 document.addEventListener("DOMContentLoaded", () => {
   const regenModal = document.getElementById("regenerate-modal");
   const btnConfirmRegen = document.getElementById("btn-confirm-regen");
@@ -495,11 +495,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /**
- * 로컬에서 빈칸 생성 (API 없이)
- * @param {string} code - 정답 코드
- * @param {number} targetCount - 목표 빈칸 수
- * @param {Set} previousAnswers - 이전 정답들 (중복 체크용)
- * @param {number} maxDuplicates - 최대 중복 허용 수
+ * Generate blanks locally (no API call)
+ * @param {string} code - solution code
+ * @param {number} targetCount - desired blank count
+ * @param {Set} previousAnswers - prior answers for duplicate checks
+ * @param {number} maxDuplicates - maximum duplicate allowance
  */
 function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates) {
   const lines = code.split("\n");
@@ -507,24 +507,24 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
   let blankCount = 0;
   let duplicateCount = 0;
 
-  // 정답 유효성 검사 함수
+  // Validate whether a candidate is a usable answer
   function isValidAnswer(ans) {
     if (!ans || ans.length <= 1) return false;
 
-    // 특수기호만 있으면 제외
+    // Skip if it is only special characters
     const specialOnly = new Set("()[]{}:,;'\"` ");
     if ([...ans].every(c => specialOnly.has(c))) return false;
 
-    // 따옴표와 공백만 있어도 제외 (예: ' ', "")
+    // Skip quotes/whitespace-only values (e.g., ' ', "")
     if (/^['\"]\s*['"]?\)?$/.test(ans)) return false;
 
-    // 숫자나 알파벳이 최소 하나는 있어야 함
+    // Require at least one alphanumeric character
     if (!/[a-zA-Z0-9_]/.test(ans)) return false;
 
     return true;
   }
 
-  // 정답 정리 함수 (후행 괄호/쉼표 제거)
+  // Clean answer by trimming trailing parens/commas
   function cleanAnswer(ans) {
     let cleaned = ans.trim();
     while (cleaned.endsWith(')') || cleaned.endsWith(',') || cleaned.endsWith(';')) {
@@ -543,14 +543,14 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     return cleaned;
   }
 
-  // 빈칸 후보들을 먼저 수집
+  // Collect blank candidates first
   const candidates = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const stripped = line.trim();
 
-    // 건너뛸 줄들
+    // Lines to skip
     if (!stripped ||
       stripped.startsWith("def ") ||
       stripped.startsWith("class ") ||
@@ -562,7 +562,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       continue;
     }
 
-    // 대입문 패턴: = 뒤의 값
+    // Assignment pattern: value after =
     const assignMatch = line.match(/=\s*([^#\n=]+)$/);
     if (assignMatch) {
       const rawAns = assignMatch[1].trim();
@@ -577,7 +577,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       }
     }
 
-    // return 문
+    // return statements
     const returnMatch = line.match(/return\s+([^#\n]+)$/);
     if (returnMatch) {
       const rawAns = returnMatch[1].trim();
@@ -592,7 +592,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       }
     }
 
-    // while 조건
+    // while conditions
     const whileMatch = line.match(/while\s+([^:]+):/);
     if (whileMatch) {
       const ans = whileMatch[1].trim();
@@ -606,7 +606,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       }
     }
 
-    // if 조건
+    // if conditions
     const ifMatch = line.match(/if\s+([^:]+):/);
     if (ifMatch) {
       const ans = ifMatch[1].trim();
@@ -621,30 +621,30 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     }
   }
 
-  // 중복이 아닌 것들 먼저, 그 다음 중복 (최대 maxDuplicates개)
+  // Prioritize unique answers, then duplicates (up to maxDuplicates)
   const nonDuplicates = candidates.filter(c => !c.isDuplicate);
   const duplicates = candidates.filter(c => c.isDuplicate);
 
-  // 셔플 함수
+  // Shuffle helper
   const shuffle = arr => arr.sort(() => Math.random() - 0.5);
 
-  // 비중복 섞기
+  // Shuffle non-duplicates
   shuffle(nonDuplicates);
   shuffle(duplicates);
 
-  // 선택할 후보들
+  // Candidates to pick
   const selected = [];
   const usedLines = new Set();
 
-  // 비중복 먼저 추가
+  // Add non-duplicates first
   for (const c of nonDuplicates) {
     if (selected.length >= targetCount) break;
-    if (usedLines.has(c.lineIndex)) continue; // 한 줄에 하나만
+    if (usedLines.has(c.lineIndex)) continue; // Only one per line
     selected.push(c);
     usedLines.add(c.lineIndex);
   }
 
-  // 부족하면 중복에서 추가 (최대 maxDuplicates개)
+  // Fill from duplicates if needed (up to maxDuplicates)
   let addedDuplicates = 0;
   for (const c of duplicates) {
     if (selected.length >= targetCount) break;
@@ -655,10 +655,10 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     addedDuplicates++;
   }
 
-  // 라인 순서대로 정렬
+  // Sort by line order
   selected.sort((a, b) => a.lineIndex - b.lineIndex);
 
-  // 빈칸 적용 - __[N]__ 형식으로 생성 (인덱스형 빈칸)
+  // Apply blanks as __[N]__ markers (indexed blanks)
   const newLines = [...lines];
   for (const item of selected) {
     blankCount++;
@@ -666,7 +666,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     answerKey[key] = item.answer;
     if (item.isDuplicate) duplicateCount++;
 
-    // 해당 줄에서 값을 __[N]__로 치환 (인덱스형 빈칸)
+    // Replace the value in that line with __[N]__ (indexed blanks)
     const line = newLines[item.lineIndex];
     const escaped = item.answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const blankMarker = `__[${key}]__`;
@@ -760,7 +760,7 @@ if (btnRegenerate) btnRegenerate.addEventListener("click", () => regenerateBlank
 const btnShuffle = document.getElementById("btn-shuffle");
 if (btnShuffle) btnShuffle.addEventListener("click", () => toggleShuffle());
 
-// 모드별로 노출할 컨트롤 버튼 매핑
+// Mapping control buttons to be exposed for each mode
 const controlButtonsByMode = {
   1: ["btn-check", "btn-reveal", "btn-reset", "btn-review", "btn-toggle-completed", "btn-regenerate", "btn-shuffle"],
   2: ["btn-check", "btn-reveal", "btn-reset", "btn-review", "btn-toggle-completed", "btn-regenerate", "btn-shuffle"],
@@ -970,7 +970,7 @@ function loadSessionFromUrl(url, fallback = true) {
     });
 }
 
-// === Mode 2 인라인 빈칸 변환 ===
+// === Mode 2 inline blank conversion ===
 function buildInlineBlankCode(originalCode, blanks, answerKey) {
   /**
    * 원본 코드와 빈칸 정보를 받아서 __[N]__ 형식의 인라인 빈칸 코드로 변환
@@ -980,7 +980,7 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
 
   const blanksByLine = {};
 
-  // 라인별로 빈칸 그룹화
+  // Group blank spaces by line
   blanks.forEach((blank, idx) => {
     const lineNum = blank.line_num;  // 1-indexed
     if (!blanksByLine[lineNum]) {
@@ -997,7 +997,7 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
   let replacedCount = 0;
   let failedCount = 0;
 
-  // 각 라인 처리
+  // Each line processing
   const resultLines = lines.map((line, idx) => {
     const lineNum = idx + 1;  // 1-indexed
     if (!blanksByLine[lineNum]) return line;
@@ -1005,20 +1005,20 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
     let modifiedLine = line;
     const blanksForLine = blanksByLine[lineNum];
 
-    // 해당 라인의 모든 빈칸 처리 (역순으로 처리해서 인덱스 꼬임 방지)
+    // Process all blank spaces in the line (process in reverse order to prevent index confusion)
     blanksForLine.sort((a, b) => b.blankNum - a.blankNum);
 
     for (const blank of blanksForLine) {
       const answer = blank.answer;
       const blankMarker = `__[${blank.blankNum}]__`;
 
-      // 정답 위치 찾아서 빈칸으로 교체
+      // Find the location of the correct answer and replace it with a blank space
       const answerIndex = modifiedLine.indexOf(answer);
       if (answerIndex !== -1) {
         modifiedLine = modifiedLine.slice(0, answerIndex) + blankMarker + modifiedLine.slice(answerIndex + answer.length);
         replacedCount++;
       } else {
-        // 정답을 찾지 못한 경우, 라인 끝에 마커 추가 (fallback)
+        // If you don't find the correct answer, add a marker at the end of the line (fallback)
         console.warn(`[Blank ${blank.blankNum}] Answer not found in line ${lineNum}: "${answer}" in "${line}"`);
         failedCount++;
       }
@@ -1032,7 +1032,7 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
   return resultLines.join('\n');
 }
 
-// === Mode 3 인라인 빈칸 변환 (함수 본문을 빈칸으로) ===
+// === Mode 3 Inline blank conversion (function body to blank) ===
 function buildInlineChallengeCode(originalCode, challenges, answerKey) {
   /**
    * 원본 코드와 챌린지 정보를 받아서 함수 본문을 __[N]__ 형식으로 변환
@@ -1042,13 +1042,13 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
   let challengeNum = 0;
   let resultLines = [...lines];
 
-  // 각 챌린지(함수)별로 처리
+  // Processing for each challenge (function)
   challenges.forEach((ch, idx) => {
     challengeNum = idx + 1;
     const signature = ch.signature;
     const body = ch.body;
 
-    // 시그니처 라인 찾기
+    // Find your signature line
     let sigLineIdx = -1;
     for (let i = 0; i < resultLines.length; i++) {
       if (resultLines[i].trim().startsWith(signature.trim().split('(')[0])) {
@@ -1058,14 +1058,14 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
     }
 
     if (sigLineIdx !== -1) {
-      // 함수 본문 라인들을 빈칸으로 교체
+      // Replace function body lines with blank spaces
       const bodyLines = body.split('\n').filter(l => l.trim());
       if (bodyLines.length > 0) {
-        // 첫 번째 본문 라인 인덱스 찾기 (시그니처 다음 라인들)
+        // Find the index of the first body line (lines following the signature)
         let bodyStartIdx = sigLineIdx + 1;
         let bodyEndIdx = bodyStartIdx;
 
-        // 본문 끝 찾기 (들여쓰기 기준)
+        // Find end of text (based on indentation)
         const sigIndent = resultLines[sigLineIdx].match(/^(\s*)/)[1].length;
         for (let i = bodyStartIdx; i < resultLines.length; i++) {
           const line = resultLines[i];
@@ -1077,18 +1077,18 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
           bodyEndIdx = i + 1;
         }
 
-        // 본문 라인들을 빈칸으로 교체
+        // Replace body lines with blank spaces
         const indent = resultLines[sigLineIdx + 1]?.match(/^(\s*)/)?.[1] || '    ';
         const blankPlaceholder = `${indent}# __[${challengeNum}]__ 이 함수의 구현부를 작성하세요`;
 
-        // 원래 라인들을 주석 처리하거나 빈칸으로 교체
+        // Comment out the original lines or replace them with blank spaces.
         for (let i = bodyStartIdx; i < bodyEndIdx && i < resultLines.length; i++) {
           const line = resultLines[i];
           if (line.trim() && !line.trim().startsWith('#') && !line.trim().startsWith('"""') && !line.trim().startsWith("'''")) {
             resultLines[i] = indent + `__[${challengeNum}]__  # ${line.trim()}`;
-            // 첫 줄만 빈칸으로, 나머지는 숨김
+            // Leave only the first line blank, hide the rest
             if (i > bodyStartIdx) {
-              resultLines[i] = '';  // 나머지 라인 제거
+              resultLines[i] = '';  // remove the rest of the lines
             }
           }
         }
@@ -1096,9 +1096,9 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
     }
   });
 
-  // 빈 라인 정리
+  // clean up empty lines
   resultLines = resultLines.filter((line, idx, arr) => {
-    // 연속 빈 라인 제거
+    // Remove consecutive empty lines
     if (line === '' && arr[idx - 1] === '') return false;
     return true;
   });
@@ -1108,7 +1108,7 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
 
 
 function setSession(rawSession) {
-  // rawSession.answer_key에서 특수 필드들을 먼저 추출 (normalizeSession 전에)
+  // Extract special fields from rawSession.answer_key first (before normalizeSession)
   const rawAnswerKey = rawSession.answer_key || rawSession.answerKey || {};
   const rawBlanks = rawAnswerKey._blanks;
   const rawOriginalCode = rawAnswerKey._original_code;
@@ -1119,7 +1119,7 @@ function setSession(rawSession) {
   const { title, language, mode, question, answer, answer_key } = currentSession;
   challengeReviewQueue = new Set();
 
-  // 특수 필드들을 answer_key에 복원 (normalizeSession에서 손실되었을 수 있음)
+  // Restore special fields to answer_key (which may have been lost in normalizeSession)
   if (rawBlanks && !answer_key._blanks) {
     answer_key._blanks = rawBlanks;
   }
@@ -1142,7 +1142,7 @@ function setSession(rawSession) {
 
   answerKeyMap = answer_key || {};
 
-  // 모드별 렌더링
+  // Rendering by mode
   const type = answer_key?._type;
 
   if (type === "parsed_quiz" && answer_key?._questions) {
@@ -1150,17 +1150,17 @@ function setSession(rawSession) {
   } else if (type === "multiple_choice" && answer_key?._questions) {
     renderMultipleChoiceNew(answer_key._questions, answer_key, language);
   } else if ((type === "fill_in_blank_cards" || type === "fill_in_blank_inline") && answer_key?._blanks) {
-    // Mode 2: 전체 코드에 인라인 빈칸 형태로 렌더링
-    // Python에서 question에 인라인 빈칸 코드를 직접 생성함
-    // question이 이미 인라인 빈칸 형식인지 확인 (__[N]__ 패턴 포함)
+    // Mode 2: Render as inline blank space in the entire code
+    // Generate inline blank code directly in question in Python
+    // Check if question is already inline-blank format (with __[N]__ pattern)
     const hasInlineBlanks = /__\[\d+\]__/.test(question);
 
     if (hasInlineBlanks && question.length > 50) {
-      // Python 백엔드에서 생성한 인라인 빈칸 코드를 직접 사용
+      // Directly use inline blank code generated by the Python backend
 
       renderQuestion(question, answer_key, language);
     } else {
-      // 폴백: JS에서 인라인 빈칸 빌드 시도
+      // Fallback: Try building inline blank in JS
       const originalCode = answer_key._original_code || currentSession.answer || "";
       if (originalCode && originalCode.length > 50) {
         const inlineCode = buildInlineBlankCode(originalCode, answer_key._blanks, answer_key);
@@ -1171,7 +1171,7 @@ function setSession(rawSession) {
       }
     }
   } else if (type === "implementation_challenge" && answer_key?._challenges) {
-    // Mode 3: 항상 카드 형태로 렌더링 (코드 에디터 + AI 채점)
+    // Mode 3: Always render in card form (code editor + AI scoring)
     renderImplementationChallenge(answer_key._challenges, answer_key, language);
   } else if (type === "definition_quiz" && answer_key?._definitions) {
     renderDefinitionQuiz(answer_key._definitions, answer_key, language);
@@ -1289,12 +1289,12 @@ function renderQuestion(questionText, answerKey, language) {
   renderBlankNav();
 }
 
-// ========== PARSED QUIZ (기존 문제 파일) ==========
+// ========== PARSED QUIZ (Existing problem file) ==========
 let parsedQuizStates = [];
-let originalQuestions = [];  // 원본 문제 순서 저장
-let currentQuestions = [];   // 현재 표시 중인 문제 순서
-let isShuffled = false;      // 섞임 상태
-let parsedQuizMap = new Map(); // qId -> 문제 객체
+let originalQuestions = [];  // Save original question order
+let currentQuestions = [];   // Order of questions currently being displayed
+let isShuffled = false;      // mixed state
+let parsedQuizMap = new Map(); // qId -> Problem Object
 
 function renderParsedQuiz(questions, answerKey, language, preserveOrder = false) {
   codeArea.innerHTML = "";
@@ -1304,7 +1304,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
   parsedQuizStates = [];
   parsedQuizMap = new Map();
 
-  // 원본 순서 저장 (첫 로드 시)
+  // Save original order (on first load)
   if (!preserveOrder) {
     originalQuestions = [...questions];
     currentQuestions = [...questions];
@@ -1315,29 +1315,29 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
   const frag = document.createDocumentFragment();
 
   questions.forEach((q, idx) => {
-    const qId = q.id || (idx + 1);  // 원본 고유 ID
-    const displayIdx = idx + 1;      // 현재 표시 순서 (1, 2, 3...)
+    const qId = q.id || (idx + 1);  // Original unique ID
+    const displayIdx = idx + 1;      // Current display order (1, 2, 3...)
     const displayNum = q.original_num || q.num || qId;
     const qType = q.type || "multiple_choice";
 
     const cardDiv = document.createElement("div");
     cardDiv.className = "mc-question";
     cardDiv.id = `pq-${qId}`;
-    cardDiv.dataset.displayIdx = displayIdx;  // 현재 표시 순서 저장
+    cardDiv.dataset.displayIdx = displayIdx;  // Save current display order
 
-    // 문제 헤더
+    // problem header
     const headerDiv = document.createElement("div");
     headerDiv.className = "mc-header";
 
-    // 문제 유형 뱃지
+    // Problem Type Badge
     const typeBadge = qType === "short_answer" ? "📝 단답형" :
       qType === "fill_blank" ? "✏️ 빈칸" : "📋 객관식";
 
-    // [Q#] 형식으로 전역 고유 ID 표시 - AI가 구분 가능
+    // Display globally unique ID in [Q#] format - AI can differentiate
     headerDiv.innerHTML = `<span class="global-qid" style="background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;font-size:0.75em;margin-right:6px;font-weight:bold;">[Q${qId}]</span> <span style="opacity:0.6;font-size:0.8em">${typeBadge}</span> <strong>${displayNum}.</strong> ${escapeHtml(q.text)}`;
     cardDiv.appendChild(headerDiv);
 
-    // 코드 블록
+    // code block
     if (q.code && q.code.trim()) {
       const codeDiv = document.createElement("pre");
       codeDiv.className = "mc-code";
@@ -1354,9 +1354,9 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
       cardDiv.appendChild(codeDiv);
     }
 
-    // 선지 또는 입력 영역
+    // line or input area
     if (q.options && q.options.length > 0) {
-      // 객관식
+      // multiple choice
       const optionsDiv = document.createElement("div");
       optionsDiv.className = "mc-options";
 
@@ -1365,7 +1365,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
         optionBtn.className = "mc-option";
         optionBtn.dataset.question = String(qId);
         optionBtn.dataset.option = String(opt.num);
-        // 정답이 있으면 저장 (채점용)
+        // If you have the correct answer, save it (for grading)
         optionBtn.dataset.correct = q.correct ? String(q.correct) : "";
 
         const numSymbols = ["①", "②", "③", "④", "⑤"];
@@ -1379,7 +1379,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
 
       cardDiv.appendChild(optionsDiv);
     } else {
-      // 단답형/빈칸 - 입력 필드
+      // Short answer/blank - input field
       const inputDiv = document.createElement("div");
       inputDiv.className = "short-answer-input";
       inputDiv.style.cssText = "margin-top: 1rem;";
@@ -1391,17 +1391,17 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
       textarea.rows = 2;
       textarea.style.cssText = "width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--fg); font-family: inherit; resize: vertical;";
 
-      // 엔터 두 번 = AI 정답 보기
+      // Enter twice = View AI answer
       let lastEnterTime = 0;
       textarea.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
           const now = Date.now();
           if (now - lastEnterTime < 500) {
-            // 엔터 두 번 빠르게 → AI 정답 보기
+            // Press enter twice quickly → View AI answer
             e.preventDefault();
             showShortAnswerWithAI(qId, q.question, q.code || "");
           } else {
-            // 첫 번째 엔터 → 제출
+            // First Enter → Submit
             e.preventDefault();
             handleShortAnswerSubmit(qId, textarea.value);
           }
@@ -1409,7 +1409,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
         }
       });
 
-      // 버튼들
+      // buttons
       const btnDiv = document.createElement("div");
       btnDiv.style.cssText = "display: flex; gap: 8px; margin-top: 0.5rem; flex-wrap: wrap;";
 
@@ -1441,7 +1441,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
       cardDiv.appendChild(inputDiv);
     }
 
-    // 결과 표시
+    // Show results
     const resultDiv = document.createElement("div");
     resultDiv.className = "mc-result";
     resultDiv.id = `pq-result-${qId}`;
@@ -1452,7 +1452,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
 
     parsedQuizStates.push({
       qId,
-      displayIdx,  // 현재 표시 순서
+      displayIdx,  // Current display order
       displayNum,
       qType,
       selected: null,
@@ -1468,7 +1468,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
   updateParsedQuizScore();
 }
 
-// ========== 순서 섞기 기능 ==========
+// ========== Shuffle function ==========
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -1484,15 +1484,15 @@ function shuffleQuestions() {
   const answerKey = currentSession.answer_key;
   const language = currentSession.language;
 
-  // 문제 순서 섞기
+  // Shuffle the order of questions
   currentQuestions = shuffleArray(originalQuestions);
   isShuffled = true;
 
-  // 다시 렌더링
+  // re-render
   renderParsedQuiz(currentQuestions, answerKey, language, true);
   updateShuffleButton();
 
-  // 스크롤 맨 위로
+  // scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1502,15 +1502,15 @@ function resetQuizOrder() {
   const answerKey = currentSession.answer_key;
   const language = currentSession.language;
 
-  // 원본 순서로 복원
+  // Restore to original order
   currentQuestions = [...originalQuestions];
   isShuffled = false;
 
-  // 다시 렌더링
+  // re-render
   renderParsedQuiz(currentQuestions, answerKey, language, true);
   updateShuffleButton();
 
-  // 스크롤 맨 위로
+  // scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1528,7 +1528,7 @@ function updateShuffleButton() {
 }
 
 function toggleShuffle() {
-  // 4번 모드 (객관식)
+  // Mode 4 (multiple choice)
   if (currentSession?.answer_key?._questions) {
     if (isShuffled) {
       resetQuizOrder();
@@ -1538,20 +1538,20 @@ function toggleShuffle() {
     return;
   }
 
-  // 5번 모드 (정의 퀴즈)
+  // Mode 5 (Definition Quiz)
   if (definitionStates && definitionStates.length > 0) {
     shuffleDefinitions();
     return;
   }
 
-  // 7번 모드 (영단어)
+  // Mode 7 (English words)
   if (vocabStates && vocabStates.length > 0) {
     shuffleVocab();
     return;
   }
 }
 
-// 정의 퀴즈 순서 섞기
+// Definition Quiz Shuffle
 function shuffleDefinitions() {
   const container = document.getElementById('definition-container') || codeBlock;
   if (!container) return;
@@ -1559,13 +1559,13 @@ function shuffleDefinitions() {
   const cards = Array.from(container.querySelectorAll('.definition-card'));
   if (cards.length === 0) return;
 
-  // Fisher-Yates 셔플
+  // Fisher-Yates Shuffle
   for (let i = cards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     container.appendChild(cards[j]);
   }
 
-  // 모든 카드 다시 추가 (순서 섞인 상태로)
+  // Add all cards again (in shuffled order)
   cards.sort(() => Math.random() - 0.5).forEach(card => container.appendChild(card));
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1574,7 +1574,7 @@ function shuffleDefinitions() {
   if (btn) btn.textContent = '🔀 다시 섞기';
 }
 
-// 영단어 순서 섞기
+// Shuffle the order of English words
 function shuffleVocab() {
   const container = document.getElementById('vocab-container') || codeBlock;
   if (!container) return;
@@ -1582,7 +1582,7 @@ function shuffleVocab() {
   const cards = Array.from(container.querySelectorAll('.vocab-card'));
   if (cards.length === 0) return;
 
-  // Fisher-Yates 셔플
+  // Fisher-Yates Shuffle
   cards.sort(() => Math.random() - 0.5).forEach(card => container.appendChild(card));
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1593,12 +1593,12 @@ function shuffleVocab() {
 
 function handleParsedQuizClick(btn, qId) {
   const selectedOption = btn.dataset.option;
-  const correctAnswer = btn.dataset.correct;  // 정답 (있으면)
+  const correctAnswer = btn.dataset.correct;  // Correct answer (if any)
   const state = parsedQuizStates.find(s => s.qId === qId);
 
   if (state?.answered) return;
 
-  // 상태 업데이트
+  // status update
   if (state) {
     state.answered = true;
     state.selected = selectedOption;
@@ -1611,17 +1611,17 @@ function handleParsedQuizClick(btn, qId) {
   const resultDiv = document.getElementById(`pq-result-${qId}`);
   const nav = document.getElementById(`nav-pq-${qId}`);
 
-  // 정답이 있으면 채점
+  // Grade if correct answer
   if (correctAnswer) {
     const isCorrect = selectedOption === correctAnswer;
 
     options.forEach(opt => {
       opt.disabled = true;
       if (opt.dataset.option === correctAnswer) {
-        opt.classList.add("correct");  // 정답은 항상 녹색
+        opt.classList.add("correct");  // The answer is always green
       }
       if (opt.dataset.option === selectedOption && !isCorrect) {
-        opt.classList.add("wrong");  // 오답이면 빨간색
+        opt.classList.add("wrong");  // If the answer is wrong, red
       }
       if (opt.dataset.option === selectedOption && isCorrect) {
         opt.classList.add("correct");
@@ -1642,7 +1642,7 @@ function handleParsedQuizClick(btn, qId) {
       }
     }
   } else {
-    // 정답 없으면 선택만 표시
+    // If there is no correct answer, only the choice is displayed
     options.forEach(opt => {
       opt.disabled = true;
       if (opt.dataset.option === selectedOption) {
@@ -1659,7 +1659,7 @@ function handleParsedQuizClick(btn, qId) {
   updateParsedQuizScore();
 }
 
-// 단답형/빈칸 제출 핸들러 (AI 채점)
+// Short answer/blank submission handler (AI grading)
 async function handleShortAnswerSubmit(qId, answer) {
   const state = parsedQuizStates.find(s => s.qId === qId);
 
@@ -1783,12 +1783,12 @@ function resetShortAnswer(qId) {
   const resultDiv = document.getElementById(`pq-result-${qId}`);
   const nav = document.getElementById(`nav-pq-${qId}`);
 
-  // 상태 초기화
+  // Reset state
   state.answered = false;
   state.isCorrect = null;
   state.userAnswer = "";
 
-  // UI 초기화
+  // UI initialization
   if (textarea) {
     textarea.value = "";
     textarea.disabled = false;
@@ -1864,8 +1864,8 @@ function renderParsedQuizNav() {
     const btn = document.createElement("div");
     btn.className = "blank-pill pending";
     btn.id = `nav-pq-${s.qId}`;
-    btn.textContent = `${idx + 1}`;  // 순차 번호 (1, 2, 3...)
-    btn.title = `[Q${s.qId}] ${s.displayNum}번`;  // 툴팁에 전역 ID + 원본 번호
+    btn.textContent = `${idx + 1}`;  // Sequential number (1, 2, 3...)
+    btn.title = `[Q${s.qId}] ${s.displayNum}번`;  // Global ID + original number in tooltip
     btn.addEventListener("click", () => {
       const target = document.getElementById(`pq-${s.qId}`);
       if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1880,7 +1880,7 @@ function updateParsedQuizScore() {
   const correct = parsedQuizStates.filter(s => s.isCorrect === true).length;
   const wrong = parsedQuizStates.filter(s => s.answered && s.isCorrect === false && s.correctAnswer).length;
 
-  // 채점 가능한 문제가 있으면 점수 표시
+  // Show scores if there are gradable questions
   const hasGradedQuestions = parsedQuizStates.some(s => s.correctAnswer);
 
   if (hasGradedQuestions && answered > 0) {
@@ -1907,7 +1907,7 @@ function updateParsedQuizScore() {
   }
 }
 
-// ========== MULTIPLE CHOICE (코드 생성) ==========
+// ========== MULTIPLE CHOICE (Code Generation) ==========
 function renderMultipleChoiceNew(questions, answerKey, language) {
   codeArea.innerHTML = "";
   blankList.innerHTML = "";
@@ -1925,13 +1925,13 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
     cardDiv.className = "mc-question";
     cardDiv.id = `mc-${qNum}`;
 
-    // 문제 헤더
+    // problem header
     const headerDiv = document.createElement("div");
     headerDiv.className = "mc-header";
     headerDiv.innerHTML = `<strong>[문제 ${qNum}]</strong> ${escapeHtml(q.text)}`;
     cardDiv.appendChild(headerDiv);
 
-    // 코드 블록
+    // code block
     if (q.code) {
       const codeDiv = document.createElement("pre");
       codeDiv.className = "mc-code";
@@ -1947,7 +1947,7 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
       cardDiv.appendChild(codeDiv);
     }
 
-    // 선지
+    // Seonji
     const optionsDiv = document.createElement("div");
     optionsDiv.className = "mc-options";
 
@@ -1966,7 +1966,7 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
 
     cardDiv.appendChild(optionsDiv);
 
-    // 결과
+    // result
     const resultDiv = document.createElement("div");
     resultDiv.className = "mc-result";
     resultDiv.id = `mc-result-${qNum}`;
@@ -1990,7 +1990,7 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
 }
 
 // ========== MULTIPLE CHOICE (Legacy) ==========
-let mcQuestions = []; // 객관식 문제 상태 저장
+let mcQuestions = []; // Save multiple choice question state
 
 function renderMultipleChoice(questions, answerKey, language) {
   codeArea.innerHTML = "";
@@ -2006,25 +2006,25 @@ function renderMultipleChoice(questions, answerKey, language) {
     const correctAnswer = answerKey[String(questionNum)];
     const details = answerKey._details?.[String(questionNum)];
 
-    // 문제 컨테이너
+    // problem container
     const questionDiv = document.createElement("div");
     questionDiv.className = "mc-question";
     questionDiv.id = `mc-${questionNum}`;
 
-    // 문제 파싱 (텍스트에서 코드와 선지 분리)
+    // Problem parsing (separating code and lines from text)
     const parts = questionText.split(/```python\n/);
     const header = parts[0] || "";
     const rest = parts[1]?.split(/```\n/) || ["", ""];
     const codeBlock = rest[0] || "";
     const optionsText = rest[1] || "";
 
-    // 문제 헤더
+    // problem header
     const headerDiv = document.createElement("div");
     headerDiv.className = "mc-header";
     headerDiv.innerHTML = escapeHtml(header.trim());
     questionDiv.appendChild(headerDiv);
 
-    // 코드 블록
+    // code block
     if (codeBlock) {
       const codeDiv = document.createElement("pre");
       codeDiv.className = "mc-code";
@@ -2040,7 +2040,7 @@ function renderMultipleChoice(questions, answerKey, language) {
       questionDiv.appendChild(codeDiv);
     }
 
-    // 선지 파싱 및 렌더링
+    // Line parsing and rendering
     const optionsDiv = document.createElement("div");
     optionsDiv.className = "mc-options";
 
@@ -2067,7 +2067,7 @@ function renderMultipleChoice(questions, answerKey, language) {
 
     questionDiv.appendChild(optionsDiv);
 
-    // 결과 표시 영역
+    // Results display area
     const resultDiv = document.createElement("div");
     resultDiv.className = "mc-result";
     resultDiv.id = `mc-result-${questionNum}`;
@@ -2075,7 +2075,7 @@ function renderMultipleChoice(questions, answerKey, language) {
 
     frag.appendChild(questionDiv);
 
-    // 상태 저장
+    // save state
     mcQuestions.push({
       questionNum,
       correctAnswer,
@@ -2086,7 +2086,7 @@ function renderMultipleChoice(questions, answerKey, language) {
 
   codeArea.appendChild(frag);
 
-  // 빈칸 목록 대신 문제 목록 렌더링
+  // Rendering a list of issues instead of a blank list
   renderMCNav();
 
   sessionCount.textContent = questions.length;
@@ -2099,19 +2099,19 @@ function handleMCClick(btn) {
   const selectedOption = btn.dataset.option;
   const correctOption = btn.dataset.correct;
 
-  // 이미 답한 문제면 무시
+  // Ignore questions that have already been answered
   const questionState = mcQuestions.find(q => q.questionNum === questionNum);
   if (questionState?.answered) return;
 
   const isCorrect = selectedOption === correctOption;
 
-  // 상태 업데이트
+  // status update
   if (questionState) {
     questionState.answered = true;
     questionState.isCorrect = isCorrect;
   }
 
-  // UI 업데이트
+  // UI updates
   const questionDiv = document.getElementById(`mc-${questionNum}`);
   const options = questionDiv.querySelectorAll(".mc-option");
 
@@ -2125,7 +2125,7 @@ function handleMCClick(btn) {
     }
   });
 
-  // 결과 메시지
+  // Result message
   const resultDiv = document.getElementById(`mc-result-${questionNum}`);
   if (isCorrect) {
     resultDiv.innerHTML = `<span class="mc-correct">✓ 정답입니다!</span>`;
@@ -2133,7 +2133,7 @@ function handleMCClick(btn) {
     resultDiv.innerHTML = `<span class="mc-wrong">✗ 오답입니다. 정답: ${correctOption}번</span>`;
   }
 
-  // 네비게이션 업데이트
+  // navigation updates
   const nav = document.getElementById(`nav-mc-${questionNum}`);
   if (nav) {
     nav.classList.remove("pending");
@@ -2196,17 +2196,17 @@ function renderBlankCards(blanks, answerKey, language) {
     cardDiv.className = "blank-card";
     cardDiv.id = `blank-card-${cardNum}`;
 
-    // 헤더
+    // header
     const headerDiv = document.createElement("div");
     headerDiv.className = "blank-card-header";
     headerDiv.innerHTML = `<span class="blank-card-num">#${cardNum}</span> <span class="blank-card-line">Line ${blank.line_num}</span>`;
     cardDiv.appendChild(headerDiv);
 
-    // 코드 컨텍스트
+    // code context
     const codeDiv = document.createElement("pre");
     codeDiv.className = "blank-card-code";
 
-    // 코드에서 _____ 를 input으로 변환
+    // Convert _____ to input in code
     let codeHtml = blank.context;
     if (window.hljs && language) {
       try {
@@ -2218,7 +2218,7 @@ function renderBlankCards(blanks, answerKey, language) {
       codeHtml = escapeHtml(blank.context);
     }
 
-    // _____ 를 input으로 변환
+    // Convert _____ to input
     codeHtml = codeHtml.replace(/_____/g,
       `<input type="text" class="blank-card-input" data-key="${cardNum}" data-answer="${escapeHtml(answer)}" placeholder="정답 입력">`
     );
@@ -2226,13 +2226,13 @@ function renderBlankCards(blanks, answerKey, language) {
     codeDiv.innerHTML = codeHtml;
     cardDiv.appendChild(codeDiv);
 
-    // 결과 표시
+    // Show results
     const resultDiv = document.createElement("div");
     resultDiv.className = "blank-card-result";
     resultDiv.id = `blank-result-${cardNum}`;
     cardDiv.appendChild(resultDiv);
 
-    // 도움말 버튼
+    // help button
     const helpBtn = document.createElement("button");
     helpBtn.className = "help-btn blank-card-help";
     helpBtn.textContent = "?";
@@ -2252,7 +2252,7 @@ function renderBlankCards(blanks, answerKey, language) {
 
   codeArea.appendChild(frag);
 
-  // input에 이벤트 바인딩
+  // Bind event to input
   const allInputs = codeArea.querySelectorAll(".blank-card-input");
   inputs = Array.from(allInputs);
 
@@ -2317,7 +2317,7 @@ function handleBlankCardEnter(input) {
     state.isCorrect = isCorrect;
   }
 
-  // UI 업데이트
+  // UI updates
   input.disabled = true;
   input.classList.add(isCorrect ? "correct" : "wrong");
 
@@ -2331,7 +2331,7 @@ function handleBlankCardEnter(input) {
     resultDiv.innerHTML = `<span class="mc-wrong">✗ 오답 → 정답: ${expected}</span>`;
   }
 
-  // 네비게이션 업데이트
+  // navigation updates
   const nav = document.getElementById(`nav-blank-${cardNum}`);
   if (nav) {
     nav.classList.remove("pending");
@@ -2340,7 +2340,7 @@ function handleBlankCardEnter(input) {
 
   updateBlankCardScore();
 
-  // 다음 입력으로 포커스
+  // Focus to next input
   const nextInput = inputs.find(inp => !inp.disabled);
   if (nextInput) nextInput.focus();
 }
@@ -2401,13 +2401,13 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     cardDiv.className = "challenge-card";
     cardDiv.id = `challenge-${challengeNum}`;
 
-    // 헤더
+    // header
     const headerDiv = document.createElement("div");
     headerDiv.className = "challenge-header";
     headerDiv.innerHTML = `<span class="challenge-num">챌린지 ${challengeNum}</span>`;
     cardDiv.appendChild(headerDiv);
 
-    // 함수 시그니처
+    // function signature
     const sigDiv = document.createElement("pre");
     sigDiv.className = "challenge-signature";
     if (window.hljs && language) {
@@ -2421,13 +2421,13 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     }
     cardDiv.appendChild(sigDiv);
 
-    // 힌트
+    // hint
     const hintDiv = document.createElement("div");
     hintDiv.className = "challenge-hint";
     hintDiv.textContent = "↓ 아래에 함수 본문을 구현하세요";
     cardDiv.appendChild(hintDiv);
 
-    // 입력 영역
+    // input area
     const textarea = document.createElement("textarea");
     textarea.className = "challenge-input";
     textarea.dataset.key = String(challengeNum);
@@ -2436,9 +2436,9 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     textarea.rows = 8;
     textarea.spellcheck = false;
 
-    // Python 자동 들여쓰기 및 Enter 키 채점
+    // Python automatic indentation and Enter key grading
     textarea.addEventListener("keydown", (e) => {
-      // Tab 키: 들여쓰기 추가
+      // Tab key: Add indentation
       if (e.key === "Tab" && !e.shiftKey) {
         e.preventDefault();
         const start = textarea.selectionStart;
@@ -2449,7 +2449,7 @@ function renderImplementationChallenge(challenges, answerKey, language) {
         return;
       }
 
-      // Shift+Tab: 들여쓰기 제거
+      // Shift+Tab: Remove indentation
       if (e.key === "Tab" && e.shiftKey) {
         e.preventDefault();
         const start = textarea.selectionStart;
@@ -2463,17 +2463,17 @@ function renderImplementationChallenge(challenges, answerKey, language) {
         return;
       }
 
-      // ===== Enter 키: 자동 들여쓰기 + 채점 단축키 =====
-      // VSCode 스타일: 빈 줄에서 엔터 = 들여쓰기 한 단계 취소
+      // ===== Enter Key: Auto Indent + Grading Shortcuts =====
+      // VSCode Style: Enter on blank line = cancel one level of indentation
       if (e.key === "Enter") {
-        // Shift+Enter: 개별 채점 (Mode3 전용)
+        // Shift+Enter: Individual grading (Mode3 only)
         if (e.shiftKey) {
           e.preventDefault();
           handleChallengeCheck(challengeNum);
           return;
         }
 
-        // Ctrl+Enter는 전체 채점용으로 전파
+        // Ctrl+Enter propagates to entire grading
         if (e.ctrlKey || e.metaKey) {
           return;
         }
@@ -2484,21 +2484,21 @@ function renderImplementationChallenge(challenges, answerKey, language) {
         const lineStart = value.lastIndexOf("\n", start - 1) + 1;
         const currentLine = value.substring(lineStart, start);
 
-        // 현재 줄의 들여쓰기 추출
+        // Extract indentation of current line
         const indentMatch = currentLine.match(/^(\s*)/);
         let indent = indentMatch ? indentMatch[1] : "";
 
-        // ★ VSCode 스타일: 현재 줄이 공백만 있으면 (빈 줄) 들여쓰기 한 단계 취소
+        // ★ VSCode Style: If the current line contains only spaces (empty line), cancel one level of indentation.
         if (currentLine.trim() === "" && indent.length >= 4) {
-          // 이전 줄의 공백을 4칸 줄이기 (들여쓰기 취소)
+          // Decrease the space of the previous line by 4 spaces (cancel indentation)
           const newIndent = indent.substring(4);
-          // 현재 줄 내용을 새 들여쓰기로 교체
+          // Replace current line content with new indentation
           textarea.value = value.substring(0, lineStart) + newIndent + "\n" + newIndent + value.substring(start);
           textarea.selectionStart = textarea.selectionEnd = lineStart + newIndent.length + 1 + newIndent.length;
           return;
         }
 
-        // : 로 끝나면 추가 들여쓰기 (def, if, for, while, class, try, except 등)
+        // Additional indentation that ends with : (def, if, for, while, class, try, except, etc.)
         if (currentLine.trim().endsWith(":")) {
           indent += "    ";
         }
@@ -2511,7 +2511,7 @@ function renderImplementationChallenge(challenges, answerKey, language) {
 
     cardDiv.appendChild(textarea);
 
-    // 버튼 영역
+    // button area
     const btnDiv = document.createElement("div");
     btnDiv.className = "challenge-actions";
 
@@ -2549,7 +2549,7 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     btnDiv.appendChild(whyWrongBtn);
     cardDiv.appendChild(btnDiv);
 
-    // 결과
+    // result
     const resultDiv = document.createElement("div");
     resultDiv.className = "challenge-result";
     resultDiv.id = `challenge-result-${challengeNum}`;
@@ -2715,7 +2715,7 @@ function finishChallengeCheck(num, isCorrect, feedback) {
   updateChallengeScore();
 }
 
-// 왜 틀렸나요? AI 설명
+// Why is it wrong?AI Description
 async function explainWhyWrong(num, mode) {
   let userAnswer = '';
   let correctAnswer = '';
@@ -2749,7 +2749,7 @@ async function explainWhyWrong(num, mode) {
 
   resultDiv.innerHTML = `<span style="color: var(--accent-2);">🤔 차이점 분석 중...</span>`;
 
-  // 더 간결한 프롬프트 - 2-3줄 차이점만
+  // A more concise prompt - only 2-3 lines of difference
   const prompt = `정답 코드와 내 코드를 비교해서 뭐가 틀렸는지 2-3줄로만 알려줘.
 
 정답:
@@ -2810,7 +2810,7 @@ function handleChallengeReset(num) {
   const textarea = card.querySelector("textarea");
   const state = challengeStates.find(s => s.challengeNum === num);
 
-  // 상태 리셋
+  // state reset
   textarea.value = "";
   textarea.disabled = false;
   textarea.classList.remove("correct", "wrong", "revealed", "retried");
@@ -2821,11 +2821,11 @@ function handleChallengeReset(num) {
   state.hasBeenWrong = false;
   challengeReviewQueue.delete(String(num));
 
-  // 결과 초기화
+  // Result initialization
   const resultDiv = document.getElementById(`challenge-result-${num}`);
   resultDiv.innerHTML = "";
 
-  // 네비게이션 초기화
+  // Reset navigation
   const nav = document.getElementById(`nav-challenge-${num}`);
   if (nav) {
     nav.classList.remove("correct", "wrong", "revealed", "retried");
@@ -2915,7 +2915,7 @@ function checkOne(input) {
   const key = input.dataset.key;
   const isCorrect = isAnswerCorrect(user, expected);
 
-  // 빨간 물음표 버튼 표시/숨김
+  // Show/hide red question mark button
   const whyBtn = input.parentElement?.querySelector('.why-wrong-btn');
 
   if (!user) {
@@ -2931,7 +2931,7 @@ function checkOne(input) {
 }
 
 function checkAll() {
-  // Mode 7 (영단어) 처리
+  // Mode 7 (English word) processing
   if (vocabStates && vocabStates.length > 0) {
     const unansweredIndices = vocabStates
       .filter(s => !s.answered && !s.needsAi)
@@ -2946,7 +2946,7 @@ function checkAll() {
     return;
   }
 
-  // Mode 5 (정의 퀴즈) 처리
+  // Mode 5 (Definition Quiz) Processing
   if (definitionStates && definitionStates.length > 0) {
     const unansweredIndices = definitionStates
       .filter(s => !s.answered)
@@ -2957,7 +2957,7 @@ function checkAll() {
       return;
     }
 
-    // 순차적으로 각 정의 채점 (AI 사용 시)
+    // Score each definition sequentially (when using AI)
     const checkNextDef = async (indices) => {
       if (indices.length === 0) {
         updateDefinitionScore();
@@ -2972,7 +2972,7 @@ function checkAll() {
     return;
   }
 
-  // Mode 3 (백지복습 / 챌린지 모드) 처리
+  // Mode 3 (Blank review / Challenge mode) processing
   if (challengeStates.length > 0) {
     const unansweredIndices = challengeStates
       .filter(s => !s.answered)
@@ -2983,7 +2983,7 @@ function checkAll() {
       return;
     }
 
-    // 순차적으로 각 챌린지 채점 시작
+    // Begin grading each challenge sequentially
     const checkNextChallenge = async (indices) => {
       if (indices.length === 0) {
         updateChallengeScore();
@@ -2991,7 +2991,7 @@ function checkAll() {
       }
       const num = indices[0];
       await handleChallengeCheck(num);
-      // 약간의 딜레이 후 다음 채점 (API 과부하 방지)
+      // Next grading after some delay (avoid API overload)
       setTimeout(() => checkNextChallenge(indices.slice(1)), 500);
     };
 
@@ -2999,20 +2999,20 @@ function checkAll() {
     return;
   }
 
-  // 일반 빈칸 모드
+  // Normal blank mode
   inputs.forEach((input) => checkOne(input));
 }
 
 function revealAll() {
-  // Mode 1 AI 빈칸 처리 (.mode1-input)
+  // Mode 1 AI blank processing (.mode1-input)
   const mode1Inputs = document.querySelectorAll('.mode1-input');
   if (mode1Inputs.length > 0) {
     mode1Inputs.forEach((input) => {
       if (input.classList.contains('correct') || input.classList.contains('revealed')) {
-        return; // 이미 처리됨
+        return; // Already processed
       }
 
-      // data-answer 속성에서 정답 가져오기 (로컬 정답 표시)
+      // Get the correct answer from data-answer property (show local answer)
       const answer = input.dataset.answer;
       if (answer) {
         input.value = answer;
@@ -3020,7 +3020,7 @@ function revealAll() {
         input.classList.add('revealed');
         input.style.borderColor = 'var(--yellow)';
 
-        // Nav pill 업데이트
+        // Nav pill update
         const qNum = input.dataset.q;
         const blankNum = input.dataset.blank;
         const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
@@ -3034,7 +3034,7 @@ function revealAll() {
     return;
   }
 
-  // 일반 빈칸 처리
+  // General blank processing
   inputs.forEach((input) => revealOne(input, { autoAdvance: false }));
   updateScore();
 }
@@ -3148,24 +3148,24 @@ function revealOne(input, { autoAdvance = true } = {}) {
 }
 
 function handleEnter(input) {
-  // 2단계 채점 시스템:
-  // 1단계: 정답/오답 표시만
-  // 2단계: 오답인 경우 정답 표시 (노란색)
+  // Two-step scoring system:
+  // Step 1: Only mark correct/incorrect answers
+  // Step 2: If the answer is wrong, mark the correct answer (yellow)
 
-  // 이미 오답으로 표시된 상태에서 다시 Enter를 누르면 정답 표시
+  // If you press Enter again when the answer is already marked as incorrect, the correct answer will be displayed.
   if (input.classList.contains("wrong") && !input.classList.contains("revealed")) {
-    // 2단계: 정답 표시 (노란색)
+    // Step 2: Mark correct answers (yellow)
     revealOne(input, { autoAdvance: true });
     return;
   }
 
-  // 이미 채점 완료된 상태면 다음으로 이동
+  // If grading has already been completed, move to next
   if (input.classList.contains("correct") || input.classList.contains("revealed")) {
     focusNext(input);
     return;
   }
 
-  // 1단계: 채점만 수행
+  // Step 1: Just do the grading
   const ok = checkOne(input);
   if (ok === null) {
     if (!warnedMissingAnswers && !hasAnswers) {
@@ -3176,14 +3176,14 @@ function handleEnter(input) {
   }
 
   if (!ok) {
-    // 오답: 빨간색만 표시 (정답은 아직 표시 안 함)
+    // Wrong answer: only red (correct answer not yet shown)
     setState(input, "wrong");
     SoundEffects.play("wrong");
     LearningStats.recordAnswer(false);
     updateScore();
-    // 다음 Enter를 기다림 (자동 정답 표시 제거)
+    // Wait for next Enter (remove automatic correct answer display)
   } else {
-    // 정답
+    // Correct answer
     SoundEffects.play("correct");
     LearningStats.recordAnswer(true);
     focusNext(input);
@@ -3191,7 +3191,7 @@ function handleEnter(input) {
 }
 
 function startReviewCycle() {
-  // 4번 모드(파싱된 객관식/단답) 우선 처리
+  // Prioritize mode 4 (parsed multiple choice/short answer)
   if (parsedQuizStates.length > 0) {
     const reviewTargets = parsedQuizStates.filter(
       (s) => s.isCorrect === false || s.isCorrect === null || !s.answered
@@ -3202,10 +3202,10 @@ function startReviewCycle() {
       return;
     }
 
-    // 큐 초기화 후 대상 추가
+    // Add destination after initializing queue
     reviewQueue = new Set(reviewTargets.map((s) => String(s.qId)));
 
-    // UI/상태 리셋 + 비대상 카드 숨김
+    // Reset UI/state + hide non-target cards
     parsedQuizStates.forEach((s) => {
       const isTarget = reviewQueue.has(String(s.qId));
       const card = document.getElementById(`pq-${s.qId}`);
@@ -3245,7 +3245,7 @@ function startReviewCycle() {
     return;
   }
 
-  // Mode 3 챌린지 (백지 연습)
+  // Mode 3 Challenge (blank sheet practice)
   if (challengeStates.length > 0) {
     const reviewTargets = challengeStates.filter(
       (s) => s.isCorrect === false || !s.answered || s.hasBeenWrong
@@ -3288,7 +3288,7 @@ function startReviewCycle() {
     return;
   }
 
-  // 정의 퀴즈 / 영단어 카드
+  // Definition Quiz / English Vocabulary Card
   if (definitionStates.length > 0 || vocabStates.length > 0) {
     const defTargets = definitionStates.filter((s) => s.isCorrect === false || !s.answered);
     const vocabTargets = vocabStates.filter((s) => s.isCorrect === false || !s.answered);
@@ -3301,7 +3301,7 @@ function startReviewCycle() {
       ...vocabTargets.map((s) => `vocab-${s.wordNum}`)
     ]);
 
-    // 정의 카드
+    // definition card
     definitionStates.forEach((s) => {
       const isTarget = reviewQueue.has(`definition-${s.defNum}`);
       const card = document.getElementById(`definition-${s.defNum}`);
@@ -3320,7 +3320,7 @@ function startReviewCycle() {
       }
     });
 
-    // 영단어 카드
+    // English word card
     vocabStates.forEach((s) => {
       const isTarget = reviewQueue.has(`vocab-${s.wordNum}`);
       const card = document.getElementById(`vocab-${s.wordNum}`);
@@ -3345,7 +3345,7 @@ function startReviewCycle() {
     return;
   }
 
-  // 일반 빈칸 모드
+  // Normal blank mode
   const targets = inputs.filter(
     (inp) =>
       inp.classList.contains("wrong") ||
@@ -3360,7 +3360,7 @@ LegacyAlerts.noReviewBlanks();
   targets.forEach((inp) => {
     reviewQueue.add(inp.dataset.key);
   });
-  // 대상 외 빈칸은 비활성/숨김, 대상은 리셋
+  // Blank spaces other than the target are inactive/hidden, and the target is reset.
   inputs.forEach((inp) => {
     const isTarget = reviewQueue.has(inp.dataset.key);
     const nav = document.getElementById(`nav-${inp.dataset.key}`) || document.getElementById(`nav-blank-${inp.dataset.key}`);
@@ -3467,32 +3467,32 @@ function highlightAnswer(language) {
 }
 
 // ========== BUTTON EVENT HANDLERS ==========
-// DOMContentLoaded 대신 즉시 실행 함수로 변경 (동적 스크립트 로드 대응)
+// Changed to immediate execution function instead of DOMContentLoaded (corresponds to dynamic script loading)
 function initializeButtonHandlers() {
-  // 핸드폰 접속 주소 및 ngrok URL 로드 및 표시
+  // Load and display mobile phone access address and ngrok URL
   const mobileUrlEl = document.getElementById("mobile-url");
   const ngrokUrlEl = document.getElementById("ngrok-url");
 
-  // server_info.json에서 IP 및 ngrok URL 로드
+  // Load IP and ngrok URL from server_info.json
   fetch("/server_info.json")
     .then(r => r.json())
     .then(info => {
       const currentPort = window.location.port || "3000";
 
-      // 모바일 URL 표시
+      // Mobile URL display
       if (mobileUrlEl) {
         const mobileUrl = `http://${info.local_ip}:${currentPort}`;
         mobileUrlEl.textContent = `📱 ${mobileUrl}`;
         mobileUrlEl.title = "클릭하면 복사";
       }
 
-      // ngrok URL 표시 (있는 경우에만)
+      // Show ngrok URL (only if present)
       if (ngrokUrlEl && info.ngrok_url) {
         ngrokUrlEl.textContent = `🌐 ${info.ngrok_url}`;
         ngrokUrlEl.title = "클릭하면 복사 (외부 접속용)";
         ngrokUrlEl.style.display = "inline-block";
 
-        // 클릭하면 복사
+        // Click to copy
         ngrokUrlEl.addEventListener("click", () => {
           navigator.clipboard.writeText(info.ngrok_url).then(() => {
             const original = ngrokUrlEl.textContent;
@@ -3507,7 +3507,7 @@ function initializeButtonHandlers() {
       }
     })
     .catch(() => {
-      // server_info.json 없으면 현재 호스트 사용
+      // If server_info.json is not present, use current host
       if (mobileUrlEl) {
         const currentHost = window.location.hostname;
         const currentPort = window.location.port || "3000";
@@ -3519,7 +3519,7 @@ function initializeButtonHandlers() {
       }
     });
 
-  // 모바일 URL 클릭하면 복사
+  // Click to copy mobile URL
   if (mobileUrlEl) {
     mobileUrlEl.addEventListener("click", () => {
       const url = mobileUrlEl.textContent.replace("📱 ", "");
@@ -3535,30 +3535,30 @@ function initializeButtonHandlers() {
     });
   }
 
-  // 전체 채점
+  // Full grading
   const btnCheckLocal = document.getElementById("btn-check");
   if (btnCheckLocal) {
     btnCheckLocal.addEventListener("click", () => {
-      // parsed_quiz 모드
+      // parsed_quiz mode
       if (parsedQuizStates.length > 0) {
         const answered = parsedQuizStates.filter(s => s.answered).length;
         const total = parsedQuizStates.length;
       LegacyAlerts.progressSummary(answered, total);
         return;
       }
-      // 일반 빈칸 채점
+      // General blank grading
       inputs.forEach((inp) => checkOne(inp, false));
       updateScore();
     });
   }
 
-  // 전체 정답 보기
+  // See all answers
   const btnRevealLocal = document.getElementById("btn-reveal");
   if (btnRevealLocal) {
     btnRevealLocal.addEventListener("click", () => {
-      // parsed_quiz 모드
+      // parsed_quiz mode
       if (parsedQuizStates.length > 0) {
-        // 모든 문제에 "선택됨" 표시만 표시 (정답을 모르므로)
+        // Just mark all questions as "selected" (since you don't know the correct answer)
         parsedQuizStates.forEach(s => {
           if (!s.answered) {
             const resultDiv = document.getElementById(`pq-result-${s.qId}`);
@@ -3574,31 +3574,31 @@ function initializeButtonHandlers() {
       LegacyAlerts.noParsingAnswers();
         return;
       }
-      // 일반 빈칸
+      // plain blank space
       inputs.forEach((inp) => revealOne(inp));
       updateScore();
     });
   }
 
-  // 복습 모드 시작
+  // Start review mode
   const btnReview = document.getElementById("btn-review");
   if (btnReview) {
     btnReview.addEventListener("click", startReviewCycle);
   }
 
-  // 리셋
+  // reset
   const btnReset = document.getElementById("btn-reset");
   if (btnReset) {
     btnReset.addEventListener("click", () => {
       if (confirm("모든 답변을 초기화하시겠습니까?")) {
-        // parsed_quiz 모드
+        // parsed_quiz mode
         if (parsedQuizStates.length > 0) {
           parsedQuizStates.forEach(s => {
             s.answered = false;
             s.selected = null;
             s.userAnswer = "";
 
-            // UI 초기화
+            // UI initialization
             const cardDiv = document.getElementById(`pq-${s.qId}`);
             if (cardDiv) {
               cardDiv.querySelectorAll(".mc-option").forEach(opt => {
@@ -3625,7 +3625,7 @@ function initializeButtonHandlers() {
           updateParsedQuizScore();
           return;
         }
-        // 일반 빈칸
+        // plain blank space
         inputs.forEach((inp) => {
           inp.value = "";
           setState(inp, "pending");
@@ -3636,7 +3636,7 @@ function initializeButtonHandlers() {
     });
   }
 
-  // API 키 버튼들
+  // API key buttons
   const btnApiKey = document.getElementById("btn-api-key");
   if (btnApiKey) {
     btnApiKey.addEventListener("click", showApiKeyModal);
@@ -3659,13 +3659,13 @@ function initializeButtonHandlers() {
     btnCancelApiKey.addEventListener("click", hideApiKeyModal);
   }
 
-  // 키보드 단축키 버튼
+  // keyboard shortcut button
   const btnShortcuts = document.getElementById("btn-shortcuts");
   if (btnShortcuts) {
     btnShortcuts.addEventListener("click", () => KeyboardShortcuts.showHelp());
   }
 
-  // 맨 위로 버튼
+  // top button
   const btnScrollTop = document.getElementById("btn-scroll-top");
   if (btnScrollTop) {
     btnScrollTop.addEventListener("click", () => {
@@ -3673,19 +3673,19 @@ function initializeButtonHandlers() {
     });
   }
 
-  // 학습 타이머 시작 (세션 로드될 때도 시작)
+  // Start learning timer (also starts when session loads)
   StudyTimer.start();
 
-  // 이전 세션 복원 시도
+  // Attempt to restore previous session
   setTimeout(() => SessionSaver.restore(), 500);
 
-  // 알림 권한 요청 (Pomodoro 알림용)
+  // Request notification permission (for Pomodoro notifications)
   if (Notification.permission === 'default') {
     Notification.requestPermission();
   }
 }
 
-// AI 패널 헤더 버튼 이벤트 리스너 부착
+// Attach AI panel header button event listener
 function attachAIHeaderListeners() {
   const btnAiNew = document.getElementById("btn-ai-new");
   if (btnAiNew) btnAiNew.addEventListener("click", startNewChatSession);
@@ -3750,13 +3750,13 @@ function renderDefinitionQuiz(definitions, answerKey, language) {
     cardDiv.className = "definition-card";
     cardDiv.id = `definition-${defNum}`;
 
-    // 용어 (Front)
+    // Terminology (Front)
     const termDiv = document.createElement("div");
     termDiv.className = "definition-term";
     termDiv.innerHTML = `<span class="definition-num">#${defNum}</span> <strong>${escapeHtml(def.term)}</strong>이란?`;
     cardDiv.appendChild(termDiv);
 
-    // 입력 영역 (Back - 빈칸)
+    // Input area (Back - blank)
     const inputDiv = document.createElement("div");
     inputDiv.className = "definition-input-area";
 
@@ -3778,7 +3778,7 @@ function renderDefinitionQuiz(definitions, answerKey, language) {
     inputDiv.appendChild(textarea);
     cardDiv.appendChild(inputDiv);
 
-    // 결과 표시
+    // Show results
     const resultDiv = document.createElement("div");
     resultDiv.className = "definition-result";
     resultDiv.id = `def-result-${defNum}`;
@@ -3825,7 +3825,7 @@ LegacyAlerts.requireDefinition();
     state.answered = true;
     state.isCorrect = isCorrect;
 
-    // 학습 통계 기록
+    // Learning Statistics Record
     LearningStats.recordAnswer(isCorrect);
     SoundEffects.play(isCorrect ? 'correct' : 'wrong');
 
@@ -3865,7 +3865,7 @@ LegacyAlerts.requireDefinition();
 
     updateDefinitionScore();
 
-    // 다음 문제로 포커스 (이전 답변이 보이도록)
+    // Focus on next question (so previous answers are visible)
     const nextState = definitionStates.find(s => !s.answered);
     if (nextState) {
       const nextInput = document.getElementById(`def-input-${nextState.defNum}`);
@@ -3888,7 +3888,7 @@ LegacyAlerts.requireDefinition();
 }
 
 async function checkDefinitionWithAI(term, userAnswer, correctAnswer) {
-  // 최소 길이 검사 (너무 짧은 답은 무조건 오답)
+  // Minimum length check (an answer that is too short is always incorrect)
   if (userAnswer.length < 10) {
     return false;
   }
@@ -3926,11 +3926,11 @@ JSON 형식으로만 응답 (다른 텍스트 없이):
       const result = JSON.parse(jsonMatch[0]);
       return result.correct === true;
     }
-    // 파싱 실패 시 엄격한 비교
+    // Strict comparison when parsing fails
     return false;
   } catch (err) {
     console.error("AI grading error:", err);
-    // AI 실패 시에도 엄격하게 - 정확히 일치해야 정답
+    // Strictly even in case of AI failure - the correct answer must be an exact match
     const normalize = s => s.replace(/\s+/g, '').toLowerCase();
     return normalize(userAnswer) === normalize(correctAnswer);
   }
@@ -4002,18 +4002,18 @@ function renderVocabularyCards(words, answerKey, language) {
     cardDiv.className = "vocab-card";
     cardDiv.id = `vocab-${wordNum}`;
 
-    // 영어 단어
+    // english words
     const termDiv = document.createElement("div");
     termDiv.className = "vocab-term";
     termDiv.innerHTML = `<span class="vocab-num">#${wordNum}</span> <strong class="vocab-english">${escapeHtml(word.english)}</strong>`;
     cardDiv.appendChild(termDiv);
 
-    // 한글 뜻 입력/표시
+    // Enter/display Korean meaning
     const meaningDiv = document.createElement("div");
     meaningDiv.className = "vocab-meaning-area";
 
     if (word.needs_ai) {
-      // AI가 생성해야 하는 경우
+      // When AI needs to generate
       const genBtn = document.createElement("button");
       genBtn.className = "vocab-gen-btn";
       genBtn.textContent = "🤖 AI 뜻 생성";
@@ -4025,7 +4025,7 @@ function renderVocabularyCards(words, answerKey, language) {
       genResult.id = `vocab-gen-${wordNum}`;
       meaningDiv.appendChild(genResult);
     } else {
-      // 이미 뜻이 있는 경우 - 빈칸 테스트
+      // If there is already a meaning - blank test
       const textarea = document.createElement("textarea");
       textarea.className = "vocab-input";
       textarea.id = `vocab-input-${wordNum}`;
@@ -4046,7 +4046,7 @@ function renderVocabularyCards(words, answerKey, language) {
 
     cardDiv.appendChild(meaningDiv);
 
-    // 결과 표시
+    // Show results
     const resultDiv = document.createElement("div");
     resultDiv.className = "vocab-result";
     resultDiv.id = `vocab-result-${wordNum}`;
@@ -4097,7 +4097,7 @@ JSON 형식으로만 응답: {"meaning": "한국어 뜻"}`;
           <strong>뜻:</strong> ${escapeHtml(meaning)}
         </div>`;
 
-      // 상태 업데이트
+      // status update
       const state = vocabStates.find(s => s.wordNum === wordNum);
       if (state) {
         state.correctAnswer = meaning;
@@ -4254,7 +4254,7 @@ function initializeFileModeModal() {
   const statusEl = document.getElementById("fm-status");
   const selectedFileEl = document.getElementById("selected-file-name");
 
-  // 현재 선택 상태
+  // Current selection status
   let selectedPreset = "oop_vocab";
   let selectedMode = 7;
 
@@ -4267,7 +4267,7 @@ function initializeFileModeModal() {
     "math_practice": "6_Computational_Math_Practice.txt"
   };
 
-  // 모달 자동 표시 함수
+  // Modal auto-display function
   function showFileModeModal() {
     if (modal) {
       modal.style.display = "flex";
@@ -4278,16 +4278,16 @@ function initializeFileModeModal() {
     }
   }
 
-  // 세션 상태 확인 - 비어있거나 폴백 세션이면 모달 자동 표시
+  // Check session status - automatically show modal if empty or fallback session
   function checkSessionAndShowModal() {
-    // currentSession이 없거나 폴백 세션인지 확인
+    // Check if currentSession does not exist or is a fallback session
     if (!currentSession) {
       console.log("세션 없음 - 모달 표시");
       showFileModeModal();
       return;
     }
 
-    // 폴백 세션 감지: title이 "기본 세션"이거나 answer_key가 비어있는 경우
+    // Fallback session detection: if title is "default session" or answer_key is empty
     const isFallbackSession =
       currentSession.title === "기본 세션" ||
       (!currentSession.answer_key) ||
@@ -4300,10 +4300,10 @@ function initializeFileModeModal() {
     }
   }
 
-  // 세션 상태 확인 - initializeApp에서 이미 세션을 로드했으므로 즉시 체크
+  // Check session state - check immediately since initializeApp has already loaded the session.
   checkSessionAndShowModal();
 
-  // 모달 열기
+  // Open modal
   if (btnOpen) {
     btnOpen.addEventListener("click", () => {
       modal.style.display = "flex";
@@ -4312,36 +4312,36 @@ function initializeFileModeModal() {
     });
   }
 
-  // 모달 닫기
+  // Close modal
   if (btnCancel) {
     btnCancel.addEventListener("click", () => {
       modal.style.display = "none";
     });
   }
 
-  // 프리셋 파일 선택
+  // Select preset file
   document.querySelectorAll(".fm-preset:not(.fm-upload)").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".fm-preset").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedPreset = btn.dataset.preset;
-      customFileContent = null; // 프리셋 선택 시 커스텀 파일 초기화
+      customFileContent = null; // Initialize custom file when selecting preset
       selectedFileEl.textContent = fileNames[selectedPreset] || selectedPreset;
 
-      // 기본 모드 자동 선택 (data-default-mode 속성)
+      // Automatic selection of default mode (data-default-mode property)
       const defaultMode = btn.dataset.defaultMode;
       if (defaultMode) {
         selectedMode = parseInt(defaultMode, 10);
-        // 모드 버튼 UI 업데이트
+        // Mode button UI update
         document.querySelectorAll(".fm-mode").forEach(m => m.classList.remove("active"));
         const modeBtn = document.querySelector(`.fm-mode[data-mode="${defaultMode}"]`);
         if (modeBtn) modeBtn.classList.add("active");
 
-        // 난이도 UI 업데이트
+        // Difficulty UI update
         updateDifficultyVisibility(selectedMode);
       }
 
-      // 기본 방식 자동 선택: 모드/파일에 따라
+      // Automatic selection of default method: based on mode/file
       if (selectedPreset === "oop_code" || selectedPreset === "math_practice") {
         selectedMethod = "ai";
         document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
@@ -4356,11 +4356,11 @@ function initializeFileModeModal() {
     });
   });
 
-  // 첫 번째 프리셋 활성화 + 기본 모드 설정
+  // Activate first preset + set default mode
   const firstPreset = document.querySelector('.fm-preset:not(.fm-upload)');
   if (firstPreset) {
     firstPreset.classList.add('active');
-    // 첫 프리셋의 기본 모드도 적용
+    // The default mode of the first preset is also applied.
     const defaultMode = firstPreset.dataset.defaultMode;
     if (defaultMode) {
       selectedMode = parseInt(defaultMode, 10);
@@ -4370,7 +4370,7 @@ function initializeFileModeModal() {
     }
   }
 
-  // 파일 업로드 핸들러
+  // file upload handler
   let customFileContent = null;
   let customFileName = null;
   const customFileInput = document.getElementById("custom-file-input");
@@ -4384,9 +4384,9 @@ function initializeFileModeModal() {
       try {
         customFileContent = await file.text();
         customFileName = file.name;
-        selectedPreset = "custom"; // 커스텀 파일 표시
+        selectedPreset = "custom"; // Show custom files
 
-        // UI 업데이트
+        // UI updates
         document.querySelectorAll(".fm-preset").forEach(b => b.classList.remove("active"));
         if (uploadLabel) uploadLabel.classList.add("active");
         selectedFileEl.textContent = `📁 ${file.name}`;
@@ -4400,27 +4400,27 @@ function initializeFileModeModal() {
     });
   }
 
-  // 모드 선택
+  // Select mode
 
 
-  // 난이도 섹션 표시 업데이트 함수
+  // Difficulty section display update function
   function updateDifficultyVisibility(mode) {
     const diffSection = document.getElementById("difficulty-section");
     if (diffSection) {
-      // 모드 1(OOP빈칸), 2(자료구조빈칸), 6(코드작성) 등 난이도가 필요한 모드에 표시
+      // Displayed in modes that require difficulty, such as mode 1 (OOP blank), 2 (data structure blank), and 6 (code writing).
       const show = (mode === 1 || mode === 2);
       diffSection.style.display = show ? "block" : "none";
     }
   }
 
-  // 모드 선택
+  // Select mode
   document.querySelectorAll(".fm-mode").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".fm-mode").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedMode = parseInt(btn.dataset.mode, 10);
 
-      // 모드 1, 6은 AI 필수, 나머지는 로컬 기본
+      // Modes 1 and 6 are AI required, the rest are local defaults
       if (selectedMode === 1 || selectedMode === 6) {
         selectedMethod = "ai";
         document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
@@ -4428,7 +4428,7 @@ function initializeFileModeModal() {
         if (aiBtn) aiBtn.classList.add("active");
       } else {
         selectedMethod = "local";
-        // 기존 선택 유지하되 기본값은 로컬
+        // Keep existing selection but default to local
         if (!selectedMethod) selectedMethod = "local";
       }
 
@@ -4436,11 +4436,11 @@ function initializeFileModeModal() {
     });
   });
 
-  // 생성 방식 선택
+  // Select creation method
   let selectedMethod = "local";
   document.querySelectorAll(".fm-method").forEach(btn => {
     btn.addEventListener("click", () => {
-      // 모드 1,6은 AI 고정
+      // Modes 1 and 6 have fixed AI
       if (selectedMode === 1 || selectedMode === 6) {
         selectedMethod = "ai";
         document.querySelectorAll(".fm-method").forEach(b => b.classList.remove("active"));
@@ -4454,7 +4454,7 @@ function initializeFileModeModal() {
     });
   });
 
-  // ========== 난이도 선택 ==========
+  // ========== Select Difficulty ==========
   let selectedDifficulty = "normal";
   const difficultyHints = {
     easy: "쉬움: 키워드/자료형/리터럴 위주, 낮은 비율 빈칸",
@@ -4469,7 +4469,7 @@ function initializeFileModeModal() {
       btn.classList.add("active");
       selectedDifficulty = btn.dataset.diff;
 
-      // 힌트 업데이트
+      // Hint update
       const hintEl = document.getElementById("diff-hint");
       if (hintEl) {
         hintEl.textContent = difficultyHints[selectedDifficulty] || "";
@@ -4477,10 +4477,10 @@ function initializeFileModeModal() {
     });
   });
 
-  // 세션 생성
+  // Create session
   if (btnGenerate) {
     btnGenerate.addEventListener("click", async () => {
-      // ===== 모드 6: 전산수학 코드 작성 (프론트엔드에서 직접 처리) =====
+      // ===== Mode 6: Writing computational math code (processed directly on the frontend) =====
       if (selectedMode === 6) {
         statusEl.textContent = "🤖 AI가 코드 작성 문제를 생성 중...";
         modal.style.display = "none";
@@ -4488,7 +4488,7 @@ function initializeFileModeModal() {
         return;
       }
 
-      // ===== 모드 1: C# OOP 변형 빈칸 (프론트엔드에서 직접 처리) =====
+      // ===== Mode 1: C# OOP variant blank (processed directly in frontend) =====
       if (selectedMode === 1) {
         statusEl.textContent = "🤖 AI가 C# OOP 변형 문제를 생성 중...";
         modal.style.display = "none";
@@ -4502,16 +4502,16 @@ function initializeFileModeModal() {
       btnGenerate.disabled = true;
 
       try {
-        // 요청 데이터 구성
+        // Configuring request data
         const requestData = {
           preset: selectedPreset,
           mode: selectedMode,
           mode: selectedMode,
           method: selectedMethod,
-          difficulty: selectedDifficulty // 난이도 추가
+          difficulty: selectedDifficulty // Added difficulty
         };
 
-        // 커스텀 파일이 선택된 경우 파일 내용 포함
+        // Include file contents if custom file is selected
         if (selectedPreset === "custom" && customFileContent) {
           requestData.content = customFileContent;
           requestData.fileName = customFileName;
@@ -4594,7 +4594,7 @@ function initializeFileModeModal() {
           statusEl.textContent = `✅ 세션 생성 완료! (${countInfo})`;
           statusEl.className = "fm-status";
 
-          // 세션 다시 로드 (리로드 없이)
+          // Session reload (without reload)
           setTimeout(async () => {
             try {
               const sessionResponse = await fetch('session.json?t=' + Date.now());
@@ -4620,7 +4620,7 @@ function initializeFileModeModal() {
     });
   }
 
-  // 모달 바깥 클릭 시 닫기
+  // Close when clicking outside the modal
   if (modal) {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
@@ -4630,7 +4630,7 @@ function initializeFileModeModal() {
   }
 }
 
-// 동적 스크립트 로드 대응 + 세션 자동 로드
+// Dynamic script load response + session auto load
 async function loadSession() {
   try {
     const response = await fetch('session.json?t=' + Date.now());
@@ -4644,7 +4644,7 @@ async function loadSession() {
 }
 
 async function initializeApp() {
-  // 세션 먼저 로드 (서버가 이미 생성한 session.json)
+  // Load session first (session.json already created by server)
   try {
     const response = await fetch('session.json?t=' + Date.now());
     if (response.ok) {
@@ -4658,7 +4658,7 @@ async function initializeApp() {
     console.log('Session load error:', e.message);
   }
 
-  // 모달 초기화 (세션 로드 후)
+  // Modal initialization (after session load)
   initializeFileModeModal();
 }
 
@@ -4686,7 +4686,7 @@ if (document.readyState === 'loading') {
     });
   }
 
-  // 빈칸 목록에서 항목 클릭 시 자동으로 닫기 (모바일)
+  // Automatically close when clicking on an item in an empty list (mobile)
   document.getElementById('blank-list')?.addEventListener('click', (e) => {
     if (e.target.classList.contains('blank-pill')) {
       if (window.innerWidth <= 768) {
@@ -4698,7 +4698,7 @@ if (document.readyState === 'loading') {
 
 // ========== CACHE CLEAR ON UNLOAD ==========
 window.addEventListener("unload", () => {
-  // 브라우저 캐시 초기화 시도
+  // Attempt to reset browser cache
   if ('caches' in window) {
     caches.keys().then(names => {
       names.forEach(name => caches.delete(name));
@@ -4707,7 +4707,7 @@ window.addEventListener("unload", () => {
 });
 
 // ============================================================================
-// 모드 6: 전산수학 코드 작성 모드 (간단 요구사항 고정)
+// Mode 6: Computational mathematics code writing mode (simple requirements fixed)
 // ============================================================================
 
 let mode6State = {
@@ -4725,7 +4725,7 @@ async function renderMode6CodeWriting() {
   sessionTitle.textContent = "전산수학 코드 작성";
   sessionMode.textContent = "코드 작성 (AI)";
 
-  // 기본 요구사항 로드 (파일 없으면 하드코딩)
+  // Load basic requirements (hardcode if no files exist)
   let baseLines = [];
   try {
     const resp = await fetch('/data/6_Computational_Math_Practice.txt?t=' + Date.now());
@@ -4751,7 +4751,7 @@ async function renderMode6CodeWriting() {
     "Use at least one simple if/elif/else branch."
   ];
 
-  // AI 프롬프트: 단순 메뉴 + 사칙연산 + CSV/pandas/matplotlib + 소형 제약만 추가
+  // AI prompt: simple menu + four arithmetic operations + CSV/pandas/matplotlib + only small constraints added
   const aiPrompt = `
 당신은 전산수학 교수이자 실습 출제자입니다.
 다음 '기본 요구사항'을 절대 벗어나지 말고, 요구사항에 꼭 맞는 단순 문제를 만들어 주세요.
@@ -4925,7 +4925,7 @@ ${userCode}
         throw new Error("JSON 파싱 실패");
       }
     } catch (e) {
-      // JSON 파싱 실패 시 텍스트에서 판단
+      // Judging from text when JSON parsing fails
       const passed = response.includes('passed": true') || response.includes('정답') || response.includes('합격');
       result = { score: passed ? 80 : 50, passed, feedback: response, missing: [] };
     }
@@ -4933,7 +4933,7 @@ ${userCode}
     mode6State.submitted = true;
     mode6State.isCorrect = result.passed;
 
-    // 결과 UI
+    // Result UI
     const bgColor = result.passed ? 'rgba(94, 230, 167, 0.1)' : 'rgba(255, 107, 107, 0.1)';
     const borderColor = result.passed ? 'var(--green)' : 'var(--red)';
     const icon = result.passed ? '✅' : '❌';
@@ -4956,10 +4956,10 @@ ${userCode}
       </div>
     `;
 
-    // 점수 업데이트
+    // score update
     sessionScore.textContent = `${result.score} / 100`;
 
-    // 효과음
+    // sound effect
     if (result.passed) {
       SoundEffects.play('correct');
       LearningStats.recordAnswer(true);
@@ -5018,15 +5018,15 @@ async function showMode6Hint() {
 }
 
 // ============================================================================
-// 모드 1: C# OOP 빈칸 채우기
+// Mode 1: C# OOP Fill in the Blanks
 // ----------------------------------------------------------------------------
-// CSharp_코드문제.txt를 파싱하여 문제를 로드하고, 빈칸 카드 UI로 표시
+// Parse CSharp_CodeProblem.txt, load the problem, and display it as a blank card UI.
 // ============================================================================
 
-// 모드 1 상태 관리
+// Mode 1 State Management
 let mode1State = {
-  questions: [],    // 파싱된 문제들 { topic, description, code, blanks: [{num, answer}] }
-  userAnswers: {},  // 사용자 답변
+  questions: [],    // Parsed problems { topic, description, code, blanks: [{num, answer}] }
+  userAnswers: {},  // user response
   difficulty: 'normal' // easy, normal, hard
 };
 
@@ -5037,12 +5037,12 @@ function parseCSharpQuestions(text) {
   console.log('[Mode1] 파싱 시작, 텍스트 길이:', text.length);
   const questions = [];
 
-  // ===== 문제 N: 로 분리
+  // ===== Problem N: separated by
   const blocks = text.split(/={5,}\s*문제\s*\d+\s*:\s*/);
   console.log('[Mode1] 분리된 블록 수:', blocks.length);
 
   blocks.forEach((block, idx) => {
-    if (idx === 0) return; // 첫 블록은 파일 헤더
+    if (idx === 0) return; // The first block is the file header
 
     const lines = block.trim().split('\n');
     let topic = '';
@@ -5054,25 +5054,25 @@ function parseCSharpQuestions(text) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // 첫 줄에서 제목 추출 (===== 로 끝나는 줄)
+      // Extract title from first line (line ending with =====)
       if (i === 0 && line.includes('=====')) {
         topic = line.replace(/=+/g, '').trim();
         continue;
       }
 
-      // // 로 시작하는 첫 번째 줄 = 설명
+      // First line starting with // = Description
       if (line.trim().startsWith('//') && !description && !inAnswerKey) {
         description = line.replace(/^\/\/\s*/, '').trim();
         continue;
       }
 
-      // 정답키 섹션 시작
+      // Start answer key section
       if (line.includes('정답키:')) {
         inAnswerKey = true;
         continue;
       }
 
-      // 정답키 파싱
+      // Answer key parsing
       if (inAnswerKey) {
         const answerMatch = line.match(/^(\d+)=(.+)$/);
         if (answerMatch) {
@@ -5081,18 +5081,18 @@ function parseCSharpQuestions(text) {
         continue;
       }
 
-      // 코드 수집 (정답키 시작 전까지 모든 줄)
+      // Collect code (all lines until the start of the answer key)
       code += line + '\n';
     }
 
-    // 빈칸 개수 확인
+    // Check the number of blank spaces
     const blankCount = (code.match(/_____/g) || []).length;
     const answerCount = Object.keys(answers).length;
 
     console.log(`[Mode1] 문제 ${idx}: topic="${topic}", 빈칸=${blankCount}, 정답=${answerCount}`);
 
     if (topic && code.trim() && blankCount > 0 && answerCount > 0) {
-      // 빈칸 정보 생성
+      // Create blank information
       const blanks = [];
       for (let num = 1; num <= Math.min(blankCount, answerCount); num++) {
         if (answers[num.toString()]) {
@@ -5128,12 +5128,12 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
   const codeArea = document.getElementById('code-area');
   codeArea.innerHTML = `<div class="definition-loading">🤖 AI가 C# OOP 빈칸 문제를 생성 중...<br><span style="font-size: 12px; color: var(--muted);">잠시만 기다려주세요...</span></div>`;
 
-  // 제목 업데이트
+  // Title update
   sessionTitle.textContent = "C# OOP 빈칸 채우기 (AI)";
   sessionMode.textContent = "OOP 빈칸 채우기";
 
   try {
-    // 파일 로드
+    // load file
     const primaryUrl = '/data/3_OOP_Code_Blanks.txt?t=' + Date.now();
     const legacyUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
     let resp = await fetch(primaryUrl);
@@ -5141,14 +5141,14 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
     if (!resp.ok) throw new Error('파일을 찾을 수 없습니다');
     const rawText = await resp.text();
 
-    // 원본 C# 코드 블록들 추출 (빈칸 없는 상태)
+    // Extract original C# code blocks (without spaces)
     const codeBlocks = extractCSharpCodeBlocks(rawText);
 
     if (codeBlocks.length === 0) {
       throw new Error('코드 블록을 찾을 수 없습니다');
     }
 
-    // 모든 코드 블록에서 빈칸 생성 (랜덤 선택 X → 전체 커버)
+    // Create blank space in every code block (randomly select X → cover all)
     const aiGeneratedQuestions = [];
 
     for (let i = 0; i < codeBlocks.length; i++) {
@@ -5169,13 +5169,13 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
       throw new Error('AI 빈칸 생성 실패');
     }
 
-    // 상태 저장 (AI 생성 데이터)
+    // Save state (AI generated data)
     mode1State.questions = aiGeneratedQuestions;
     mode1State.userAnswers = {};
     mode1State.submitted = false;
-    mode1State.isAIMode = true; // AI 모드 플래그
+    mode1State.isAIMode = true; // AI mode flag
 
-    // UI 렌더링
+    // UI rendering
     let questionsHtml = '';
     let navHtml = '';
     let globalBlankIdx = 0;
@@ -5183,7 +5183,7 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
     aiGeneratedQuestions.forEach((q, qIdx) => {
       const questionNum = qIdx + 1;
 
-      // 빈칸이 있는 코드를 입력 필드로 변환
+      // Convert code with blank spaces into input fields
       let processedCode = highlightCSharpSyntax(q.codeWithBlanks);
       let blankCounter = 1;
 
@@ -5193,7 +5193,7 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
 
         navHtml += `<span class="blank-pill pending" id="nav-${blankId}" data-q="${questionNum}" data-blank="${blankCounter}" onclick="document.getElementById('input-${blankId}').focus()">${globalBlankIdx}</span>`;
 
-        // 입력 필드 + 노란 물음표(힌트) + 빨간 물음표(왜 틀림)
+        // Input field + yellow question mark (hint) + red question mark (what's wrong)
         const result = `<span class="mode1-blank-wrapper" style="display: inline-flex; align-items: center; gap: 3px;">
           <input type="text" id="input-${blankId}" class="blank-card-input mode1-input" 
             data-q="${questionNum}" data-blank="${blankCounter}" data-global-idx="${globalBlankIdx}" 
@@ -5223,18 +5223,18 @@ async function renderMode1OOPBlanks(difficulty = 'normal') {
 
     codeArea.innerHTML = questionsHtml;
 
-    // 빈칸 목록 업데이트
+    // Update blank list
     const blankList = document.getElementById('blank-list');
     if (blankList) blankList.innerHTML = navHtml;
 
-    // 세션 카운트 업데이트
+    // Session count update
     sessionCount.textContent = globalBlankIdx.toString();
     sessionScore.textContent = `0 / ${globalBlankIdx}`;
 
-    // 이벤트 리스너 설정
+    // Event listener settings
     setupMode1AIEventListeners();
 
-    // 컨트롤 버튼 표시
+    // Show control buttons
     updateControlButtonsForMode(1);
 
   } catch (err) {
@@ -5251,7 +5251,7 @@ function extractCSharpCodeBlocks(text) {
   const sections = text.split(/={5,}\s*문제\s*\d+\s*:\s*/);
 
   sections.forEach((section, idx) => {
-    if (idx === 0) return; // 헤더 스킵
+    if (idx === 0) return; // skip header
 
     const lines = section.trim().split('\n');
     let topic = '';
@@ -5259,28 +5259,28 @@ function extractCSharpCodeBlocks(text) {
     let inAnswerKey = false;
 
     for (const line of lines) {
-      // 제목 추출
+      // Title extraction
       if (line.includes('=====')) {
         topic = line.replace(/=+/g, '').trim();
         continue;
       }
-      // 정답키 섹션 시작
+      // Start answer key section
       if (line.includes('정답키:')) {
         inAnswerKey = true;
         continue;
       }
-      // 정답키 스킵
+      // Skip the answer key
       if (inAnswerKey) continue;
 
-      // 힌트 주석 제거 (// 빈칸: XXX 형태)
+      // Remove hint comment (//Blank: XXX format)
       let cleanLine = line.replace(/\s*\/\/\s*빈칸[^:\n]*:[^\n]*/g, '');
 
-      // 코드 수집
+      // CODE COLLECTION
       code += cleanLine + '\n';
     }
 
-    // 빈칸 마커 _____ 도 제거하지 않음 (AI가 이미 빈칸이 있는 코드를 받아서 새로 생성)
-    // 하지만 이미 빈칸이 있는 코드는 그대로 사용하되, 주석만 제거된 상태
+    // Blank marker _____ is also not removed (AI takes code that already has a blank space and creates a new one)
+    // However, the code that already has blank spaces is used as is, but only the comments have been removed.
 
     if (topic && code.trim()) {
       blocks.push({ topic, code: code.trim() });
@@ -5403,20 +5403,20 @@ function setupMode1AIEventListeners() {
       if (e.key === 'Enter') {
         e.preventDefault();
 
-        // 이미 채점된 경우
+        // If already graded
         if (input.classList.contains('correct') || input.classList.contains('revealed')) {
           focusNextMode1Input(input);
           return;
         }
 
-        // 오답 상태에서 다시 Enter
+        // Enter again in wrong answer state
         if (input.classList.contains('wrong')) {
           await revealMode1AnswerAI(input);
           focusNextMode1Input(input);
           return;
         }
 
-        // AI 채점
+        // AI scoring
         await checkMode1AnswerAI(input);
       }
     });
@@ -5439,10 +5439,10 @@ async function checkMode1AnswerAI(input) {
   const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
   const whyBtn = input.parentElement.querySelector('.mode1-why-btn');
 
-  // 로딩 표시
+  // loading indicator
   input.style.borderColor = 'var(--yellow)';
 
-  // 전체 원본 코드와 빈칸 정보 전달
+  // Pass full original code and blank information
   const prompt = `C# 빈칸 문제 채점.
 
 ## 원본 전체 코드
@@ -5502,7 +5502,7 @@ async function revealMode1AnswerAI(input) {
   input.value = "정답 로딩중...";
   input.disabled = true;
 
-  // 전체 원본 코드로 정답 요청
+  // Request correct answer with full original code
   const prompt = `C# 코드의 빈칸 정답 알려줘.
 
 ## 원본 전체 코드
@@ -5515,7 +5515,7 @@ ${question.originalCode || question.codeWithBlanks}
 
   try {
     const response = await callGeminiAPI(prompt, "정답 단어만 응답해. 다른 설명 없이 한 단어.");
-    // 응답에서 불필요한 부분 제거
+    // Remove unnecessary parts from the response
     let answer = response.trim()
       .replace(/```/g, '')
       .replace(/\n/g, ' ')
@@ -5524,7 +5524,7 @@ ${question.originalCode || question.codeWithBlanks}
       .replace(/^\s*["`']|["`']\s*$/g, '')
       .trim();
 
-    // 첫 단어만 추출 (너무 긴 응답 방지)
+    // Extract only the first word (avoid too long responses)
     const words = answer.split(/\s+/);
     if (words.length > 2) {
       answer = words.slice(0, 2).join(' ');
@@ -5624,33 +5624,33 @@ ${question.originalCode || question.codeWithBlanks}
  * C# 코드 구문 강조
  */
 function highlightCSharpSyntax(code) {
-  // 키워드 강조
+  // Keyword Highlighting
   const keywords = ['namespace', 'class', 'interface', 'public', 'private', 'protected', 'static', 'void', 'int', 'string', 'double', 'bool', 'new', 'return', 'if', 'else', 'for', 'foreach', 'while', 'try', 'catch', 'finally', 'throw', 'using', 'lock', 'object', 'in'];
 
   let result = code;
 
-  // 문자열 강조 (먼저 처리)
+  // String highlighting (processed first)
   result = result.replace(/"([^"\\]|\\.)*"/g, '<span style="color: #ce9178;">"$&"</span>');
   result = result.replace(/<span style="color: #ce9178;">"("([^"\\]|\\.)*")"/g, '<span style="color: #ce9178;">$1');
 
-  // 주석 강조
+  // Comment highlighting
   result = result.replace(/(\/\/[^\n]*)/g, '<span style="color: #6a9955;">$1</span>');
   result = result.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #6a9955;">$1</span>');
 
-  // 키워드 강조
+  // Keyword Highlighting
   keywords.forEach(kw => {
     const regex = new RegExp(`\\b(${kw})\\b`, 'g');
     result = result.replace(regex, '<span style="color: #569cd6;">$1</span>');
   });
 
-  // 타입 강조
+  // Type highlighting
   const types = ['Console', 'Thread', 'Exception', 'DivideByZeroException', 'ArgumentException', 'ThreadStart'];
   types.forEach(type => {
     const regex = new RegExp(`\\b(${type})\\b`, 'g');
     result = result.replace(regex, '<span style="color: #4ec9b0;">$1</span>');
   });
 
-  // 숫자 강조
+  // Number highlighting
   result = result.replace(/\b(\d+)\b/g, '<span style="color: #b5cea8;">$1</span>');
 
   return result;
@@ -5879,12 +5879,12 @@ async function checkMode1WithAI(input, showAnswer = false) {
 
   const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
 
-  // 이미 채점된 경우 스킵
+  // Skip if already graded
   if (input.classList.contains('correct') || input.classList.contains('revealed')) {
     return;
   }
 
-  // 정답 표시 요청인 경우
+  // When requesting to display the correct answer
   if (showAnswer && !input.classList.contains('correct')) {
     input.value = storedAnswer;
     input.classList.add('revealed');
@@ -5896,7 +5896,7 @@ async function checkMode1WithAI(input, showAnswer = false) {
     return;
   }
 
-  // AI 채점 프롬프트
+  // AI Grading Prompts
   const prompt = `C# 코드에서 빈칸에 들어갈 답을 채점해줘.
 
 ## 코드 맥락
@@ -5938,7 +5938,7 @@ ${question.code.split('\n').slice(0, 30).join('\n')}
 
   } catch (err) {
     console.error('AI grading error:', err);
-    // AI 실패 시 로컬 채점으로 폴백
+    // Fallback to local scoring when AI fails
     checkMode1SingleLocal(input, showAnswer);
   }
 }
