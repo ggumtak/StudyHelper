@@ -1,6 +1,7 @@
 # 로컬(LLM 없는) 변환용 단순 제너레이터
 import re
 import random
+import math
 import os
 from .quiz_parser import DrillSession
 from .answer_key import MC_ANSWERS as QUIZ_ANSWERS  # 정답표는 answer_key.py에서 import
@@ -313,190 +314,130 @@ def clean_answer(ans: str) -> str:
     return cleaned
 
 
+
 def build_inline_blank_code(code: str, blanks: list) -> str:
     """
-    원본 코드와 빈칸 목록을 받아서 __[N]__ 형식의 인라인 빈칸 코드를 생성합니다.
+    Render inline __[N]__ markers using recorded positions, with fallbacks if text search fails.
     blanks: [{"line_num": 4, "answer": "None", "col_offset": 10}, ...]
     """
-    lines = code.split('\n')
-    
-    # 라인별로 빈칸 그룹화 (1-indexed)
-    blanks_by_line = {}
-    for idx, blank in enumerate(blanks):
-        line_num = blank["line_num"]  # 1-indexed
-        if line_num not in blanks_by_line:
-            blanks_by_line[line_num] = []
-        blanks_by_line[line_num].append({
-            "blank_num": idx + 1,
-            "answer": blank["answer"],
-            "col_offset": blank.get("col_offset", -1)
-        })
-    
+    lines = code.split("\n")
+    blanks_by_line: dict[int, list[dict]] = {}
+    for blank in blanks:
+        line_num = int(blank.get("line_num", 0))
+        blanks_by_line.setdefault(line_num, []).append(blank)
+
     result_lines = []
     for i, line in enumerate(lines):
-        line_num = i + 1  # 1-indexed
-        if line_num not in blanks_by_line:
+        line_num = i + 1
+        line_blanks = blanks_by_line.get(line_num)
+        if not line_blanks:
             result_lines.append(line)
             continue
-        
+
         modified_line = line
-        # 해당 라인의 모든 빈칸 처리 (역순으로 처리해서 인덱스 꼬임 방지)
-        # col_offset이 큰 순서대로(뒤에서부터) 처리해야 앞에 있는 빈칸 처리에 영향을 안 받음
-        blanks_for_line = sorted(blanks_by_line[line_num], key=lambda x: -x["col_offset"] if x["col_offset"] != -1 else -x["blank_num"])
-        
-        for blank in blanks_for_line:
-            answer = blank["answer"]
-            col_offset = blank["col_offset"]
-            blank_marker = f"__[{blank['blank_num']}]__"
-            
-            if col_offset != -1:
-                # 정확한 위치 기반 치환
-                # 검증: 해당 위치에 정답이 실제로 있는지 확인
-                if modified_line[col_offset:col_offset+len(answer)] == answer:
-                    modified_line = modified_line[:col_offset] + blank_marker + modified_line[col_offset + len(answer):]
-                else:
-                    # 위치가 안 맞으면 fallback: find 사용
-                    answer_index = modified_line.find(answer)
-                    if answer_index != -1:
-                        modified_line = modified_line[:answer_index] + blank_marker + modified_line[answer_index + len(answer):]
+        sorted_blanks = sorted(
+            line_blanks,
+            key=lambda b: -(b.get("col_offset", -1) if b.get("col_offset", -1) != -1 else b.get("blank_num", 0))
+        )
+
+        for blank in sorted_blanks:
+            answer = str(blank.get("answer", "")).strip()
+            col_offset = blank.get("col_offset", -1)
+            marker = f"__[{blank.get('blank_num')}]__"
+            insert_at = -1
+
+            if col_offset is not None and col_offset >= 0 and col_offset + len(answer) <= len(modified_line):
+                segment = modified_line[col_offset:col_offset + len(answer)]
+                if segment == answer:
+                    insert_at = col_offset
+
+            if insert_at == -1 and answer:
+                insert_at = modified_line.find(answer)
+
+            if insert_at != -1:
+                modified_line = modified_line[:insert_at] + marker + modified_line[insert_at + len(answer):]
             else:
-                # 위치 정보 없으면 find 사용
-                answer_index = modified_line.find(answer)
-                if answer_index != -1:
-                    modified_line = modified_line[:answer_index] + blank_marker + modified_line[answer_index + len(answer):]
-        
+                modified_line = f"{modified_line.rstrip()} {marker}".strip()
+
         result_lines.append(modified_line)
-    
-    return '\n'.join(result_lines)
+
+    return "\n".join(result_lines)
 
 
 def make_blanks_with_context(code: str, target_count: int):
-    """카드 형식으로 빈칸 생성 (랜덤 위치)"""
+    "Generate blanks from identifiers/numbers with even distribution."
     lines = code.splitlines()
-    candidates = []  # 모든 빈칸 후보 수집
-    used_answers = set()  # 중복 정답 방지
-    
+    token_re = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|\b\d+\b")
+    candidates: list[dict] = []
+
+    in_block_comment = False
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if stripped.startswith(("def ", "class ", "import ", "from ", "#", '"""', "'''")):
-            continue
         if not stripped:
             continue
-        
-        # 할당문 패턴
-        assign_match = re.search(r"=\s*([^#\n=]+)$", line)
-        if assign_match:
-            raw_ans = assign_match.group(1).strip()
-            ans = clean_answer(raw_ans)
-            if is_valid_answer(ans) and ans not in used_answers:
-                # 정확한 시작 위치 계산
-                # group(1)의 시작 위치를 찾아야 함. 
-                # assign_match.start(1)은 전체 string 기준이 아니라 line 기준임 (re.search는 전체 string에서 찾지만 여기선 line을 넘김)
-                col_offset = assign_match.start(1)
-                
-                # strip()으로 인해 앞쪽 공백이 제거되었을 수 있으므로 보정 필요
-                # raw_ans는 strip() 전의 문자열. ans는 strip() 후.
-                # raw_ans 안에서 ans의 위치를 찾아야 함.
-                sub_idx = raw_ans.find(ans)
-                if sub_idx != -1:
-                    col_offset += sub_idx
-                
-                context_start = max(0, i - 2)
-                context_end = min(len(lines), i + 3)
-                
-                # context 생성용 (단순 replace)
-                question_line = line.replace(ans, "_____", 1)
-                context_with_blank = "\n".join([
-                    question_line if j == i else lines[j]
-                    for j in range(context_start, context_end)
-                ])
-                candidates.append({
-                    "line_num": i + 1,
-                    "context": context_with_blank,
-                    "answer": ans,
-                    "full_line": line.strip(),
-                    "col_offset": col_offset
-                })
-                used_answers.add(ans)
-                continue
-        
-        # return 패턴
-        return_match = re.search(r"return\s+([^#\n]+)$", line)
-        if return_match:
-            raw_ans = return_match.group(1).strip()
-            ans = clean_answer(raw_ans)
-            if is_valid_answer(ans) and ans not in used_answers:
-                col_offset = return_match.start(1)
-                sub_idx = raw_ans.find(ans)
-                if sub_idx != -1:
-                    col_offset += sub_idx
+        if stripped.startswith(('"' * 3, "'''")):
+            in_block_comment = not in_block_comment
+            continue
+        if in_block_comment or stripped.startswith("#"):
+            continue
 
-                context_start = max(0, i - 2)
-                context_end = min(len(lines), i + 3)
-                question_line = line.replace(ans, "_____", 1)
-                context_with_blank = "\n".join([
-                    question_line if j == i else lines[j]
-                    for j in range(context_start, context_end)
-                ])
-                candidates.append({
-                    "line_num": i + 1,
-                    "context": context_with_blank,
-                    "answer": ans,
-                    "full_line": line.strip(),
-                    "col_offset": col_offset
-                })
-                used_answers.add(ans)
+        for match in token_re.finditer(line):
+            answer = match.group().strip()
+            if not is_valid_answer(answer):
                 continue
-        
-        # while/if 조건문 패턴
-        for pattern, name in [(r"while\s+([^:]+):", "while"), (r"if\s+([^:]+):", "if")]:
-            match = re.search(pattern, line)
-            if match:
-                raw_ans = match.group(1) # 여기는 strip() 안 함 (패턴이 이미 제외)
-                ans = raw_ans.strip()
-                
-                if is_valid_answer(ans) and ans not in used_answers:
-                    col_offset = match.start(1)
-                    sub_idx = raw_ans.find(ans)
-                    if sub_idx != -1:
-                        col_offset += sub_idx
-                        
-                    context_start = max(0, i - 2)
-                    context_end = min(len(lines), i + 3)
-                    start, end = match.span(1)
-                    question_line = line[:start] + "_____" + line[end:]
-                    context_with_blank = "\n".join([
-                        question_line if j == i else lines[j]
-                        for j in range(context_start, context_end)
-                    ])
-                    candidates.append({
-                        "line_num": i + 1,
-                        "context": context_with_blank,
-                        "answer": ans,
-                        "full_line": line.strip(),
-                        "col_offset": col_offset
-                    })
-                    used_answers.add(ans)
-                    break
-    
-    # 랜덤으로 섞고 target_count개 선택
-    random.shuffle(candidates)
-    blanks = candidates[:target_count]
-    
-    # 라인 번호순으로 정렬 (코드 순서대로 보이게)
-    blanks.sort(key=lambda x: x["line_num"])
-    
-    answer_key = {
-        "_type": "fill_in_blank_cards",
-        "_blanks": blanks,
-        "_original_code": code  # 원본 코드 저장 (인라인 빈칸 렌더링용)
-    }
+            candidates.append(
+                {
+                    "line_num": i + 1,
+                    "answer": answer,
+                    "full_line": line.rstrip("\n"),
+                    "col_offset": match.start(),
+                }
+            )
+
+    buckets: dict[int, list[dict]] = {}
+    for cand in candidates:
+        buckets.setdefault(cand["line_num"], []).append(cand)
+    for bucket in buckets.values():
+        random.shuffle(bucket)
+
+    blanks: list[dict] = []
+    line_usage: dict[int, int] = {}
+    max_per_line = max(2, math.ceil(target_count / max(1, len(lines) / 1.5)))
+
+    for cap in range(max_per_line, max_per_line + 3):
+        for line_idx in range(1, len(lines) + 1):
+            bucket = buckets.get(line_idx, [])
+            while bucket and line_usage.get(line_idx, 0) < cap and len(blanks) < target_count:
+                cand = bucket.pop()
+                blanks.append(cand)
+                line_usage[line_idx] = line_usage.get(line_idx, 0) + 1
+        if len(blanks) >= target_count:
+            break
+
+    if len(blanks) < target_count:
+        remaining = []
+        for bucket in buckets.values():
+            remaining.extend(bucket)
+        random.shuffle(remaining)
+        for cand in remaining:
+            blanks.append(cand)
+            if len(blanks) >= target_count:
+                break
+
+    blanks = blanks[:target_count]
     for idx, blank in enumerate(blanks, 1):
-        answer_key[str(idx)] = blank["answer"]
-    
+        blank["blank_num"] = idx
+
+    answer_key = {
+        "_type": "fill_in_blank_inline",
+        "_blanks": blanks,
+        "_original_code": code,
+    }
+    for blank in blanks:
+        answer_key[str(blank["blank_num"])] = blank["answer"]
+
     question_text = build_inline_blank_code(code, blanks)
     return question_text, answer_key
-
 
 def make_implementation_challenge(code: str):
     """

@@ -80,6 +80,28 @@ function normalizeAnswerText(value) {
     .toLowerCase();
 }
 
+function countChar(text, ch) {
+  if (!text) return 0;
+  const matches = text.match(new RegExp(`\\${ch}`, "g"));
+  return matches ? matches.length : 0;
+}
+
+function repairAnswerKeyParentheses(map) {
+  if (!map || typeof map !== "object") return map;
+  Object.entries(map).forEach(([k, v]) => {
+    if (k.startsWith("_") || typeof v !== "string") return;
+    const trimmed = v.trim();
+    const openCount = countChar(trimmed, "(");
+    const closeCount = countChar(trimmed, ")");
+    if (openCount > closeCount) {
+      map[k] = `${trimmed}${")".repeat(openCount - closeCount)}`;
+    } else {
+      map[k] = trimmed;
+    }
+  });
+  return map;
+}
+
 function pickFirstCodeBlock(text) {
   if (!text) return "";
   const match = text.match(/```([\s\S]*?)```/);
@@ -206,11 +228,60 @@ window.toggleAIPanel = toggleAIPanel;
 window.openAIPanel = openAIPanel;
 window.closeAIPanel = closeAIPanel;
 
+function findBlankMeta(key) {
+  const blanks = Array.isArray(answerKeyMap?._blanks) ? answerKeyMap._blanks : [];
+  const numKey = Number(key);
+  return blanks.find((b) => Number(b.blank_num ?? b.blankNum) === numKey) || null;
+}
+
+function buildCodeForBlankPrompt() {
+  const base = answerKeyMap?._original_code || currentSession?.question || currentSession?.answer || "";
+  if (!base) return "";
+  if (Array.isArray(answerKeyMap?._blanks) && answerKeyMap._blanks.length > 0) {
+    try {
+      return buildInlineBlankCode(base, answerKeyMap._blanks, answerKeyMap);
+    } catch (err) {
+      return base;
+    }
+  }
+  return base;
+}
+
+function buildBlankSnippetForAi(key) {
+  const meta = findBlankMeta(key);
+  const inlineCode = buildCodeForBlankPrompt();
+  const lineHint = meta?.line_num ?? meta?.lineNum ?? null;
+
+  if (!inlineCode) return { snippet: "", lineNum: lineHint };
+
+  const lines = inlineCode.split("\n");
+  const targetKey = String(key);
+  let idx = lines.findIndex((line) => line.includes(`__[${targetKey}]__`));
+  if (idx === -1 && typeof lineHint === "number") {
+    idx = lineHint - 1;
+  }
+  if (idx < 0 && lines.length > 0) {
+    idx = 0;
+  }
+
+  const start = Math.max(0, idx - 2);
+  const end = Math.min(lines.length, idx + 3);
+  let snippet = lines.slice(start, end).join("\n");
+
+  if (!snippet && inlineCode) {
+    snippet = inlineCode.slice(0, 1200);
+  }
+  if (snippet.length > 1800) {
+    snippet = `${snippet.slice(0, 1800)}\n...(truncated)...`;
+  }
+
+  return { snippet, lineNum: idx >= 0 ? idx + 1 : lineHint };
+}
+
 // ========== EXPLAIN FEATURE ==========
 async function explainBlank(key) {
-  const answer = answerKeyMap[key];
-  if (!answer) return;
-  const msg = `Give me a hint for blank ${key}.`;
+  const { snippet } = buildBlankSnippetForAi(key);
+  const msg = `#${key}번 빈칸 힌트 부탁해. (#${key} 표시된 코드 참고)\n\n${snippet ? `코드:\n${snippet}` : ""}`;
   fillChatAndOpen(msg);
 }
 
@@ -218,8 +289,16 @@ function explainWhyWrongBlank(key) {
   const answer = answerKeyMap[key];
   const input = document.querySelector(`input.blank[data-key="${key}"]`);
   const userAnswer = input?.value || "";
-  if (!answer) return;
-  const msg = `Explain why blank ${key} is wrong (input: ${userAnswer || "-"}, answer: ${answer}).`;
+  const { snippet } = buildBlankSnippetForAi(key);
+  const msgLines = [
+    `#${key}번 빈칸 왜 틀렸는지 설명해줘.`,
+    `- 내 답: ${userAnswer || "-"}`,
+    `- 정답: ${answer || "-"}`,
+  ];
+  if (snippet) {
+    msgLines.push(``, `코드 (#${key} 표시):`, snippet);
+  }
+  const msg = msgLines.join("\n");
   fillChatAndOpen(msg);
 }
 
@@ -323,8 +402,18 @@ function buildChatContext(message) {
       const card = inputEl.closest(".blank-card, .question-card, .mode1-question");
       const codeEl = card?.querySelector("pre, code, .code-content");
       const answer = inputEl.dataset?.answer;
-      const codeSnippet = codeEl ? codeEl.textContent.slice(0, 400) : "";
-      context = `[Blank ${qNum}]\nInput: ${inputEl.value || "-"}\nAnswer: ${answer || "-"}\n${codeSnippet ? `Code:\n${codeSnippet}` : ""}`;
+      let codeSnippet = codeEl ? codeEl.textContent.slice(0, 400) : "";
+      let lineInfo = "";
+
+      if (!codeSnippet) {
+        const snippetInfo = buildBlankSnippetForAi(qNum);
+        codeSnippet = snippetInfo.snippet;
+        if (snippetInfo.lineNum) {
+          lineInfo = `(line ${snippetInfo.lineNum}) `;
+        }
+      }
+
+      context = `[Blank #${qNum}] ${lineInfo}\nInput: ${inputEl.value || "-"}\nAnswer: ${answer || "-"}\n${codeSnippet ? `Code:\n${codeSnippet}` : ""}`;
     }
   }
 
@@ -509,182 +598,106 @@ document.addEventListener("DOMContentLoaded", () => {
  * @param {Set} previousAnswers - prior answers for duplicate checks
  * @param {number} maxDuplicates - maximum duplicate allowance
  */
-function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates) {
+function generateBlanksLocally(code, targetCount = 20, previousAnswers = new Set(), maxDuplicates = 3) {
   const lines = code.split("\n");
-  const answerKey = {};
-  let blankCount = 0;
-  let duplicateCount = 0;
-
-  // Validate whether a candidate is a usable answer
-  function isValidAnswer(ans) {
-    if (!ans || ans.length <= 1) return false;
-
-    // Skip if it is only special characters
-    const specialOnly = new Set("()[]{}:,;'\"` ");
-    if ([...ans].every(c => specialOnly.has(c))) return false;
-
-    // Skip quotes/whitespace-only values (e.g., ' ', "")
-    if (/^['\"]\s*['"]?\)?$/.test(ans)) return false;
-
-    // Require at least one alphanumeric character
-    if (!/[a-zA-Z0-9_]/.test(ans)) return false;
-
-    return true;
-  }
-
-  // Clean answer by trimming trailing parens/commas
-  function cleanAnswer(ans) {
-    let cleaned = ans.trim();
-    while (cleaned.endsWith(')') || cleaned.endsWith(',') || cleaned.endsWith(';')) {
-      if (cleaned.endsWith(')')) {
-        const openCount = (cleaned.match(/\(/g) || []).length;
-        const closeCount = (cleaned.match(/\)/g) || []).length;
-        if (closeCount > openCount) {
-          cleaned = cleaned.slice(0, -1).trim();
-        } else {
-          break;
-        }
-      } else {
-        cleaned = cleaned.slice(0, -1).trim();
-      }
-    }
-    return cleaned;
-  }
-
-  // Collect blank candidates first
+  const tokenRegex = /[A-Za-z_][A-Za-z0-9_]*|\b\d+\b/g;
+  const answerKey = { _type: "fill_in_blank_inline", _original_code: code };
   const candidates = [];
+  const blanksList = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const stripped = line.trim();
+  const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+  const desired = clamp(targetCount || 20, 5, 200);
 
-    // Lines to skip
-    if (!stripped ||
-      stripped.startsWith("def ") ||
-      stripped.startsWith("class ") ||
-      stripped.startsWith("import ") ||
-      stripped.startsWith("from ") ||
-      stripped.startsWith("#") ||
-      stripped.startsWith('"""') ||
-      stripped.startsWith("'''")) {
-      continue;
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith('"""') || trimmed.startsWith("'''")) return;
+
+    let match;
+    while ((match = tokenRegex.exec(line)) !== null) {
+      const value = match[0];
+      if (!/[A-Za-z0-9]/.test(value)) continue;
+      candidates.push({
+        lineIndex: idx,
+        answer: value,
+        start: match.index,
+        end: match.index + value.length,
+        reused: previousAnswers?.has(value) || false,
+      });
     }
+  });
 
-    // Assignment pattern: value after =
-    const assignMatch = line.match(/=\s*([^#\n=]+)$/);
-    if (assignMatch) {
-      const rawAns = assignMatch[1].trim();
-      const ans = cleanAnswer(rawAns);
-      if (isValidAnswer(ans)) {
-        candidates.push({
-          lineIndex: i,
-          answer: ans,
-          type: "assign",
-          isDuplicate: previousAnswers.has(ans)
-        });
-      }
-    }
+  const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
+  const ordered = [...shuffle(candidates.filter((c) => !c.reused)), ...shuffle(candidates.filter((c) => c.reused))];
 
-    // return statements
-    const returnMatch = line.match(/return\s+([^#\n]+)$/);
-    if (returnMatch) {
-      const rawAns = returnMatch[1].trim();
-      const ans = cleanAnswer(rawAns);
-      if (isValidAnswer(ans)) {
-        candidates.push({
-          lineIndex: i,
-          answer: ans,
-          type: "return",
-          isDuplicate: previousAnswers.has(ans)
-        });
-      }
-    }
-
-    // while conditions
-    const whileMatch = line.match(/while\s+([^:]+):/);
-    if (whileMatch) {
-      const ans = whileMatch[1].trim();
-      if (isValidAnswer(ans)) {
-        candidates.push({
-          lineIndex: i,
-          answer: ans,
-          type: "while",
-          isDuplicate: previousAnswers.has(ans)
-        });
-      }
-    }
-
-    // if conditions
-    const ifMatch = line.match(/if\s+([^:]+):/);
-    if (ifMatch) {
-      const ans = ifMatch[1].trim();
-      if (isValidAnswer(ans)) {
-        candidates.push({
-          lineIndex: i,
-          answer: ans,
-          type: "if",
-          isDuplicate: previousAnswers.has(ans)
-        });
-      }
-    }
-  }
-
-  // Prioritize unique answers, then duplicates (up to maxDuplicates)
-  const nonDuplicates = candidates.filter(c => !c.isDuplicate);
-  const duplicates = candidates.filter(c => c.isDuplicate);
-
-  // Shuffle helper
-  const shuffle = arr => arr.sort(() => Math.random() - 0.5);
-
-  // Shuffle non-duplicates
-  shuffle(nonDuplicates);
-  shuffle(duplicates);
-
-  // Candidates to pick
+  const lineUsage = Array(lines.length).fill(0);
+  const tokenUsage = {};
+  const maxPerLineBase = Math.max(2, Math.ceil(desired / Math.max(1, lines.length / 1.5)));
+  const caps = [maxPerLineBase, maxPerLineBase + 1, maxPerLineBase + 2];
   const selected = [];
-  const usedLines = new Set();
+  const remaining = new Set(ordered);
 
-  // Add non-duplicates first
-  for (const c of nonDuplicates) {
-    if (selected.length >= targetCount) break;
-    if (usedLines.has(c.lineIndex)) continue; // Only one per line
-    selected.push(c);
-    usedLines.add(c.lineIndex);
+  for (const cap of caps) {
+    for (const cand of ordered) {
+      if (!remaining.has(cand)) continue;
+      if (selected.length >= desired) break;
+      if (lineUsage[cand.lineIndex] >= cap) continue;
+      const used = tokenUsage[cand.answer] || 0;
+      if (used >= maxDuplicates) continue;
+      selected.push(cand);
+      remaining.delete(cand);
+      lineUsage[cand.lineIndex] += 1;
+      tokenUsage[cand.answer] = used + 1;
+    }
+    if (selected.length >= desired) break;
   }
 
-  // Fill from duplicates if needed (up to maxDuplicates)
-  let addedDuplicates = 0;
-  for (const c of duplicates) {
-    if (selected.length >= targetCount) break;
-    if (addedDuplicates >= maxDuplicates) break;
-    if (usedLines.has(c.lineIndex)) continue;
-    selected.push(c);
-    usedLines.add(c.lineIndex);
-    addedDuplicates++;
+  if (selected.length < desired) {
+    for (const cand of ordered) {
+      if (!remaining.has(cand)) continue;
+      selected.push(cand);
+      tokenUsage[cand.answer] = (tokenUsage[cand.answer] || 0) + 1;
+      if (selected.length >= desired) break;
+    }
   }
 
-  // Sort by line order
-  selected.sort((a, b) => a.lineIndex - b.lineIndex);
-
-  // Apply blanks as __[N]__ markers (indexed blanks)
+  const blanksByLine = {};
   const newLines = [...lines];
-  for (const item of selected) {
-    blankCount++;
-    const key = String(blankCount);
-    answerKey[key] = item.answer;
-    if (item.isDuplicate) duplicateCount++;
 
-    // Replace the value in that line with __[N]__ (indexed blanks)
-    const line = newLines[item.lineIndex];
-    const escaped = item.answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const blankMarker = `__[${key}]__`;
-    newLines[item.lineIndex] = line.replace(new RegExp(escaped), blankMarker);
-  }
+  selected.slice(0, desired).forEach((cand, idx) => {
+    const key = String(idx + 1);
+    answerKey[key] = cand.answer;
+    blanksList.push({
+      line_num: cand.lineIndex + 1,
+      answer: cand.answer,
+      blank_num: Number(key),
+      col_offset: cand.start,
+    });
+    if (!blanksByLine[cand.lineIndex]) blanksByLine[cand.lineIndex] = [];
+    blanksByLine[cand.lineIndex].push({ key, start: cand.start, end: cand.end, answer: cand.answer });
+  });
+  answerKey._blanks = blanksList;
+
+  Object.entries(blanksByLine).forEach(([lineIdxStr, items]) => {
+    const lineIdx = Number(lineIdxStr);
+    let line = newLines[lineIdx];
+    items
+      .sort((a, b) => b.start - a.start)
+      .forEach(({ start, end, key, answer }) => {
+        const marker = `__[${key}]__`;
+        const hasSlice = start >= 0 && end <= line.length && line.slice(start, end) === answer;
+        if (hasSlice) {
+          line = line.slice(0, start) + marker + line.slice(end);
+        } else {
+          line = `${line}${line.trim() ? " " : ""}${marker}`;
+        }
+      });
+    newLines[lineIdx] = line;
+  });
 
   return {
     question: newLines.join("\n"),
-    answerKey: answerKey,
-    duplicates: duplicateCount
+    answerKey,
+    duplicates: 0,
   };
 }
 
@@ -996,7 +1009,8 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
     }
     blanksByLine[lineNum].push({
       blankNum: idx + 1,
-      answer: blank.answer
+      answer: blank.answer,
+      colOffset: typeof blank.col_offset === "number" ? blank.col_offset : -1
     });
   });
 
@@ -1013,21 +1027,38 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
     let modifiedLine = line;
     const blanksForLine = blanksByLine[lineNum];
 
-    // Process all blank spaces in the line (process in reverse order to prevent index confusion)
-    blanksForLine.sort((a, b) => b.blankNum - a.blankNum);
+    // Process from right to left so recorded offsets remain valid
+    blanksForLine.sort((a, b) => {
+      const aCol = a.colOffset ?? -1;
+      const bCol = b.colOffset ?? -1;
+      if (aCol !== -1 && bCol !== -1) return bCol - aCol;
+      if (aCol !== -1) return -1;
+      if (bCol !== -1) return 1;
+      return b.blankNum - a.blankNum;
+    });
 
     for (const blank of blanksForLine) {
       const answer = blank.answer;
       const blankMarker = `__[${blank.blankNum}]__`;
 
-      // Find the location of the correct answer and replace it with a blank space
-      const answerIndex = modifiedLine.indexOf(answer);
+      let answerIndex = -1;
+      if (blank.colOffset !== undefined && blank.colOffset >= 0 && blank.colOffset + answer.length <= modifiedLine.length) {
+        const segment = modifiedLine.slice(blank.colOffset, blank.colOffset + answer.length);
+        if (segment === answer) {
+          answerIndex = blank.colOffset;
+        }
+      }
+
+      if (answerIndex === -1 && answer) {
+        answerIndex = modifiedLine.indexOf(answer);
+      }
+
       if (answerIndex !== -1) {
         modifiedLine = modifiedLine.slice(0, answerIndex) + blankMarker + modifiedLine.slice(answerIndex + answer.length);
         replacedCount++;
       } else {
-        // If you don't find the correct answer, add a marker at the end of the line (fallback)
-        console.warn(`[Blank ${blank.blankNum}] Answer not found in line ${lineNum}: "${answer}" in "${line}"`);
+        // Ensure marker exists even when the exact snippet cannot be found
+        modifiedLine = `${modifiedLine}${modifiedLine.trim() ? ' ' : ''}${blankMarker}`;
         failedCount++;
       }
     }
@@ -1149,6 +1180,7 @@ function setSession(rawSession) {
   highlightAnswer(language);
 
   answerKeyMap = answer_key || {};
+  repairAnswerKeyParentheses(answerKeyMap);
 
   // Rendering by mode
   const type = answer_key?._type;
@@ -1197,6 +1229,7 @@ function renderQuestion(questionText, answerKey, language) {
   inputs = [];
   reviewQueue = new Set();
   answerKeyMap = answerKey;
+  repairAnswerKeyParentheses(answerKeyMap);
 
   const hasIndexed = placeholderRegexIndexed.test(questionText);
   placeholderRegexIndexed.lastIndex = 0;
@@ -3445,11 +3478,11 @@ function initializeButtonHandlers() {
   fetch("/server_info.json")
     .then(r => r.json())
     .then(info => {
-      const currentPort = window.location.port || "3000";
+      const currentPort = String(info.port || window.location.port || "3000");
 
       // Mobile URL display
       if (mobileUrlEl) {
-        const mobileUrl = `http://${info.local_ip}:${currentPort}`;
+        const mobileUrl = `http://${info.local_ip || window.location.hostname}:${currentPort}`;
         mobileUrlEl.textContent = `📱 ${mobileUrl}`;
         mobileUrlEl.title = "클릭하면 복사";
       }
@@ -3480,7 +3513,7 @@ function initializeButtonHandlers() {
         const currentHost = window.location.hostname;
         const currentPort = window.location.port || "3000";
         if (currentHost === "localhost" || currentHost === "127.0.0.1") {
-          mobileUrlEl.textContent = "📱 같은 WiFi에서 PC IP:3000";
+          mobileUrlEl.textContent = `📱 같은 WiFi에서 PC IP:${currentPort}`;
         } else {
           mobileUrlEl.textContent = `📱 http://${currentHost}:${currentPort}`;
         }

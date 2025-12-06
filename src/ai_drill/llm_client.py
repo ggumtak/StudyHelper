@@ -42,8 +42,8 @@ def _load_base_prompt() -> str:
     """
     root_dir = Path(__file__).resolve().parents[1]
     candidates = [
-        root_dir / "data" / "gemini_system_prompt.txt",
         root_dir / "src" / "web_app" / "data" / "gemini_system_prompt.txt",
+        root_dir / "data" / "gemini_system_prompt.txt",
     ]
     for path in candidates:
         if not path.exists():

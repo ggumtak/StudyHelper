@@ -1,7 +1,7 @@
 {
   "local_ip": "192.168.219.103",
-  "port": 3011,
-  "mobile_url": "http://192.168.219.103:3011",
+  "port": 3012,
+  "mobile_url": "http://192.168.219.103:3012",
   "presets": {
     "oop_vocab": "1_OOP_Vocabulary.txt",
     "oop_concept": "2_OOP_Concepts.txt",
