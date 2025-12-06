@@ -3,25 +3,12 @@
  * Centralized API calls with rate limiting and retry logic
  */
 
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
-// Rate limiter state
+// Rate limiter state (client-side throttle to reduce spam to server proxy)
 let lastApiCall = 0;
 const MIN_API_INTERVAL = 500;
 
-// System prompt cache
+// System prompt cache (kept client-side; API key is NOT stored here)
 let systemPromptCache = null;
-
-/**
- * Get API key from localStorage or config
- */
-export function getApiKey() {
-  return localStorage.getItem("gemini_api_key") || "";
-}
-
-export function setApiKey(key) {
-  localStorage.setItem("gemini_api_key", key);
-}
 
 /**
  * Load system prompt (cached)
@@ -49,11 +36,6 @@ export async function loadSystemPrompt() {
  * @returns {Promise<string>} API response text
  */
 export async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error("API key not set");
-  }
-
   const now = Date.now();
   const timeSinceLastCall = now - lastApiCall;
   if (timeSinceLastCall < MIN_API_INTERVAL) {
@@ -61,24 +43,16 @@ export async function callGeminiAPI(prompt, systemInstruction = "", chatHistory 
   }
   lastApiCall = Date.now();
 
-  const contents = [];
-
-  if (chatHistory && Array.isArray(chatHistory)) {
-    contents.push(...chatHistory);
-  }
-
-  contents.push({ role: "user", parts: [{ text: prompt }] });
-
-  const requestBody = { contents };
-
-  if (systemInstruction) {
-    requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
-  }
+  const requestBody = {
+    prompt,
+    systemInstruction: systemInstruction || "",
+    chatHistory: Array.isArray(chatHistory) ? chatHistory : [],
+  };
 
   const maxRetries = 2;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      const response = await fetch("/api/gemini-proxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -86,11 +60,11 @@ export async function callGeminiAPI(prompt, systemInstruction = "", chatHistory 
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+        throw new Error(errorData.error || errorData.message || `API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      return data.text || "";
     } catch (err) {
       if (attempt === maxRetries) throw err;
       console.warn(`API retry ${attempt + 1}/${maxRetries}:`, err.message);

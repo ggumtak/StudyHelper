@@ -7,464 +7,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ========== DISABLE BROWSER AUTOCOMPLETE ==========
-// Disable autocomplete on all inputs globally
-(function disableAutocomplete() {
-  // Apply to existing inputs
-  function applyAutocompleteOff() {
-    document.querySelectorAll('input, textarea').forEach(el => {
-      el.setAttribute('autocomplete', 'off');
-      el.setAttribute('autocorrect', 'off');
-      el.setAttribute('autocapitalize', 'off');
-      el.setAttribute('spellcheck', 'false');
-    });
-  }
-
-  // Run on page load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyAutocompleteOff);
-  } else {
-    applyAutocompleteOff();
-  }
-
-  // Watch for dynamically added inputs
-  const observer = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-      mutation.addedNodes.forEach(node => {
-        if (node.nodeType === 1) {
-          if (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') {
-            node.setAttribute('autocomplete', 'off');
-            node.setAttribute('autocorrect', 'off');
-            node.setAttribute('autocapitalize', 'off');
-            node.setAttribute('spellcheck', 'false');
-          }
-          node.querySelectorAll?.('input, textarea').forEach(el => {
-            el.setAttribute('autocomplete', 'off');
-            el.setAttribute('autocorrect', 'off');
-            el.setAttribute('autocapitalize', 'off');
-            el.setAttribute('spellcheck', 'false');
-          });
-        }
-      });
-    });
-  });
-
-  observer.observe(document.body || document.documentElement, {
-    childList: true,
-    subtree: true
-  });
-})();
-
-// ========== LEARNING STATISTICS ==========
-const LearningStats = {
-  // 세션 통계
-  sessionStart: Date.now(),
-  correctStreak: 0,
-  maxStreak: 0,
-  totalAnswered: 0,
-  totalCorrect: 0,
-
-  // LocalStorage 키
-  STORAGE_KEY: 'quiz_learning_stats',
-
-  // 통계 초기화
-  init() {
-    this.sessionStart = Date.now();
-    this.correctStreak = 0;
-    this.totalAnswered = 0;
-    this.totalCorrect = 0;
-    this.loadFromStorage();
-  },
-
-  // 정답 기록
-  recordAnswer(isCorrect) {
-    this.totalAnswered++;
-    if (isCorrect) {
-      this.totalCorrect++;
-      this.correctStreak++;
-      if (this.correctStreak > this.maxStreak) {
-        this.maxStreak = this.correctStreak;
-      }
-      // 5연속 정답 시 축하 메시지
-      if (this.correctStreak === 5) {
-        this.showStreakNotification('🔥 5연속 정답!');
-      } else if (this.correctStreak === 10) {
-        this.showStreakNotification('🌟 10연속 정답! 대단해요!');
-      }
-    } else {
-      this.correctStreak = 0;
-    }
-    this.saveToStorage();
-    this.updateUI();
-  },
-
-  // 스트릭 알림
-  showStreakNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'streak-notification';
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.classList.add('show'), 10);
-    setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => notification.remove(), 300);
-    }, 2000);
-  },
-
-  // UI 업데이트
-  updateUI() {
-    const streakEl = document.getElementById('streak-counter');
-    if (streakEl) {
-      streakEl.textContent = `🔥 ${this.correctStreak}`;
-      streakEl.style.display = this.correctStreak > 0 ? 'inline-block' : 'none';
-    }
-  },
-
-  // 저장/불러오기
-  saveToStorage() {
-    const data = {
-      maxStreak: this.maxStreak,
-      totalAnswered: this.totalAnswered,
-      totalCorrect: this.totalCorrect,
-      lastSession: Date.now()
-    };
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
-  },
-
-  loadFromStorage() {
-    try {
-      const data = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
-      this.maxStreak = data.maxStreak || 0;
-    } catch (e) { }
-  },
-
-  // 정확도
-  getAccuracy() {
-    return this.totalAnswered > 0
-      ? Math.round((this.totalCorrect / this.totalAnswered) * 100)
-      : 0;
-  }
-};
-
-// ========== API RATE LIMITER ==========
-const APIRateLimiter = {
-  lastCall: 0,
-  minInterval: 500, // 최소 0.5초 간격
-  queue: [],
-
-  async throttle(fn) {
-    const now = Date.now();
-    const timeSinceLastCall = now - this.lastCall;
-
-    if (timeSinceLastCall < this.minInterval) {
-      await new Promise(r => setTimeout(r, this.minInterval - timeSinceLastCall));
-    }
-
-    this.lastCall = Date.now();
-    return fn();
-  }
-};
-
-// ========== ERROR RETRY LOGIC ==========
-async function withRetry(fn, maxRetries = 2, delay = 1000) {
-  for (let i = 0; i <= maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (i === maxRetries) throw err;
-      console.warn(`Retry ${i + 1}/${maxRetries}:`, err.message);
-      await new Promise(r => setTimeout(r, delay * (i + 1)));
-    }
-  }
-}
-
-// ========== DEBOUNCE UTILITY ==========
-function debounce(fn, delay) {
-  let timeoutId;
-  return (...args) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-}
-
-// ========== STUDY TIMER (Pomodoro-style) ==========
-const StudyTimer = {
-  seconds: 0,
-  intervalId: null,
-  isRunning: false,
-
-  start() {
-    if (this.isRunning) return;
-    this.isRunning = true;
-    this.intervalId = setInterval(() => {
-      this.seconds++;
-      this.updateUI();
-      // 25분마다 휴식 알림
-      if (this.seconds === 25 * 60) {
-        this.showBreakReminder();
-      }
-    }, 1000);
-  },
-
-  pause() {
-    if (!this.isRunning) return;
-    this.isRunning = false;
-    clearInterval(this.intervalId);
-  },
-
-  reset() {
-    this.pause();
-    this.seconds = 0;
-    this.updateUI();
-  },
-
-  updateUI() {
-    const timerEl = document.getElementById('study-timer');
-    if (timerEl) {
-      const mins = Math.floor(this.seconds / 60);
-      const secs = this.seconds % 60;
-      timerEl.textContent = `⏱️ ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-  },
-
-  showBreakReminder() {
-    if (Notification.permission === 'granted') {
-      new Notification('🍅 25분 학습 완료!', {
-        body: '5분 휴식을 권장합니다.',
-        icon: '/icon-192.png'
-      });
-    }
-    const reminder = document.createElement('div');
-    reminder.className = 'break-reminder';
-    reminder.innerHTML = `
-      <div class="break-content">
-        <span class="break-icon">🍅</span>
-        <strong>25분 학습 완료!</strong>
-        <p>잠시 휴식하고 오세요</p>
-        <button onclick="this.parentElement.parentElement.remove()">확인</button>
-      </div>
-    `;
-    document.body.appendChild(reminder);
-    setTimeout(() => reminder.classList.add('show'), 10);
-  }
-};
-
-// ========== SESSION PROGRESS SAVER ==========
-const SessionSaver = {
-  STORAGE_KEY: 'quiz_session_progress',
-
-  save() {
-    if (!currentSession) return;
-    const progress = {
-      timestamp: Date.now(),
-      session: {
-        title: currentSession.title,
-        mode: currentSession.mode,
-      },
-      answers: this.collectAnswers(),
-      score: sessionScore?.textContent || '0 / 0'
-    };
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(progress));
-  },
-
-  collectAnswers() {
-    const answers = {};
-    document.querySelectorAll('input.blank, textarea.definition-input, textarea.challenge-input, textarea.vocab-input').forEach(el => {
-      if (el.dataset.key && el.value) {
-        answers[el.dataset.key] = el.value;
-      }
-    });
-    return answers;
-  },
-
-  restore() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
-      if (!saved.answers) return;
-
-      // 30분 이내의 저장만 복원
-      if (Date.now() - saved.timestamp > 30 * 60 * 1000) return;
-
-      Object.entries(saved.answers).forEach(([key, value]) => {
-        const el = document.querySelector(`[data-key="${key}"]`);
-        if (el && !el.value) el.value = value;
-      });
-    } catch (e) { }
-  },
-
-  clear() {
-    localStorage.removeItem(this.STORAGE_KEY);
-  }
-};
-
-// Auto-save every 30 seconds
-setInterval(() => SessionSaver.save(), 30000);
-
-// ========== GLOBAL KEYBOARD SHORTCUTS ==========
-const KeyboardShortcuts = {
-  enabled: true,
-
-  init() {
-    document.addEventListener('keydown', (e) => {
-      if (!this.enabled) return;
-
-      // Ctrl+Enter: 전체 채점 (입력 중에도 작동!)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (typeof checkAll === 'function') checkAll();
-        return;
-      }
-
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        // Escape: 입력 필드 탈출
-        if (e.key === 'Escape') {
-          e.target.blur();
-          return;
-        }
-        return; // 다른 단축키는 입력 중에는 무시
-      }
-
-      // Global shortcuts
-      switch (e.key.toLowerCase()) {
-        case 'a':
-          // A: AI 패널 토글
-          if (typeof toggleAIPanel === 'function') toggleAIPanel();
-          break;
-        case 'r':
-          // R: 리셋
-          if (e.ctrlKey || e.metaKey) return; // Ctrl+R 새로고침은 허용
-          document.getElementById('btn-reset')?.click();
-          break;
-        case 's':
-          // S: 셔플
-          document.getElementById('btn-shuffle')?.click();
-          break;
-        case 'k':
-          if (e.ctrlKey || e.metaKey) return; // 복사 단축키와 충돌 방지
-          // K: 전체 채점
-          document.getElementById('btn-check')?.click();
-          break;
-        case 'n':
-          // N: 다음 미답 문제로 이동
-          this.focusNextUnanswered();
-          break;
-        case '?':
-          // ?: 단축키 도움말
-          this.showHelp();
-          break;
-        case 'arrowdown':
-          e.preventDefault();
-          this.navigateQuestion(1);
-          break;
-        case 'arrowup':
-          e.preventDefault();
-          this.navigateQuestion(-1);
-          break;
-      }
-    });
-  },
-
-  focusNextUnanswered() {
-    const inputs = document.querySelectorAll('input.blank:not(.correct):not(.wrong), textarea.definition-input:not(:disabled), textarea.challenge-input:not(:disabled)');
-    for (const input of inputs) {
-      if (!input.value.trim()) {
-        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        input.focus();
-        return;
-      }
-    }
-  },
-
-  navigateQuestion(direction) {
-    const cards = document.querySelectorAll('.definition-card, .challenge-card, .vocab-card, .blank-card, .mc-question');
-    if (!cards.length) return;
-
-    const currentFocused = document.activeElement?.closest('.definition-card, .challenge-card, .vocab-card, .blank-card, .mc-question');
-    let currentIdx = Array.from(cards).indexOf(currentFocused);
-
-    if (currentIdx === -1) currentIdx = direction > 0 ? -1 : cards.length;
-    const nextIdx = Math.max(0, Math.min(cards.length - 1, currentIdx + direction));
-
-    const nextCard = cards[nextIdx];
-    nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const input = nextCard.querySelector('input, textarea');
-    if (input) input.focus();
-  },
-
-  showHelp() {
-    const existing = document.querySelector('.shortcuts-modal');
-    if (existing) { existing.remove(); return; }
-
-    const modal = document.createElement('div');
-    modal.className = 'shortcuts-modal';
-    modal.innerHTML = `
-      <div class="shortcuts-content">
-        <h3>⌨️ 키보드 단축키</h3>
-        <div class="shortcut-list">
-          <div><kbd>N</kbd> 다음 미답 문제로 이동</div>
-          <div><kbd>↑</kbd><kbd>↓</kbd> 이전/다음 문제</div>
-          <div><kbd>A</kbd> AI 패널 토글</div>
-          <div><kbd>S</kbd> 순서 섞기</div>
-          <div><kbd>C</kbd> 전체 채점</div>
-          <div><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 전체 채점 (입력 중에도!)</div>
-          <div><kbd>R</kbd> 리셋</div>
-          <div><kbd>Esc</kbd> 입력 필드 탈출</div>
-          <div><kbd>?</kbd> 이 도움말</div>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()">닫기</button>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    setTimeout(() => modal.classList.add('show'), 10);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-  }
-};
-
-// ========== SOUND EFFECTS (disabled by default) ==========
-const SoundEffects = {
-  enabled: false,  // 기본값: 사용 안함
-
-  play(type) {
-    if (!this.enabled) return;
-    // Simple beep using Web Audio API
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      if (type === 'correct') {
-        osc.frequency.value = 800;
-        gain.gain.value = 0.1;
-      } else if (type === 'wrong') {
-        osc.frequency.value = 300;
-        gain.gain.value = 0.1;
-      }
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.1);
-    } catch (e) { }
-  },
-
-  toggle() {
-    this.enabled = !this.enabled;
-    localStorage.setItem('sound_effects', this.enabled);
-    return this.enabled;
-  }
-};
-
-// Initialize keyboard shortcuts
-KeyboardShortcuts.init();
-
-// 단축키 가이드 버튼
-const btnShortcuts = document.getElementById("btn-shortcuts");
-if (btnShortcuts) {
-  btnShortcuts.addEventListener("click", () => KeyboardShortcuts.showHelp());
-}
-
 // Core UI refs
 const codeArea = document.getElementById("code-area");
 const sessionTitle = document.getElementById("session-title");
@@ -476,6 +18,7 @@ const sessionProgress = document.querySelector("#session-progress span");
 const answerBlock = document.getElementById("answer-block");
 const blankList = document.getElementById("blank-list");
 const reviewBadge = document.getElementById("review-badge");
+window.sessionScore = sessionScore;
 
 // AI Panel refs
 const aiPanel = document.getElementById("ai-panel");
@@ -485,7 +28,8 @@ const chatInput = document.getElementById("chat-input");
 const floatingExplain = document.getElementById("floating-explain");
 const btnToggleCompleted = document.getElementById("btn-toggle-completed");
 
-let currentSession = null;
+window.currentSession = null;
+let currentSession = window.currentSession;
 let inputs = [];
 let answerKeyMap = {};
 let reviewQueue = new Set();
@@ -510,6 +54,13 @@ const modeLabels = {
 };
 
 const missingAnswerMessage = "정답 키가 없어 채점할 수 없습니다. 세션을 다시 생성해 주세요.";
+
+function pickFirstCodeBlock(text) {
+  if (!text) return "";
+  const match = text.match(/```([\s\S]*?)```/);
+  if (match && match[1]) return match[1].trim();
+  return text.trim();
+}
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 let baseSystemPromptCache = null;
 
@@ -557,16 +108,14 @@ async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null)
   const apiKey = getApiKey();
   if (!apiKey) {
     showApiKeyModal();
-    throw new Error("API 키가 필요합니다.");
+    throw new Error("API ?? ?????.");
   }
 
   const basePrompt = await loadBaseSystemPrompt();
   const mergedSystemInstruction = [basePrompt, systemInstruction].filter(Boolean).join("\n\n");
 
-  // 채팅 히스토리가 있으면 multi-turn 대화 구성
   let contents;
   if (chatHistory && chatHistory.length > 0) {
-    // 이전 대화 + 현재 메시지
     contents = [
       ...chatHistory,
       { role: "user", parts: [{ text: prompt }] }
@@ -595,7 +144,8 @@ async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null)
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error?.message || "API 호출 실패");
+    const msg = (error && error.error && error.error.message) ? error.error.message : "API ?? ??";
+    throw new Error(msg);
   }
 
   const data = await response.json();
@@ -607,7 +157,6 @@ function fillChatAndOpen(message) {
   if (chatInput) {
     chatInput.value = message;
     chatInput.focus();
-    // sendChatMessage(); // 바로 보내지 않고 사용자 확인 유도
   }
 }
 
@@ -631,124 +180,108 @@ function closeAIPanel() {
 async function explainBlank(key) {
   const answer = answerKeyMap[key];
   if (!answer) return;
-
-  // 채팅창에 자동입력
-  const msg = `${key}번 힌트좀 줘`;
+  const msg = `${key}번 힌트 좀 줘`;
   fillChatAndOpen(msg);
 }
 
-/**
- * Mode 2 빨간 물음표 - 왜 틀렸어요? -> 채팅창 자동입력
- */
 function explainWhyWrongBlank(key) {
   const answer = answerKeyMap[key];
   const input = document.querySelector(`input.blank[data-key="${key}"]`);
-  const userAnswer = input?.value || '';
-
+  const userAnswer = input?.value || "";
   if (!answer) return;
-
-  // 채팅창에 자동입력
-  const msg = `${key}번 빈칸 왜 틀렸어? (내 답: ${userAnswer}, 정답: ${answer})`;
+  const msg = `${key}번 빈칸이 왜 틀렸는지 설명해줘 (입력: ${userAnswer || "-"}, 정답: ${answer})`;
   fillChatAndOpen(msg);
 }
 
-/**
- * 선택한 코드 설명 -> 채팅창 자동입력
- */
 function explainSelection(text) {
   if (!text || !text.trim()) return;
-
-  // 코드가 너무 길면 앞부분만
   const truncatedCode = text.length > 200 ? text.slice(0, 200) + '...' : text;
-  const msg = `이 코드 설명해줘: ${truncatedCode}`;
+  const msg = `이 코드 블록을 설명해줘:
+${truncatedCode}`;
   fillChatAndOpen(msg);
 }
 
 // ========== CHAT FEATURE ==========
-// 채팅 히스토리 저장 (세션 유지)
 let chatHistory = [];
 
-// 새 채팅 세션 시작
 function startNewChatSession() {
   chatHistory = [];
-  chatMessages.innerHTML = `<div class="chat-message system">🆕 새 대화가 시작되었습니다</div>`;
+  if (chatMessages) {
+    chatMessages.innerHTML = `<div class="chat-message system">?? ? ??? ??????.</div>`;
+  }
 }
 
-// 채팅 히스토리 보기/숨기기
 function toggleChatHistory() {
   if (chatHistory.length === 0) {
-    alert('저장된 대화 기록이 없습니다.');
+    LegacyAlerts.noChatHistory();
     return;
   }
-
-  // 간단하게 히스토리 개수 표시
   const userMsgs = chatHistory.filter(h => h.role === 'user').length;
   const aiMsgs = chatHistory.filter(h => h.role === 'model').length;
-  alert(`📜 대화 기록\n\n사용자 메시지: ${userMsgs}개\nAI 응답: ${aiMsgs}개\n\n총 ${chatHistory.length}개의 메시지가 저장되어 있습니다.`);
+  LegacyAlerts.chatHistoryStats(userMsgs, aiMsgs, chatHistory.length);
 }
 
 async function sendChatMessage() {
-  const message = chatInput.value.trim();
+  const message = chatInput?.value.trim();
   if (!message) return;
 
-  // Add user message to UI
   addChatMessage(message, "user");
   chatInput.value = "";
 
-  // Add loading indicator
   const loadingId = Date.now();
-  chatMessages.innerHTML += `<div class="chat-message assistant" id="loading-${loadingId}">🤔 생각 중...</div>`;
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  addChatMessage("?? ?? ?...", "assistant", loadingId);
 
-  // Check if user is asking about a specific question number
-  const numMatch = message.match(/(\d+)\s*번/);
+  const context = buildChatContext(message);
+  const prompt = context ? `${context}
 
-  // Build context with question information (First message only, AND if not asking specific Q)
+??? ??: ${message}` : message;
+
+  try {
+    const response = await callGeminiAPI(prompt, "", chatHistory.slice(-20));
+    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+    chatHistory.push({ role: "model", parts: [{ text: response }] });
+    replaceChatMessage(loadingId, response);
+  } catch (err) {
+    replaceChatMessage(loadingId, `??: ${err.message}`);
+  }
+}
+
+function buildChatContext(message) {
+  const numMatch = message.match(/(\d+)/);
   let context = "";
+
   if (chatHistory.length === 0 && !numMatch) {
-    // If parsed quiz mode, include question list for AI to understand question numbers
     if (currentSession?.answer_key?._questions && currentQuestions.length > 0) {
       const questionList = currentQuestions.map((q, idx) => {
-        const displayIdx = idx + 1;  // 현재 표시 순서 (1, 2, 3...)
-        const qId = q.id;            // 전역 고유 ID
-        const qType = q.type === "short_answer" ? "단답형" :
+        const displayIdx = idx + 1;
+        const qId = q.id;
+        const qType = q.type === "short_answer" ? "단답" :
           q.type === "fill_blank" ? "빈칸" : "객관식";
         const codeSnippet = q.code ? `\n코드: ${q.code.slice(0, 100)}...` : "";
         return `${displayIdx}번 [Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
       }).join("\n");
-
-      context = `현재 문제 목록 (총 ${currentQuestions.length}개):\n---\n${questionList}\n---\n`;
+      context = `현재 문제 목록 (총 ${currentQuestions.length}개):\n---\n${questionList}\n---`;
     } else if (currentSession?.question) {
-      context = `현재 학습 중인 코드:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
+      context = `현재 풀이 코드:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
     }
   }
 
-  // Case A: Parsed Quiz (currentQuestions exists)
   if (numMatch && currentQuestions.length > 0) {
-    const qNum = parseInt(numMatch[1]);
+    const qNum = parseInt(numMatch[1], 10);
     if (qNum >= 1 && qNum <= currentQuestions.length) {
       const targetQ = currentQuestions[qNum - 1];
-      context += `\n\n🎯 ${qNum}번 문제 상세:
-- 전역 ID: [Q${targetQ.id}]
-- 유형: ${targetQ.type}
-- 문제: ${targetQ.text}
-${targetQ.code ? `- 코드:\n\`\`\`python\n${targetQ.code}\n\`\`\`` : ""}
-${targetQ.options ? `- 선지:\n${targetQ.options.map(o => `  ${o.num}. ${o.text}`).join("\n")}` : ""}
-${targetQ.correct ? `- 정답: ${targetQ.correct}번` : ""}
-`;
+      const codeSnippet = targetQ.code ? `- 코드:\n\`\`\`\n${targetQ.code}\n\`\`\`` : "";
+      const options = targetQ.options ? `- 보기:\n${targetQ.options.map(o => `  ${o.num}. ${o.text}`).join("\n")}` : "";
+      const correct = targetQ.correct ? `- 정답: ${targetQ.correct}` : "";
+      context = `문제 ${qNum} 상세:\n- 문제 ID: [Q${targetQ.id}]\n- 유형: ${targetQ.type}\n- 내용: ${targetQ.text}\n${codeSnippet}\n${options}\n${correct}`;
     }
-  }
-  // Case B: Blank Mode (Mode 1, 2, 3...) - dynamic look up with multiple selectors
-  else if (numMatch) {
-    const qNum = parseInt(numMatch[1]);
-
-    // Try multiple input selectors for different modes
+  } else if (numMatch) {
+    const qNum = parseInt(numMatch[1], 10);
     let inputEl = document.querySelector(`input[data-global-idx="${qNum}"]`)
       || document.querySelector(`input.mode1-input[data-global-idx="${qNum}"]`)
       || document.querySelector(`input.blank-card-input[data-key="${qNum}"]`)
       || document.querySelector(`input.blank[data-key="${qNum}"]`);
 
-    // If not found by data attribute, try index-based lookup
     if (!inputEl) {
       const allModeInputs = document.querySelectorAll('.mode1-input, .blank-card-input, input.blank');
       if (qNum >= 1 && qNum <= allModeInputs.length) {
@@ -757,99 +290,45 @@ ${targetQ.correct ? `- 정답: ${targetQ.correct}번` : ""}
     }
 
     if (inputEl) {
-      // Get the answer from various sources
-      const answer = inputEl.dataset.answer
-        || answerKeyMap[qNum]
-        || answerKeyMap[inputEl.dataset.key]
-        || "정보 없음";
-
-      // Find function context - look for containing code card or code area
-      const card = inputEl.closest('.blank-card') || inputEl.closest('.code-line')?.parentElement;
-      let functionContext = "";
-      let codeContext = "";
-
-      if (card) {
-        // Get the question/card header for function name
-        const header = card.querySelector('.blank-card-header, .blank-card-num');
-        if (header) {
-          functionContext = header.textContent.trim();
-        }
-
-        // Get the code from the card
-        const codeBlock = card.querySelector('.blank-card-code, pre');
-        if (codeBlock) {
-          codeContext = codeBlock.textContent.trim();
-          // Highlight where the blank is
-          const blankNum = inputEl.dataset.blank || inputEl.dataset.key || qNum;
-          codeContext = `빈칸 ${qNum}번 위치의 코드 전체:\n\`\`\`python\n${codeContext}\n\`\`\``;
-        }
-      }
-
-      // Fallback to line context
-      if (!codeContext) {
-        const parentLine = inputEl.closest('.code-line');
-        if (parentLine) {
-          const lineNum = parseInt(parentLine.dataset.line);
-          const allLines = document.querySelectorAll('.code-line');
-          let contextLines = [];
-          allLines.forEach(line => {
-            const ln = parseInt(line.dataset.line);
-            if (Math.abs(ln - lineNum) <= 8) {
-              contextLines.push(`${ln}| ${line.textContent}`);
-            }
-          });
-          codeContext = `\`\`\`python\n${contextLines.join('\n')}\n\`\`\``;
-        }
-      }
-
-      // Build detailed context with clear instructions
-      context += `\n\n[빈칸 ${qNum}번 정보]
-${functionContext ? `함수/위치: ${functionContext}` : ""}
-정답: "${answer}"
-학생 답안: "${inputEl.value || "(미입력)"}"
-
-${codeContext}
-
-[AI 필수 지침]
-1. 위 코드 블록에서만 ${qNum}번 빈칸의 정답을 판단해.
-2. 다른 함수(예: insertAt)의 변수명(newNode)과 이 함수(예: insertNode)의 변수명(node)을 혼동하지 마.
-3. 정답을 설명할 때: "이 위치는 ~하는 부분이라 정답은 '${answer}'이다" 형식으로 간략히 핵심만 설명해.
-4. 절대로 코드를 그대로 복붙하지 말고 논리만 설명해.
-`;
+      const card = inputEl.closest(".blank-card, .question-card, .mode1-question");
+      const codeEl = card?.querySelector("pre, code, .code-content");
+      const answer = inputEl.dataset?.answer;
+      const codeSnippet = codeEl ? codeEl.textContent.slice(0, 400) : "";
+      context = `[Blank ${qNum}]\n입력: ${inputEl.value || "-"}\n정답: ${answer || "-"}\n${codeSnippet ? `코드:\n${codeSnippet}` : ""}`;
     }
   }
 
-
-  const prompt = context ? `${context} \n\n학생의 질문: ${message} ` : message;
-
-  try {
-    // 채팅 히스토리와 함께 API 호출 (대화 맥락 유지)
-    const response = await callGeminiAPI(prompt, "", chatHistory);
-
-    // 히스토리에 현재 대화 추가
-    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-    chatHistory.push({ role: "model", parts: [{ text: response }] });
-
-    // 히스토리가 너무 길면 오래된 것 제거 (최근 20개 유지)
-    if (chatHistory.length > 40) {
-      chatHistory = chatHistory.slice(-40);
-    }
-
-    document.getElementById(`loading-${loadingId}`).outerHTML =
-      `<div class="chat-message assistant">${formatMarkdown(response)}</div>`;
-  } catch (err) {
-    document.getElementById(`loading-${loadingId}`).outerHTML =
-      `<div class="chat-message error">❌ ${err.message}</div>`;
+  if (!context && currentSession?.question) {
+    context = `현재 풀이 코드:\n\`\`\`\n${currentSession.question.slice(0, 1500)}\n\`\`\``;
   }
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  return context;
 }
 
-function addChatMessage(text, role) {
+function addChatMessage(text, role, id = null) {
+  if (!chatMessages) return;
   const div = document.createElement("div");
   div.className = `chat-message ${role}`;
+  if (id) div.id = `loading-${id}`;
   div.innerHTML = role === "user" ? escapeHtml(text) : formatMarkdown(text);
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function replaceChatMessage(id, text) {
+  const el = document.getElementById(`loading-${id}`);
+  if (el) {
+    el.innerHTML = formatMarkdown(text);
+    el.id = "";
+  }
+  if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function escapeHtml(text) {
+  if (!text) return "";
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function formatMarkdown(text) {
@@ -868,12 +347,12 @@ let previousAnswers = new Set();
 async function regenerateBlanks() {
   // Mode 1 (C# OOP 빈칸)인 경우 메시지 표시
   if (mode1State && mode1State.questions && mode1State.questions.length > 0) {
-    alert('Mode 1에서는 파일/모드 버튼으로 다시 로드해주세요.');
+LegacyAlerts.mode1Reload();
     return;
   }
 
   if (!currentSession?.answer) {
-    alert("정답 코드가 없어 새 빈칸을 생성할 수 없습니다.");
+LegacyAlerts.noAnswerCode();
     return;
   }
 
@@ -1235,7 +714,7 @@ if (fileInput) {
         const data = JSON.parse(evt.target.result);
         setSession(data);
       } catch (err) {
-        alert("JSON 파싱 실패: " + err.message);
+      LegacyAlerts.jsonParseFail(err.message);
       }
     };
     reader.readAsText(file, "utf-8");
@@ -1309,267 +788,6 @@ if (btnScrollTop) {
 const btnApiKey = document.getElementById("btn-api-key");
 if (btnApiKey) btnApiKey.addEventListener("click", showApiKeyModal);
 
-const btnShutdown = document.getElementById("btn-shutdown");
-if (btnShutdown) {
-  btnShutdown.addEventListener("click", async () => {
-    if (!confirm("서버를 종료할까요? (브라우저만 닫아도 서버는 계속 실행됩니다)")) return;
-    btnShutdown.disabled = true;
-    btnShutdown.textContent = "종료 요청...";
-    try {
-      await fetch("/shutdown", { method: "POST" });
-      btnShutdown.textContent = "서버 종료됨";
-    } catch (e) {
-      alert("서버 종료 요청 실패: " + e.message);
-      btnShutdown.disabled = false;
-      btnShutdown.textContent = "⛔ 서버 종료";
-    }
-  });
-}
-
-const btnSaveApiKey = document.getElementById("btn-save-api-key");
-if (btnSaveApiKey) {
-  btnSaveApiKey.addEventListener("click", async () => {
-    const key = document.getElementById("api-key-input").value.trim();
-    if (key) {
-      // 로컬 저장
-      setApiKey(key);
-
-      // 서버에 영구 저장 (키 파일에 기록)
-      try {
-        const response = await fetch('/api/save-key', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key: key })
-        });
-        const result = await response.json();
-        if (result.success) {
-          alert('✅ API 키가 서버에 저장되었습니다.\n다음 실행에서도 자동 적용됩니다.');
-        } else {
-          console.warn('서버 저장 실패:', result.error);
-        }
-      } catch (err) {
-        console.warn('서버 저장 오류:', err);
-      }
-
-      hideApiKeyModal();
-    }
-  });
-}
-
-const btnCancelApiKey = document.getElementById("btn-cancel-api-key");
-if (btnCancelApiKey) btnCancelApiKey.addEventListener("click", hideApiKeyModal);
-
-// 모바일 AI 토글 버튼
-const aiToggleBtn = document.getElementById("btn-ai-toggle");
-if (aiToggleBtn) {
-  aiToggleBtn.addEventListener("click", () => {
-    toggleAIPanel();
-    aiToggleBtn.classList.toggle("panel-open", aiPanel.classList.contains("open"));
-  });
-}
-
-// Scroll button visibility
-window.addEventListener("scroll", () => {
-  const btn = document.getElementById("btn-scroll-top");
-  if (!btn) return;
-  if (window.scrollY > 120) btn.classList.add("show");
-  else btn.classList.remove("show");
-});
-
-// AI Panel close button - with null check
-const btnClosePanel = document.getElementById("btn-close-panel");
-if (btnClosePanel) btnClosePanel.addEventListener("click", closeAIPanel);
-
-// ========== AI PANEL RESIZE FUNCTIONALITY ==========
-(function initAIPanelResize() {
-  const resizeHandle = document.getElementById("ai-panel-resize");
-  const panel = document.getElementById("ai-panel");
-  if (!resizeHandle || !panel) return;
-
-  let isResizing = false;
-  let startX = 0;
-  let startWidth = 0;
-
-  // Make entire left edge resizable
-  resizeHandle.addEventListener("mousedown", (e) => {
-    isResizing = true;
-    startX = e.clientX;
-    startWidth = panel.offsetWidth;
-    document.body.style.cursor = "ew-resize";
-    document.body.style.userSelect = "none";
-    e.preventDefault();
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (!isResizing) return;
-
-    // Calculate new width (dragging left edge means subtract delta)
-    const deltaX = startX - e.clientX;
-    let newWidth = startWidth + deltaX;
-
-    // More flexible limits: min 200px, max 80% of window
-    const minWidth = 200;
-    const maxWidth = window.innerWidth * 0.8;
-
-    newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-    panel.style.width = `${newWidth}px`;
-  });
-
-  document.addEventListener("mouseup", () => {
-    if (isResizing) {
-      isResizing = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    }
-  });
-
-  // Make cursor change on hover for entire left edge
-  panel.addEventListener("mousemove", (e) => {
-    const rect = panel.getBoundingClientRect();
-    const leftEdge = e.clientX - rect.left;
-    if (leftEdge <= 8) {
-      panel.style.cursor = "ew-resize";
-    } else {
-      panel.style.cursor = "";
-    }
-  });
-
-  // Allow clicking anywhere on left edge to start resize
-  panel.addEventListener("mousedown", (e) => {
-    const rect = panel.getBoundingClientRect();
-    const leftEdge = e.clientX - rect.left;
-    if (leftEdge <= 8) {
-      isResizing = true;
-      startX = e.clientX;
-      startWidth = panel.offsetWidth;
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-      e.preventDefault();
-    }
-  });
-})();
-
-// Ctrl+L keyboard shortcut for AI panel
-document.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.key.toLowerCase() === "l") {
-    e.preventDefault();
-    toggleAIPanel();
-  }
-});
-
-// Chat input - with null checks
-const btnSendChat = document.getElementById("btn-send-chat");
-if (btnSendChat) btnSendChat.addEventListener("click", sendChatMessage);
-
-if (chatInput) {
-  chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage();
-    }
-  });
-}
-
-// Floating explain button - with null check
-const btnExplainSelection = document.getElementById("btn-explain-selection");
-if (btnExplainSelection) {
-  btnExplainSelection.addEventListener("click", () => {
-    floatingExplain.style.display = "none";
-    explainSelection(lastSelection);
-  });
-}
-
-// ========== UTILITY FUNCTIONS ==========
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function pickFirstCodeBlock(text) {
-  if (!text) return "";
-  const match = text.match(/```(?:\w+)?\s*([\s\S]*?)```/);
-  if (match) return match[1].trim();
-  return text.trim();
-}
-
-function flattenAnswerKey(rawKey) {
-  if (!rawKey || typeof rawKey !== "object") return {};
-  if ("answer_key" in rawKey && typeof rawKey.answer_key === "object") {
-    rawKey = rawKey.answer_key;
-  }
-  const normalized = {};
-  Object.entries(rawKey).forEach(([k, v]) => {
-    // 숫자 키 또는 _로 시작하는 특수 키 유지
-    if (/^\d+$/.test(k) || k.startsWith("_")) {
-      normalized[String(k)] = v;
-    }
-  });
-  return normalized;
-}
-
-function extractAnswerKeyFromMarkdown(text) {
-  if (!text) return {};
-  const jsonBlocks = text.match(/```json\s*([\s\S]*?)\s*```/g) || [];
-  for (const block of jsonBlocks) {
-    const jsonContent = block.replace(/```json\s*/g, '').replace(/\s*```/g, '');
-    try {
-      const parsed = JSON.parse(jsonContent);
-      const keys = Object.keys(parsed);
-      if (keys.length > 0 && keys.every(k => /^\d+$/.test(k) || k === "answer_key")) {
-        if (parsed.answer_key) {
-          return flattenAnswerKey(parsed.answer_key);
-        }
-        return flattenAnswerKey(parsed);
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-  return {};
-}
-
-function deriveAnswerKeyFromAnswer(question, answer) {
-  if (!question || !answer || answer.includes("Parsing failed")) return {};
-  const keys = [];
-  let seqCounter = 0;
-  const escapeForRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const patternParts = [];
-  let lastIndex = 0;
-  const regex = /__\[(\d+)\]__|_{3,10}/g;
-  let match;
-  while ((match = regex.exec(question)) !== null) {
-    const [fullMatch, idx] = match;
-    patternParts.push(escapeForRegex(question.slice(lastIndex, match.index)));
-    if (idx !== undefined) {
-      keys.push(String(idx));
-    } else {
-      seqCounter += 1;
-      keys.push(String(seqCounter));
-    }
-    patternParts.push("(.+?)");
-    lastIndex = regex.lastIndex;
-  }
-  patternParts.push(escapeForRegex(question.slice(lastIndex)));
-  const pattern = "^" + patternParts.join("") + "$";
-  try {
-    const compiled = new RegExp(pattern, "s");
-    const found = answer.match(compiled);
-    if (!found) return {};
-    const derived = {};
-    keys.forEach((key, i) => {
-      if (!(key in derived)) {
-        derived[key] = (found[i + 1] || "").trim();
-      }
-    });
-    return derived;
-  } catch (e) {
-    return {};
-  }
-}
 
 function countPlaceholders(questionText) {
   if (!questionText) return 0;
@@ -1636,6 +854,93 @@ function normalizeSession(session) {
   };
 }
 
+// Flatten various answer_key shapes into a simple key/value map while preserving metadata fields.
+function flattenAnswerKey(rawKey) {
+  if (!rawKey || typeof rawKey !== "object") return {};
+  if (rawKey._type) return rawKey; // structured types should stay intact
+
+  if (Array.isArray(rawKey)) {
+    const flatFromArray = {};
+    rawKey.forEach((val, idx) => {
+      if (val !== undefined && val !== null) {
+        flatFromArray[String(idx + 1)] = val;
+      }
+    });
+    return flatFromArray;
+  }
+
+  const flat = {};
+  for (const [key, val] of Object.entries(rawKey)) {
+    if (key.startsWith("_")) {
+      flat[key] = val;
+      continue;
+    }
+    if (val && typeof val === "object" && typeof val.answer === "string") {
+      flat[key] = val.answer;
+    } else {
+      flat[key] = val;
+    }
+  }
+  return flat;
+}
+
+// Try to extract numbered answers from loose markdown (e.g., "1) foo").
+function extractAnswerKeyFromMarkdown(questionText) {
+  if (!questionText) return {};
+  const result = {};
+  const numberedLine = /^\s*\[?(\d+)\]?[.)-]?\s*[:\-]?\s*(.+)$/;
+  questionText.split("\n").forEach((line) => {
+    const match = line.match(numberedLine);
+    if (match) {
+      const idx = match[1];
+      const value = match[2]?.trim();
+      if (value) result[idx] = value;
+    }
+  });
+  return result;
+}
+
+// Derive answers by aligning placeholders in the question with concrete text in the answer.
+function deriveAnswerKeyFromAnswer(questionCode, answerCode) {
+  if (!questionCode || !answerCode) return {};
+
+  const parts = questionCode.split(/(__\[\d+\]__|_{3,10})/);
+  const derived = {};
+  let answerPos = 0;
+  let seqCounter = 0;
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    const indexedMatch = part.match(/^__\[(\d+)\]__$/);
+    const isSeqPlaceholder = !indexedMatch && /^_{3,10}$/.test(part);
+
+    if (indexedMatch || isSeqPlaceholder) {
+      const key = indexedMatch ? indexedMatch[1] : String(++seqCounter);
+      const nextLiteral = parts[i + 1] || "";
+      let nextPos = nextLiteral ? answerCode.indexOf(nextLiteral, answerPos) : -1;
+
+      if (nextLiteral && nextPos === -1) {
+        nextPos = answerCode.length;
+      }
+
+      const sliceEnd = nextPos === -1 ? answerCode.length : nextPos;
+      const value = answerCode.slice(answerPos, sliceEnd).trim();
+      if (value) derived[key] = value;
+
+      if (nextLiteral && nextPos !== -1) {
+        answerPos = nextPos;
+      }
+    } else if (part) {
+      const literalPos = answerCode.indexOf(part, answerPos);
+      if (literalPos !== -1) {
+        answerPos = literalPos + part.length;
+      }
+    }
+  }
+
+  return derived;
+}
+
 function loadSessionFromUrl(url, fallback = true) {
   fetch(url + "?t=" + Date.now())
     .then((r) => {
@@ -1648,7 +953,7 @@ function loadSessionFromUrl(url, fallback = true) {
       if (fallback && url !== "sample_session.json") {
         loadSessionFromUrl("sample_session.json", false);
       } else {
-        alert(err.message);
+        LegacyAlerts.genericError(err.message);
       }
     });
 }
@@ -1798,6 +1103,7 @@ function setSession(rawSession) {
   const rawChallenges = rawAnswerKey._challenges;
 
   currentSession = normalizeSession(rawSession);
+  window.currentSession = currentSession;
   const { title, language, mode, question, answer, answer_key } = currentSession;
   challengeReviewQueue = new Set();
 
@@ -2348,7 +1654,7 @@ async function handleShortAnswerSubmit(qId, answer) {
   if (state?.isCorrect) return;
 
   if (!answer.trim()) {
-    alert("답을 입력해주세요.");
+LegacyAlerts.requireAnswer();
     return;
   }
 
@@ -3620,7 +2926,7 @@ function checkAll() {
       .map(s => s.wordNum);
 
     if (unansweredIndices.length === 0) {
-      alert('모든 영단어가 이미 채점되었습니다.');
+      LegacyAlerts.allVocabGraded();
       return;
     }
 
@@ -3635,7 +2941,7 @@ function checkAll() {
       .map(s => s.defNum);
 
     if (unansweredIndices.length === 0) {
-      alert('모든 정의가 이미 채점되었습니다.');
+      LegacyAlerts.allDefinitionsGraded();
       return;
     }
 
@@ -3661,7 +2967,7 @@ function checkAll() {
       .map(s => s.challengeNum);
 
     if (unansweredIndices.length === 0) {
-      alert('모든 챌린지가 이미 채점되었습니다.');
+      LegacyAlerts.allChallengesGraded();
       return;
     }
 
@@ -3851,7 +3157,7 @@ function handleEnter(input) {
   const ok = checkOne(input);
   if (ok === null) {
     if (!warnedMissingAnswers && !hasAnswers) {
-      alert(missingAnswerMessage);
+      LegacyAlerts.missingAnswerKey();
       warnedMissingAnswers = true;
     }
     return;
@@ -3880,7 +3186,7 @@ function startReviewCycle() {
     );
 
     if (!reviewTargets.length) {
-      alert("복습할 문제가 없습니다. 먼저 틀린 문제나 미응답 문제를 만들어주세요.");
+      LegacyAlerts.noReviewQuestions();
       return;
     }
 
@@ -3933,7 +3239,7 @@ function startReviewCycle() {
       (s) => s.isCorrect === false || !s.answered || s.hasBeenWrong
     );
     if (!reviewTargets.length) {
-      alert("복습할 문제가 없습니다. 먼저 틀린 문제나 미응답 문제를 만들어주세요.");
+      LegacyAlerts.noReviewQuestions();
       return;
     }
     reviewQueue = new Set(reviewTargets.map((s) => String(s.challengeNum)));
@@ -3975,7 +3281,7 @@ function startReviewCycle() {
     const defTargets = definitionStates.filter((s) => s.isCorrect === false || !s.answered);
     const vocabTargets = vocabStates.filter((s) => s.isCorrect === false || !s.answered);
     if (!defTargets.length && !vocabTargets.length) {
-      alert("복습할 카드가 없습니다.");
+      LegacyAlerts.noReviewCards();
       return;
     }
     reviewQueue = new Set([
@@ -4035,7 +3341,7 @@ function startReviewCycle() {
       inp.classList.contains("retried")
   );
   if (!targets.length && !reviewQueue.size) {
-    alert("복습할 빈칸이 없습니다. 먼저 채점/정답을 확인해주세요.");
+LegacyAlerts.noReviewBlanks();
     return;
   }
   reviewQueue = new Set(reviewQueue);
@@ -4065,7 +3371,7 @@ function startReviewCycle() {
 function focusNextReview() {
   if (parsedQuizStates.length > 0) {
     if (!reviewQueue.size) {
-      alert("복습 큐가 비어 있습니다.");
+      LegacyAlerts.emptyReviewQueue();
       return;
     }
     const [qId] = reviewQueue;
@@ -4087,7 +3393,7 @@ function focusNextReview() {
 
   if (challengeStates.length > 0) {
     if (!reviewQueue.size) {
-      alert("복습 큐가 비어 있습니다.");
+      LegacyAlerts.emptyReviewQueue();
       return;
     }
     const [id] = reviewQueue;
@@ -4105,7 +3411,7 @@ function focusNextReview() {
 
   if (definitionStates.length > 0 || vocabStates.length > 0) {
     if (!reviewQueue.size) {
-      alert("복습 큐가 비어 있습니다.");
+      LegacyAlerts.emptyReviewQueue();
       return;
     }
     const [key] = reviewQueue;
@@ -4127,7 +3433,7 @@ function focusNextReview() {
   }
 
   if (!reviewQueue.size) {
-    alert("복습 큐가 비어 있습니다.");
+LegacyAlerts.emptyReviewQueue();
     return;
   }
   const [key] = reviewQueue;
@@ -4225,7 +3531,7 @@ function initializeButtonHandlers() {
       if (parsedQuizStates.length > 0) {
         const answered = parsedQuizStates.filter(s => s.answered).length;
         const total = parsedQuizStates.length;
-        alert(`📊 현재 진행 상황\n\n완료: ${answered} / ${total}개\n남은 문제: ${total - answered}개\n\n※ 파싱된 문제는 정답을 알 수 없어 채점이 불가합니다.`);
+      LegacyAlerts.progressSummary(answered, total);
         return;
       }
       // 일반 빈칸 채점
@@ -4253,7 +3559,7 @@ function initializeButtonHandlers() {
             }
           }
         });
-        alert("📚 파싱된 문제에는 정답 정보가 포함되어 있지 않습니다.\n\nPython 코드 파일로 세션을 생성하면 자동 채점이 가능합니다.");
+      LegacyAlerts.noParsingAnswers();
         return;
       }
       // 일반 빈칸
@@ -4331,7 +3637,7 @@ function initializeButtonHandlers() {
       if (key) {
         setApiKey(key);
         hideApiKeyModal();
-        alert("API 키가 저장되었습니다.");
+      LegacyAlerts.apiKeySaved();
       }
     });
   }
@@ -4472,7 +3778,7 @@ async function handleDefinitionCheck(defNum) {
   const userAnswer = textarea.value.trim();
 
   if (!userAnswer) {
-    alert("정의를 입력해주세요.");
+LegacyAlerts.requireDefinition();
     return;
   }
 
@@ -5212,7 +4518,7 @@ function initializeFileModeModal() {
 
 
             if (data.error) {
-              alert("오류: " + data.error);
+      LegacyAlerts.requestError(data.error);
               progressContainer.style.display = 'none'; // Hide on error
               return;
             }
@@ -5225,7 +4531,7 @@ function initializeFileModeModal() {
           } catch (err) {
             clearInterval(progressInterval);
             progressContainer.style.display = 'none';
-            alert("요청 실패: " + err.message);
+      LegacyAlerts.requestFailed(err.message);
           }
           return; // EXIT FUNCTION HERE TO AVOID DOUBLE FETCH (original code had fetch below)
         }
@@ -5516,7 +4822,7 @@ async function submitMode6Code() {
   const userCode = codeInput.value.trim();
 
   if (!userCode) {
-    alert('코드를 입력해주세요!');
+LegacyAlerts.requireCode();
     return;
   }
 
@@ -6336,12 +5642,12 @@ async function checkMode1Single(input, showAnswer = false) {
 
   const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
 
-  // 이미 채점된 경우 스킵
+  // Skip if already graded
   if (input.classList.contains('correct') || input.classList.contains('revealed')) {
     return;
   }
 
-  // 정답 표시 요청인 경우
+  // Reveal answer if requested
   if (showAnswer && !input.classList.contains('correct')) {
     input.value = correctAnswer;
     input.classList.add('revealed');
@@ -6376,7 +5682,7 @@ async function checkMode1Single(input, showAnswer = false) {
 }
 
 /**
- * Mode 1 점수 업데이트
+ * Mode 1 score update
  */
 function updateMode1Score() {
   const inputs = document.querySelectorAll('.mode1-input');
@@ -6398,7 +5704,7 @@ function updateMode1Score() {
 }
 
 /**
- * Mode 1 전체 채점
+ * Mode 1 grade all blanks
  */
 function checkMode1Answers() {
   document.querySelectorAll('.mode1-input').forEach(input => {
@@ -6411,7 +5717,7 @@ function checkMode1Answers() {
 // End of Mode 1 implementation
 
 /**
- * Mode 1 빈칸에 대한 AI 설명 제공
+ * Mode 1 AI hint for a blank
  */
 async function explainMode1Blank(questionNum, blankNum) {
   const question = mode1State.questions.find((q, idx) => idx + 1 === questionNum);
@@ -6421,9 +5727,9 @@ async function explainMode1Blank(questionNum, blankNum) {
   const answer = blank ? blank.answer : '';
 
   openAIPanel();
-  explanationArea.innerHTML = `<div class="explanation-loading">🤔 빈칸 [${blankNum}]에 대해 분석 중...</div>`;
+  explanationArea.innerHTML = `<div class="explanation-loading">🤔 Analyzing blank [${blankNum}]...</div>`;
 
-  // 코드에서 해당 빈칸 주변 컨텍스트 추출
+  // Extract nearby context lines for the selected blank
   const codeLines = question.code.split('\n');
   let blankLineIdx = -1;
   let blankCount = 0;
@@ -6442,38 +5748,38 @@ async function explainMode1Blank(questionNum, blankNum) {
     if (blankLineIdx !== -1) break;
   }
 
-  // 빈칸 주변 3줄 컨텍스트
+  // Three-line window around the blank
   const startLine = Math.max(0, blankLineIdx - 2);
   const endLine = Math.min(codeLines.length, blankLineIdx + 3);
   const contextCode = codeLines.slice(startLine, endLine).join('\n');
 
-  const prompt = `C# 코드에서 [빈칸 ${blankNum}]의 정답이 무엇인지 핵심만 알려줘.
-정답을 직접 알려주지 말고, 힌트와 설명만 해줘.
+  const prompt = `In the C# code, give a concise hint for blank [${blankNum}].
+Do NOT reveal the exact answer—only provide a short hint and explanation.
 
-## 문제 주제
+## Topic
 ${question.topic}
 
-## 코드 컨텍스트 (빈칸은 _____ 로 표시)
+## Code context (blank shown as _____)
 \`\`\`csharp
 ${contextCode}
 \`\`\`
 
-## 설명 형식
-1. 이 위치에 무엇이 필요한지 (1줄)
-2. 관련 C# 개념 핵심 설명 (1-2줄)
+## Response format
+1. What belongs here? (1 line)
+2. Key C# concept (1-2 lines)
 
-힌트만 주고 정답은 알려주지 마!`;
+Share only hints—never the exact answer.`;
 
   try {
-    const response = await callGeminiAPI(prompt, "C# 튜터로서 핵심만 짧게 설명해줘. 정답은 절대 알려주지 마.");
+    const response = await callGeminiAPI(prompt, "Act as a concise C# tutor. Give hints only and never reveal the exact answer.");
     explanationArea.innerHTML = `
       <div class="explanation-content">
-        <strong style="color: var(--yellow);">💡 빈칸 [${blankNum}] 힌트</strong>
+        <strong style="color: var(--yellow);">💡 Hint for blank [${blankNum}]</strong>
         <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
         ${formatMarkdown(response)}
       </div>`;
   } catch (err) {
-    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ 오류: ${err.message}</div>`;
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ Error: ${err.message}</div>`;
   }
 }
 

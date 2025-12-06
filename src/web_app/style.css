@@ -2587,12 +2587,15 @@ textarea:focus-visible,
     color: #0f1117;
     border: none;
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0;
+    line-height: 1;
     box-shadow: 0 4px 15px rgba(98, 240, 184, 0.4);
   }
 
@@ -2650,7 +2653,7 @@ textarea:focus-visible,
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }
 
-/* 난이도 선택 버튼 */
+/* 絹  튼 */
 .fm-difficulty {
   display: flex;
   flex-wrap: wrap;

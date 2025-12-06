@@ -16,6 +16,7 @@ import traceback
 import http.server
 import socketserver
 import webbrowser
+import json as json_lib
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote
@@ -155,6 +156,31 @@ def create_fallback_session() -> dict:
         "answer_key": {"_type": "whiteboard", "_challenges": []},
         "original_code": "",
     }
+
+
+def proxy_gemini_text(api_key: str, prompt: str, system_instruction: str, chat_history: list) -> str:
+    """
+    Minimal Gemini proxy to keep API key server-side.
+    chat_history: list of {role, parts:[{text}]} compatible with previous frontend format.
+    """
+    try:
+        import google.generativeai as genai  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("google-generativeai not installed on server") from exc
+
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash", system_instruction=system_instruction or None)
+
+    contents = []
+    if chat_history and isinstance(chat_history, list):
+        contents.extend(chat_history)
+    contents.append({"role": "user", "parts": [{"text": prompt}]})
+
+    try:
+        response = model.generate_content(contents=contents, generation_config=genai.types.GenerationConfig(temperature=0.2))
+        return response.text or ""
+    except Exception as exc:
+        raise RuntimeError(f"Gemini request failed: {exc}") from exc
 
 
 def read_preset_content(preset_key: str) -> tuple[str, str]:
@@ -349,6 +375,35 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
 
                 result = generate_session(preset, mode, method, custom_content, custom_filename, difficulty)
                 self.send_json_response(result)
+                return
+
+            if self.path == "/api/gemini-proxy":
+                content_length = int(self.headers.get("Content-Length", 0))
+                if content_length == 0:
+                    self.send_json_response({"error": "empty request"}, 400)
+                    return
+                post_data = self.rfile.read(content_length).decode("utf-8")
+                data = json_lib.loads(post_data)
+                prompt = data.get("prompt", "").strip()
+                if not prompt:
+                    self.send_json_response({"error": "prompt required"}, 400)
+                    return
+
+                system_instruction = data.get("systemInstruction") or ""
+                chat_history = data.get("chatHistory") or []
+
+                # Load API key
+                api_key = os.getenv("GEMINI_API_KEY") or load_api_key_from_file()
+                if not api_key:
+                    self.send_json_response({"error": "API key not configured on server"}, 400)
+                    return
+
+                try:
+                    text = proxy_gemini_text(api_key, prompt, system_instruction, chat_history)
+                    self.send_json_response({"text": text})
+                except Exception as exc:
+                    log_error(f"gemini proxy error: {exc}")
+                    self.send_json_response({"error": str(exc)}, 500)
                 return
 
             if self.path == "/shutdown":
