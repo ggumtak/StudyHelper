@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -212,6 +213,17 @@
         </div>
       </div>
 
+      <div class="fm-section" id="difficulty-section" style="display:none;">
+        <label>🎯 난이도 선택 <span class="fm-hint">(Mode 1, 2 전용)</span></label>
+        <div class="fm-difficulty" id="difficulty-buttons">
+          <button class="fm-diff" data-diff="easy">😊 쉬움</button>
+          <button class="fm-diff active" data-diff="normal">📝 보통</button>
+          <button class="fm-diff" data-diff="hard">🔥 어려움</button>
+          <button class="fm-diff" data-diff="extreme">💀 매우어려움</button>
+        </div>
+        <p class="fm-diff-hint" id="diff-hint">보통: 주석 30% + 코드 40% 빈칸</p>
+      </div>
+
       <div class="fm-section">
         <label>문제 생성 방식</label>
         <div class="fm-methods" id="method-buttons">
@@ -250,4 +262,5 @@
     });
   </script>
 </body>
+
 </html>

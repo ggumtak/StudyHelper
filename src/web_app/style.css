@@ -2649,3 +2649,64 @@ textarea:focus-visible,
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }
+
+/* 난이도 선택 버튼 */
+.fm-difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fm-diff {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+
+.fm-diff:hover {
+  border-color: var(--accent);
+  background: rgba(111, 179, 255, 0.1);
+}
+
+.fm-diff.active {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(111, 179, 255, 0.2), rgba(98, 240, 184, 0.2));
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.fm-diff[data-diff="easy"].active {
+  border-color: #5ee6a7;
+  background: linear-gradient(135deg, rgba(94, 230, 167, 0.2), rgba(98, 240, 184, 0.1));
+  color: #5ee6a7;
+}
+
+.fm-diff[data-diff="hard"].active {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(255, 183, 77, 0.1));
+  color: #f59e0b;
+}
+
+.fm-diff[data-diff="extreme"].active {
+  border-color: #ff6b6b;
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 77, 77, 0.1));
+  color: #ff6b6b;
+}
+
+.fm-diff-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.fm-hint {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: normal;
+}
