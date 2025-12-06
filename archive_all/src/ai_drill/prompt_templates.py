@@ -11,14 +11,24 @@ COMMON_RULES = """
 
 MODE_1_PROMPT = """
 You are [MODE 1] OOP Fill-in-the-Blank Mode.
-Goal: produce 40-60 blanks focusing on control flow, return values, conditions, and core OOP logic.
+Goal: produce balanced blanks focusing on control flow, return values, conditions, and core OOP logic.
 
-Rules:
-1) Prefer blanks on control flow (`if/while/for`), `return`, key operations, and calculations.
-2) Keep context: keep variable/class names visible; only blank essential tokens.
-3) Keep indentation and spacing exactly as in the source.
-4) Use comments like `# (1)` to mark blank positions when helpful.
-5) Output format:
+Blank volume by difficulty (hard cap = 70 blanks, never exceed 2 blanks per line):
+- Difficulty 1 (Easy): 28-35 blanks
+- Difficulty 2 (Normal): 35-48 blanks (default)
+- Difficulty 3 (Hard): 48-60 blanks
+- Difficulty 4 (Extreme): 60-70 blanks
+
+Strict adherence: stay inside the range for the chosen difficulty (tolerance ±2 blanks at most). If the source is very short, cap at 1 blank every ~4 lines but still stay within the stated range when possible.
+
+Distribution rules (must keep blanks spread across the file):
+1) Split the code mentally into top/middle/bottom thirds; keep each third between 20% and 45% of the blanks.
+2) Prefer blanks on control flow (`if/while/for`), `return`, key operations, calculations, and critical OOP connectors (self/accessor wiring, constructor args).
+3) Keep context: keep variable/class names visible; only blank essential tokens. Do NOT blank punctuation, operators, brackets, or comments/docstrings.
+4) Keep indentation and spacing exactly as in the source. Avoid stacking blanks on the same short line; max 2 blanks per line, and avoid placing blanks on more than 2 consecutive lines.
+5) Use comments like `# (1)` to mark blank positions when helpful; number blanks consistently.
+
+Output format:
 ```python
 # Question Block
 ...
@@ -36,9 +46,22 @@ Rules:
 """
 
 MODE_2_PROMPT = """
-You are [MODE 2] Data Structure Drill Mode. Produce about 45-50 blanks (Hard).
-Focus on pointers/iterators (`node.next`, `head`), loop conditions (`while ptr:`), returns, and boundary checks.
-Keep syntax (`:`, parentheses) and numbering consistent. Use `_____` for blanks.
+You are [MODE 2] Data Structure Drill Mode. Target a hard but fair blank set with even coverage.
+
+Blank volume by difficulty (hard cap = 70 blanks, never exceed 2 blanks per line):
+- Difficulty 1 (Easy): 30-38 blanks
+- Difficulty 2 (Normal): 38-50 blanks (default)
+- Difficulty 3 (Hard): 50-62 blanks
+- Difficulty 4 (Extreme): 60-70 blanks
+
+Strict adherence: stay within the stated range (tolerance ±2 blanks) for the chosen difficulty while keeping at least 1 blank every 4-6 lines when the file length permits.
+
+Distribution rules (must spread blanks across the entire snippet):
+1) Cover traversal hotspots (pointers/iterators like `node.next`, `head`, `prev`), loop conditions (`while ptr:`, `for i in range`), returns, and boundary checks.
+2) Divide the code into top/middle/bottom thirds and distribute blanks so no single third holds more than 45% of blanks and no third has fewer than 20%.
+3) Avoid clustering: cap at 2 blanks per line AND avoid more than 2 consecutive blanked lines; stagger blanks so each logical block gets coverage.
+4) Preserve readability: keep identifiers visible; do NOT blank punctuation, operators, delimiters, or comments/docstrings. Keep syntax (`:`, parentheses) and numbering consistent. Use `_____` for blanks.
+
 Output format is identical to MODE 1 (Question Block, Answer Block, JSON answer key).
 """
 

@@ -37,14 +37,12 @@ ${codeBlock}Rules:
 }
 
 export function buildMode1HintPrompt({ code = "", blankNum = "" }) {
-  const codeBlock = code
-    ? `## Full code\n\`\`\`csharp\n${code}\n\`\`\`\n\n`
-    : "";
   return `Give a concise hint for blank #${blankNum} in the C# code.
 
-${codeBlock}Hint format (do NOT reveal the exact answer):
-1) What kind of token belongs here (keyword/type/symbol)?
-2) One short reminder of the related C# concept (1-2 lines).`;
+Do NOT echo any code. Do NOT reveal the exact token/answer.
+Format: max 5 short lines.
+1) What kind of token fits (keyword/type/structure)?
+2) One short reminder of the related C# concept (keep it generic, no exact token).`;
 }
 
 export function buildMode1WhyWrongPrompt({ code = "", blankNum = "", userAnswer = "" }) {

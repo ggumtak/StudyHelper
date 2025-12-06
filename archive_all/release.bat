@@ -47,7 +47,7 @@ powershell -NoLogo -NoProfile -Command ^
 if errorlevel 1 goto :end
 
 echo [5/5] Running sync.bat (git add/commit/push)...
-call sync.bat
+call ..\sync.bat
 
 rem Optional: auto upload to GitHub Release when GH_UPLOAD=1 and gh CLI is available
 if "%GH_UPLOAD%"=="1" (
