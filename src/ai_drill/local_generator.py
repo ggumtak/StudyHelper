@@ -23,7 +23,7 @@ def get_fixed_file_for_mode(mode: int) -> str | None:
     return None
 
 
-def build_local_session(content: str, mode: int) -> DrillSession:
+def build_local_session(content: str, mode: int, difficulty: int = 2) -> DrillSession:
     """
     ================================================================================
     LLM 없이 로컬에서 학습 세션을 생성하는 함수
@@ -32,22 +32,10 @@ def build_local_session(content: str, mode: int) -> DrillSession:
     이 함수는 웹 UI에서 "세션 생성" 버튼을 누르면 호출됩니다.
     입력된 텍스트 파일을 분석하여 학습용 문제 세션을 생성합니다.
     
-    ## 동작 방식
-    1. 모드별 고정 파일이 있으면 해당 파일 사용 (모드2=자료구조, 모드4=전산수학)
-    2. 이미 객관식 문제 형식이면 parse_existing_quiz로 파싱
-    3. 아니면 모드별 변환 함수 호출
-    
-    ## 주요 모드
-    - 모드 1: OOP 빈칸 채우기 - 코드에서 키워드를 빈칸으로
-    - 모드 2: 자료구조 빈칸 - 더 많은 빈칸 생성
-    - 모드 3: 백지복습 - 함수 본문을 직접 구현
-    - 모드 4: 모의고사 - 객관식 문제
-    - 모드 5: 정의 퀴즈 - 용어 정의
-    - 모드 7: 영단어 - 단어장
-    
     Args:
         content: 입력 텍스트 (파일 내용)
         mode: 학습 모드 번호
+        difficulty: 난이도 (1=Easy, 2=Normal, 3=Hard, 4=Extreme)
     
     Returns:
         DrillSession: 생성된 학습 세션
@@ -68,9 +56,9 @@ def build_local_session(content: str, mode: int) -> DrillSession:
             pass
     
     try:
-        log(f"build_local_session 시작: mode={mode}, content_len={len(content)}")
+        log(f"build_local_session 시작: mode={mode}, diff={difficulty}, content_len={len(content)}")
         
-        # 1. 모드별 고정 파일 확인
+        # 1. 모드별 고정 파일 확인 (난이도 무시)
         fixed_file = get_fixed_file_for_mode(mode)
         if fixed_file and os.path.exists(fixed_file):
             log(f"고정 파일 사용: {fixed_file}")
@@ -88,7 +76,18 @@ def build_local_session(content: str, mode: int) -> DrillSession:
         log(f"모드 {mode}에 맞는 변환 함수 호출")
         
         if mode in (1, 2):
-            target = 50 if mode == 2 else 20
+            # 난이도별 빈칸 비율 설정
+            # 1(Easy): 15%, 2(Normal): 30%, 3(Hard): 50%, 4(Extreme): 70%
+            ratios = {1: 0.15, 2: 0.30, 3: 0.50, 4: 0.70}
+            ratio = ratios.get(difficulty, 0.30)
+            
+            # 유효 라인 수 (빈 줄, 주석 제외) 계산
+            lines = [l for l in content.splitlines() if l.strip() and not l.strip().startswith(('#', '"""', "'''"))]
+            valid_line_count = len(lines)
+            
+            target = max(5, int(valid_line_count * ratio))
+            log(f"빈칸 생성 목표: {target}개 (난이도 {difficulty}, 비율 {ratio}, 라인 {valid_line_count})")
+            
             question, answer_key = make_blanks_with_context(content, target)
             if mode == 2:
                 answer_key["_type"] = "fill_in_blank_inline"
@@ -97,6 +96,7 @@ def build_local_session(content: str, mode: int) -> DrillSession:
         if mode == 3:
             question, answer_key = make_implementation_challenge(content)
             return DrillSession(mode, question, content, answer_key)
+
             
         if mode == 4:
             question, answer_key = make_multiple_choice(content)

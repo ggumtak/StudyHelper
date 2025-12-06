@@ -85,7 +85,7 @@ class LLMClient:
         )
         self._genai: Any = genai
 
-    def generate_drill(self, content: str, mode: int) -> str:
+    def generate_drill(self, content: str, mode: int, difficulty: int = 2) -> str:
         """
         Build prompt text for the requested mode and fetch completion text.
         """
@@ -106,7 +106,10 @@ class LLMClient:
 {content}
 ------------------------------------------------------------
 
+
 위 규칙에 따라 [MODE {mode}] 변환을 실행해주세요.
+난이도 설정: {difficulty} (1=Easy, 2=Normal, 3=Hard, 4=Extreme)
+난이도가 높을수록 더 핵심적이고 어려운 부분에 빈칸을 만들어주세요.
 """
 
         response = self.model.generate_content(

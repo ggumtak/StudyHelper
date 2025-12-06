@@ -602,6 +602,15 @@ async function callGeminiAPI(prompt, systemInstruction = "", chatHistory = null)
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
+function fillChatAndOpen(message) {
+  openAIPanel();
+  if (chatInput) {
+    chatInput.value = message;
+    chatInput.focus();
+    // sendChatMessage(); // 바로 보내지 않고 사용자 확인 유도
+  }
+}
+
 // ========== AI PANEL ==========
 function toggleAIPanel() {
   const isOpen = aiPanel.classList.toggle("open");
@@ -713,6 +722,8 @@ async function sendChatMessage() {
 
   // Check if user is asking about a specific question number
   const numMatch = message.match(/(\d+)\s*번/);
+
+  // Case A: Parsed Quiz (currentQuestions exists)
   if (numMatch && currentQuestions.length > 0) {
     const qNum = parseInt(numMatch[1]);
     if (qNum >= 1 && qNum <= currentQuestions.length) {
@@ -727,8 +738,43 @@ ${targetQ.correct ? `- 정답: ${targetQ.correct}번` : ""}
 `;
     }
   }
+  // Case B: Blank Mode (Mode 1, 2, 3...) - dynamic look up
+  else if (numMatch && inputs.length > 0) {
+    const qNum = parseInt(numMatch[1]);
+    // inputs are 0-indexed in array, but 1-indexed in UI usually
+    // We need to find the input with data-key=qNum or just index
+    // Let's assume user says "22번" means data-key="22"
+    const inputEl = document.querySelector(`input.blank[data-key="${qNum}"]`);
+    if (inputEl) {
+      // Find line context
+      const parentLine = inputEl.closest('.code-line');
+      if (parentLine) {
+        const lineNum = parentLine.dataset.line;
+        // Get surrounding lines
+        const allLines = document.querySelectorAll('.code-line');
+        let contextLines = [];
+        allLines.forEach(line => {
+          const ln = parseInt(line.dataset.line);
+          if (Math.abs(ln - lineNum) <= 5) { // +/- 5 lines
+            contextLines.push(`${ln}| ${line.textContent}`);
+          }
+        });
+        const answer = answerKeyMap[qNum] || "정보 없음";
+        context += `\n\n🎯 ${qNum}번 빈칸 상세:
+- 정답: ${answer}
+- 학생 답안: ${inputEl.value}
+- 문맥 코드:
+\`\`\`python
+${contextLines.join('\n')}
+\`\`\`
+AI 지침: 위 문맥 코드를 보고, 이 빈칸의 정답이 왜 '${answer}'인지, 혹은 학생의 질문에 대해 정확히 답변해줘. 위치를 착각하지 마.
+`;
+      }
+    }
+  }
 
-  const prompt = context ? `${context}\n\n학생의 질문: ${message}` : message;
+
+  const prompt = context ? `${context} \n\n학생의 질문: ${message} ` : message;
 
   try {
     // 채팅 히스토리와 함께 API 호출 (대화 맥락 유지)
@@ -839,7 +885,7 @@ async function executeRegenerate(targetCount) {
   if (isNaN(targetCount) || targetCount < 5) targetCount = 20;
   if (targetCount > 100) targetCount = 100;
 
-  openAIPanel();
+  // openAIPanel(); // 제거: 사용자가 요청한대로 채팅창 열지 않음
   explanationArea.innerHTML = `<div class="explanation-loading">새로운 빈칸 ${targetCount}개를 생성하고 있습니다...</div>`;
 
   // 현재 정답들을 이전 정답에 저장
@@ -4758,6 +4804,9 @@ function initializeFileModeModal() {
         document.querySelectorAll(".fm-mode").forEach(m => m.classList.remove("active"));
         const modeBtn = document.querySelector(`.fm-mode[data-mode="${defaultMode}"]`);
         if (modeBtn) modeBtn.classList.add("active");
+
+        // 난이도 UI 업데이트
+        updateDifficultyVisibility(selectedMode);
       }
 
       // 기본 방식 자동 선택: 모드/파일에 따라
@@ -4820,11 +4869,25 @@ function initializeFileModeModal() {
   }
 
   // 모드 선택
+
+
+  // 난이도 섹션 표시 업데이트 함수
+  function updateDifficultyVisibility(mode) {
+    const diffSection = document.getElementById("difficulty-section");
+    if (diffSection) {
+      // 모드 1(OOP빈칸), 2(자료구조빈칸), 6(코드작성) 등 난이도가 필요한 모드에 표시
+      const show = (mode === 1 || mode === 2);
+      diffSection.style.display = show ? "block" : "none";
+    }
+  }
+
+  // 모드 선택
   document.querySelectorAll(".fm-mode").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".fm-mode").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedMode = parseInt(btn.dataset.mode, 10);
+
       // 모드 1, 6은 AI 필수, 나머지는 로컬 기본
       if (selectedMode === 1 || selectedMode === 6) {
         selectedMethod = "ai";
@@ -4833,16 +4896,11 @@ function initializeFileModeModal() {
         if (aiBtn) aiBtn.classList.add("active");
       } else {
         selectedMethod = "local";
-        document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
-        const localBtn = document.querySelector('.fm-method[data-method="local"]');
-        if (localBtn) localBtn.classList.add("active");
+        // 기존 선택 유지하되 기본값은 로컬
+        if (!selectedMethod) selectedMethod = "local";
       }
 
-      // 모드 1, 2에서만 난이도 섹션 표시
-      const diffSection = document.getElementById("difficulty-section");
-      if (diffSection) {
-        diffSection.style.display = (selectedMode === 1 || selectedMode === 2) ? "block" : "none";
-      }
+      updateDifficultyVisibility(selectedMode);
     });
   });
 
@@ -4916,7 +4974,9 @@ function initializeFileModeModal() {
         const requestData = {
           preset: selectedPreset,
           mode: selectedMode,
-          method: selectedMethod
+          mode: selectedMode,
+          method: selectedMethod,
+          difficulty: selectedDifficulty // 난이도 추가
         };
 
         // 커스텀 파일이 선택된 경우 파일 내용 포함
@@ -4925,11 +4985,65 @@ function initializeFileModeModal() {
           requestData.fileName = customFileName;
         }
 
+        // Progress Bar UI
+        const progressContainer = document.querySelector('.ai-progress-container');
+        const progressFill = document.querySelector('.ai-progress-fill');
+        const progressText = document.querySelector('.ai-progress-text');
+
+        if (progressContainer) {
+          progressContainer.style.display = 'block';
+          progressFill.style.width = '0%';
+          progressText.textContent = 'AI가 문제를 분석하고 있습니다... (0%)';
+
+          // FAKE PROGRESS SIMULATION
+          let fakeProgress = 0;
+          const progressInterval = setInterval(() => {
+            fakeProgress += Math.random() * 5;
+            if (fakeProgress > 95) fakeProgress = 95;
+            progressFill.style.width = `${fakeProgress}%`;
+            progressText.textContent = `AI가 문제를 생성하고 있습니다... (${Math.round(fakeProgress)}%)`;
+          }, 300);
+
+          try {
+            const response = await fetch("/api/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(requestData)
+            });
+
+            clearInterval(progressInterval);
+            progressFill.style.width = '100%';
+            progressText.textContent = '완료!';
+
+            const data = await response.json();
+
+
+            if (data.error) {
+              alert("오류: " + data.error);
+              progressContainer.style.display = 'none'; // Hide on error
+              return;
+            }
+
+            // Success
+            await loadSession();
+            modal.style.display = "none";
+            progressContainer.style.display = 'none'; // Reset logic
+
+          } catch (err) {
+            clearInterval(progressInterval);
+            progressContainer.style.display = 'none';
+            alert("요청 실패: " + err.message);
+          }
+          return; // EXIT FUNCTION HERE TO AVOID DOUBLE FETCH (original code had fetch below)
+        }
+
+        // Fallback if no progress bar (legacy code path)
         const response = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestData)
         });
+
 
         const result = await response.json();
 

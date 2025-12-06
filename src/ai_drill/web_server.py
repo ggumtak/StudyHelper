@@ -174,7 +174,8 @@ def read_preset_content(preset_key: str) -> tuple[str, str]:
 
 
 def generate_session(preset_key: str, mode: int, method: str = "local",
-                     custom_content: str | None = None, custom_filename: str | None = None) -> dict:
+                     custom_content: str | None = None, custom_filename: str | None = None,
+                     difficulty: int = 2) -> dict:
     """
     Build a session using AI or local generator.
     Modes 1 and 6: AI is preferred; if AI fails, fallback to local.
@@ -217,7 +218,7 @@ def generate_session(preset_key: str, mode: int, method: str = "local",
                 try:
                     os.environ["GEMINI_API_KEY"] = api_key
                     client = LLMClient(api_key=api_key)
-                    response_text = client.generate_drill(content, mode)
+                    response_text = client.generate_drill(content, mode, difficulty)
                     session = parse_response(response_text, mode)
                     log_error("LLM generation succeeded")
                 except Exception as e:
@@ -226,7 +227,7 @@ def generate_session(preset_key: str, mode: int, method: str = "local",
 
         if session is None:
             log_error("Falling back to local generator")
-            session = build_local_session(content, mode)
+            session = build_local_session(content, mode, difficulty)
 
         payload = build_session_payload(session, str(file_path))
         payload["generation_method"] = "ai" if use_ai else "local"
@@ -337,7 +338,8 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
                 method = data.get('method', 'local')
                 custom_content = data.get('content')
                 custom_filename = data.get('fileName')
-                result = generate_session(preset, mode, method, custom_content, custom_filename)
+                difficulty = int(data.get('difficulty', 2))
+                result = generate_session(preset, mode, method, custom_content, custom_filename, difficulty)
                 self.send_json_response(result)
                 return
 
