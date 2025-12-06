@@ -40,8 +40,20 @@ def _load_base_prompt() -> str:
     """
     Load the shared system prompt, skipping HTML/canvas-specific lines.
     """
+    runtime_dir = os.getenv("STUDYHELPER_RUNTIME_DIR")
+    candidates = []
+    if runtime_dir:
+        rt = Path(runtime_dir)
+        candidates.extend(
+            [
+                rt / "web_app" / "data" / "gemini_system_prompt.txt",
+                rt / "data" / "gemini_system_prompt.txt",
+            ]
+        )
+
     root_dir = Path(__file__).resolve().parents[1]
     candidates = [
+        *candidates,
         root_dir / "src" / "web_app" / "data" / "gemini_system_prompt.txt",
         root_dir / "data" / "gemini_system_prompt.txt",
     ]

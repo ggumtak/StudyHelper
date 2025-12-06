@@ -6,10 +6,13 @@ English-only strings to avoid encoding issues.
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
+import shutil
 import socket
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -25,16 +28,67 @@ from ai_drill.local_generator import build_local_session
 from ai_drill.main import build_session_payload
 from ai_drill.llm_client import LLMClient
 from ai_drill.quiz_parser import parse_response
+from ai_drill.version import APP_VERSION
 
-# Paths
-SCRIPT_DIR = Path(__file__).parent
-if SCRIPT_DIR.parent.name == "src":
-    PROJECT_DIR = SCRIPT_DIR.parent.parent
-    WEB_APP_DIR = SCRIPT_DIR.parent / "web_app"
+# Paths & runtime preparation
+RUNTIME_DIR = Path(os.getenv("STUDYHELPER_RUNTIME_DIR", Path(tempfile.gettempdir()) / "studyhelper"))
+
+
+def _is_frozen() -> bool:
+    return getattr(sys, "frozen", False)
+
+
+def _bundle_root() -> Path:
+    if _is_frozen():
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    return Path(__file__).resolve().parents[2]
+
+
+def _prepare_runtime_root() -> Path:
+    """
+    When running as a bundled exe, copy static assets to a writable temp dir
+    so the server can persist session/log/config files.
+    """
+    runtime_root = RUNTIME_DIR
+    clean_runtime = os.getenv("STUDYHELPER_CLEAN_RUNTIME") == "1"
+    keep_runtime = os.getenv("STUDYHELPER_KEEP_RUNTIME") == "1"
+
+    if clean_runtime:
+        shutil.rmtree(runtime_root, ignore_errors=True)
+    runtime_root.mkdir(parents=True, exist_ok=True)
+
+    source_root = _bundle_root()
+    for name in ("web_app", "data", "config"):
+        src = source_root / name
+        dest = runtime_root / name
+        if not src.exists():
+            continue
+        if name == "config" and dest.exists():
+            for item in src.rglob("*"):
+                rel = item.relative_to(src)
+                target = dest / rel
+                if item.is_dir():
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    if not target.exists():
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(item, target)
+        else:
+            shutil.copytree(src, dest, dirs_exist_ok=True)
+    (runtime_root / "logs").mkdir(parents=True, exist_ok=True)
+    os.environ["STUDYHELPER_RUNTIME_DIR"] = str(runtime_root)
+
+    if clean_runtime and not keep_runtime:
+        atexit.register(lambda: shutil.rmtree(runtime_root, ignore_errors=True))
+    return runtime_root
+
+
+if _is_frozen():
+    PROJECT_DIR = _prepare_runtime_root()
 else:
-    PROJECT_DIR = SCRIPT_DIR.parent
-    WEB_APP_DIR = PROJECT_DIR / "web_app"
+    PROJECT_DIR = Path(__file__).resolve().parents[2]
 
+WEB_APP_DIR = PROJECT_DIR / "web_app"
 DATA_DIR = PROJECT_DIR / "data"
 CONFIG_DIR = PROJECT_DIR / "config"
 LOG_DIR = PROJECT_DIR / "logs"
@@ -45,6 +99,7 @@ API_KEY_FILE = CONFIG_DIR / "gemini_api_key.txt"
 BASE_PORT = 3000
 MAX_PORT_RETRIES = 50  # Try ports 3000-3049
 current_port = BASE_PORT
+port_attempts: list[int] = []
 
 # Ensure folders exist
 for folder in (DATA_DIR, CONFIG_DIR, LOG_DIR):
@@ -126,10 +181,12 @@ def load_api_key_from_file() -> str | None:
     return None
 
 
-def save_server_info(port: int | None = None):
-    global current_port
+def save_server_info(port: int | None = None, ports_tried: list[int] | None = None):
+    global current_port, port_attempts
     if port:
         current_port = port
+    if ports_tried:
+        port_attempts = ports_tried
 
     local_ip = get_local_ip()
     info = {
@@ -138,6 +195,9 @@ def save_server_info(port: int | None = None):
         "mobile_url": f"http://{local_ip}:{current_port}",
         "presets": {k: v["name"] for k, v in PRESET_FILES.items()},
         "modes": MODE_LABELS,
+        "version": APP_VERSION,
+        "runtime_dir": str(PROJECT_DIR),
+        "ports_tried": ports_tried or port_attempts,
     }
     try:
         info_path = WEB_APP_DIR / "server_info.json"
@@ -436,15 +496,18 @@ class APIHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def find_available_port(start_port, max_retries=10):
+    attempts: list[int] = []
     for i in range(max_retries):
         port = start_port + i
+        attempts.append(port)
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.bind(("0.0.0.0", port))
-                return port
+                return port, attempts
         except OSError:
+            log_error(f"Port {port} unavailable, trying next")
             continue
-    raise RuntimeError("No available port")
+    raise RuntimeError(f"No available port in range starting at {start_port}")
 
 
 def start_server(port: int):
@@ -471,18 +534,20 @@ def start_server(port: int):
 
 
 def main():
-    global current_port
+    global current_port, port_attempts
     log_error("=" * 50)
     log_error("Study Helper server starting...")
     log_error("=" * 50)
     try:
-        port = find_available_port(BASE_PORT, MAX_PORT_RETRIES)
+        port, attempts = find_available_port(BASE_PORT, MAX_PORT_RETRIES)
         current_port = port
+        port_attempts = attempts
+        log_error(f"Port selection attempts: {attempts} -> chosen {port}")
     except RuntimeError as e:
         log_error(f"Fatal: {e}")
         sys.exit(1)
 
-    save_server_info(port)
+    save_server_info(port, attempts)
     result = generate_session("oop_vocab", 7)
     if not result.get("success"):
         try:

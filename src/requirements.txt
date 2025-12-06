@@ -2,6 +2,7 @@
 pyinstaller==6.2.0
 requests>=2.31.0
 flask==3.0.2
+google-generativeai>=0.8.3
 
 # Utilities (mostly stdlib)
 # pathlib, json, http.server are in the standard library

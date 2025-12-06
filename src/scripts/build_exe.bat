@@ -1,9 +1,9 @@
 @echo off
 setlocal
 
-rem -------------------------------
-rem Minimal PyInstaller build script
-rem -------------------------------
+rem ---------------------------------------------
+rem Build all StudyHelper executables (one-file)
+rem ---------------------------------------------
 set "BASE=%~dp0"
 set "PROJ=%BASE%.."
 cd /d "%PROJ%"
@@ -18,18 +18,27 @@ if %errorlevel% neq 0 (
 
 echo [INFO] Using Python: %PY_CMD%
 
-rem Ensure pyinstaller is available
-%PY_CMD% -m pip show pyinstaller >nul 2>&1
-if %errorlevel% neq 0 (
-  echo [INFO] Installing pyinstaller...
-  %PY_CMD% -m pip install pyinstaller
-)
+rem Ensure dependencies (PyInstaller + runtime deps)
+%PY_CMD% -m pip install -r src\\requirements.txt --upgrade
 
-rem Build launcher.exe
-echo [INFO] Building launcher.exe...
-%PY_CMD% -m PyInstaller --onefile --noconsole --clean "scripts\\launcher.py"
+rem Clean dist/build
+if exist build rd /s /q build
+if exist dist rd /s /q dist
+
+rem 1) StudyHelper.exe (main app) - uses StudyHelper.spec (bundles web_app/data/config)
+echo [INFO] Building StudyHelper.exe...
+%PY_CMD% -m PyInstaller --noconfirm --clean StudyHelper.spec
+
+rem 2) StudyHelperLauncher.exe (thin launcher/updater)
+echo [INFO] Building StudyHelperLauncher.exe...
+%PY_CMD% -m PyInstaller --noconfirm --clean --onefile --noconsole --name StudyHelperLauncher src\\scripts\\launcher.py
+
+rem 3) StudyHelperPatcher.exe (release downloader/patcher)
+echo [INFO] Building StudyHelperPatcher.exe...
+%PY_CMD% -m PyInstaller --noconfirm --clean --onefile --name StudyHelperPatcher src\\scripts\\patcher.py
 
 echo.
-echo [INFO] Done. Output: dist\launcher.exe (place web_app, ai_drill alongside)
+echo [INFO] Done. Outputs are in dist\\
+echo [INFO] Distribute StudyHelper.exe + StudyHelperLauncher.exe + StudyHelperPatcher.exe together.
 echo.
 pause

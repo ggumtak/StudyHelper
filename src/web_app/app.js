@@ -11,14 +11,37 @@ import {
 } from "./js/features/prompt-builders.js";
 import { escapeHtml, formatMarkdown, isAnswerCorrect as compareAnswers } from "./js/core/utils.js";
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('Service Worker registered'))
-      .catch(err => console.log('SW registration failed:', err));
+// Service Worker (optional)
+const swPreference = localStorage.getItem("enable_sw");
+let enableServiceWorker = swPreference === null ? true : swPreference === "1";
+
+function unregisterServiceWorkers() {
+  if (!("serviceWorker" in navigator)) return;
+  return navigator.serviceWorker.getRegistrations().then((registrations) => {
+    return Promise.all(registrations.map((r) => r.unregister()));
   });
 }
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || !enableServiceWorker) {
+    console.log("[SW] Disabled by user");
+    return;
+  }
+  const doRegister = () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => console.log("[SW] Registered", reg.scope))
+      .catch((err) => console.log("[SW] Registration failed:", err));
+  };
+
+  if (document.readyState === "complete") {
+    doRegister();
+  } else {
+    window.addEventListener("load", () => doRegister(), { once: true });
+  }
+}
+
+registerServiceWorker();
 
 // Core UI refs
 const codeArea = document.getElementById("code-area");
@@ -747,7 +770,7 @@ if (fileInput) {
         const data = JSON.parse(evt.target.result);
         setSession(data);
       } catch (err) {
-      LegacyAlerts.jsonParseFail(err.message);
+        LegacyAlerts.jsonParseFail(err.message);
       }
     };
     reader.readAsText(file, "utf-8");
@@ -1707,7 +1730,7 @@ async function handleShortAnswerSubmit(qId, answer) {
   if (state?.isCorrect) return;
 
   if (!answer.trim()) {
-LegacyAlerts.requireAnswer();
+    LegacyAlerts.requireAnswer();
     return;
   }
 
@@ -3354,7 +3377,7 @@ function startReviewCycle() {
       inp.classList.contains("retried")
   );
   if (!targets.length && !reviewQueue.size) {
-LegacyAlerts.noReviewBlanks();
+    LegacyAlerts.noReviewBlanks();
     return;
   }
   reviewQueue = new Set(reviewQueue);
@@ -3446,7 +3469,7 @@ function focusNextReview() {
   }
 
   if (!reviewQueue.size) {
-LegacyAlerts.emptyReviewQueue();
+    LegacyAlerts.emptyReviewQueue();
     return;
   }
   const [key] = reviewQueue;
@@ -3473,31 +3496,65 @@ function initializeButtonHandlers() {
   // Load and display mobile phone access address and ngrok URL
   const mobileUrlEl = document.getElementById("mobile-url");
   const ngrokUrlEl = document.getElementById("ngrok-url");
+  const serverPortEl = document.getElementById("server-port-indicator");
+  const swToggleBtn = document.getElementById("btn-toggle-sw");
+
+  const applySwButtonState = () => {
+    if (!swToggleBtn) return;
+    swToggleBtn.textContent = enableServiceWorker ? "SW on" : "SW off";
+    swToggleBtn.title = enableServiceWorker
+      ? "Service worker enabled (click to disable if not needed)"
+      : "Service worker disabled (click to enable)";
+  };
+
+  if (swToggleBtn) {
+    applySwButtonState();
+    swToggleBtn.addEventListener("click", async () => {
+      enableServiceWorker = !enableServiceWorker;
+      localStorage.setItem("enable_sw", enableServiceWorker ? "1" : "0");
+      applySwButtonState();
+      if (!enableServiceWorker) {
+        await unregisterServiceWorkers();
+        if ("caches" in window) {
+          caches.keys().then((names) => names.forEach((name) => caches.delete(name)));
+        }
+        console.log("[SW] Disabled and caches cleared");
+      } else {
+        registerServiceWorker();
+      }
+    });
+  }
 
   // Load IP and ngrok URL from server_info.json
   fetch("/server_info.json")
     .then(r => r.json())
     .then(info => {
       const currentPort = String(info.port || window.location.port || "3000");
+      const portAttempts = Array.isArray(info.ports_tried) ? info.ports_tried.join(",") : "";
+
+      if (serverPortEl) {
+        serverPortEl.textContent = `Port ${currentPort}`;
+        serverPortEl.title = portAttempts ? `Tried ports: ${portAttempts}` : `Current port: ${currentPort}`;
+      }
 
       // Mobile URL display
       if (mobileUrlEl) {
         const mobileUrl = `http://${info.local_ip || window.location.hostname}:${currentPort}`;
-        mobileUrlEl.textContent = `📱 ${mobileUrl}`;
-        mobileUrlEl.title = "클릭하면 복사";
+        mobileUrlEl.textContent = `Mobile ${mobileUrl}`;
+        mobileUrlEl.title = "Click to copy";
       }
 
       // Show ngrok URL (only if present)
       if (ngrokUrlEl && info.ngrok_url) {
-        ngrokUrlEl.textContent = `🌐 ${info.ngrok_url}`;
-        ngrokUrlEl.title = "클릭하면 복사 (외부 접속용)";
+        ngrokUrlEl.textContent = `Tunnel ${info.ngrok_url}`;
+        ngrokUrlEl.title = "Click to copy (external)";
         ngrokUrlEl.style.display = "inline-block";
 
         // Click to copy
         ngrokUrlEl.addEventListener("click", () => {
           navigator.clipboard.writeText(info.ngrok_url).then(() => {
             const original = ngrokUrlEl.textContent;
-            ngrokUrlEl.textContent = "✓ 복사됨!";
+            ngrokUrlEl.textContent = "Copied";
             ngrokUrlEl.classList.add("copied");
             setTimeout(() => {
               ngrokUrlEl.textContent = original;
@@ -3513,20 +3570,25 @@ function initializeButtonHandlers() {
         const currentHost = window.location.hostname;
         const currentPort = window.location.port || "3000";
         if (currentHost === "localhost" || currentHost === "127.0.0.1") {
-          mobileUrlEl.textContent = `📱 같은 WiFi에서 PC IP:${currentPort}`;
+          mobileUrlEl.textContent = `Mobile localhost:${currentPort}`;
         } else {
-          mobileUrlEl.textContent = `📱 http://${currentHost}:${currentPort}`;
+          mobileUrlEl.textContent = `Mobile http://${currentHost}:${currentPort}`;
         }
+      }
+      if (serverPortEl) {
+        const fallbackPort = window.location.port || "3000";
+        serverPortEl.textContent = `Port ${fallbackPort}`;
+        serverPortEl.title = "server_info.json missing; using current page port.";
       }
     });
 
   // Click to copy mobile URL
   if (mobileUrlEl) {
     mobileUrlEl.addEventListener("click", () => {
-      const url = mobileUrlEl.textContent.replace("📱 ", "");
+      const url = mobileUrlEl.textContent.replace("Mobile ", "");
       navigator.clipboard.writeText(url).then(() => {
         const original = mobileUrlEl.textContent;
-        mobileUrlEl.textContent = "✓ 복사됨!";
+        mobileUrlEl.textContent = "Copied";
         mobileUrlEl.classList.add("copied");
         setTimeout(() => {
           mobileUrlEl.textContent = original;
@@ -3544,7 +3606,7 @@ function initializeButtonHandlers() {
       if (parsedQuizStates.length > 0) {
         const answered = parsedQuizStates.filter(s => s.answered).length;
         const total = parsedQuizStates.length;
-      LegacyAlerts.progressSummary(answered, total);
+        LegacyAlerts.progressSummary(answered, total);
         return;
       }
       // General blank grading
@@ -3572,7 +3634,7 @@ function initializeButtonHandlers() {
             }
           }
         });
-      LegacyAlerts.noParsingAnswers();
+        LegacyAlerts.noParsingAnswers();
         return;
       }
       // plain blank space
@@ -3650,7 +3712,7 @@ function initializeButtonHandlers() {
       if (key) {
         setApiKey(key);
         hideApiKeyModal();
-      LegacyAlerts.apiKeySaved();
+        LegacyAlerts.apiKeySaved();
       }
     });
   }
@@ -3821,7 +3883,7 @@ async function handleDefinitionCheck(defNum) {
   const userAnswer = textarea.value.trim();
 
   if (!userAnswer) {
-LegacyAlerts.requireDefinition();
+    LegacyAlerts.requireDefinition();
     return;
   }
 
@@ -4437,10 +4499,10 @@ function initializeFileModeModal() {
   // ========== Select Difficulty ==========
   let selectedDifficulty = "normal";
   const difficultyHints = {
-    easy: "쉬움: 키워드/자료형/리터럴 위주, 낮은 비율 빈칸",
-    normal: "보통: 키워드/자료형/리터럴 위주, 중간 비율 빈칸",
-    hard: "어려움: 키워드/자료형/리터럴 위주, 높은 비율 빈칸",
-    extreme: "매우어려움: 키워드/자료형/리터럴 위주, 매우 높은 비율 빈칸"
+    easy: "쉬움: 빈칸 30개",
+    normal: "보통: 빈칸 50개",
+    hard: "어려움: 빈칸 60개",
+    extreme: "극한: 빈칸 80개"
   };
 
   document.querySelectorAll(".fm-diff").forEach(btn => {
@@ -4537,7 +4599,7 @@ function initializeFileModeModal() {
 
 
             if (data.error) {
-      LegacyAlerts.requestError(data.error);
+              LegacyAlerts.requestError(data.error);
               progressContainer.style.display = 'none'; // Hide on error
               return;
             }
@@ -4550,7 +4612,7 @@ function initializeFileModeModal() {
           } catch (err) {
             clearInterval(progressInterval);
             progressContainer.style.display = 'none';
-      LegacyAlerts.requestFailed(err.message);
+            LegacyAlerts.requestFailed(err.message);
           }
           return; // EXIT FUNCTION HERE TO AVOID DOUBLE FETCH (original code had fetch below)
         }
@@ -4828,7 +4890,7 @@ async function submitMode6Code() {
   const userCode = codeInput.value.trim();
 
   if (!userCode) {
-LegacyAlerts.requireCode();
+    LegacyAlerts.requireCode();
     return;
   }
 
@@ -5249,35 +5311,35 @@ function extractCSharpCodeBlocks(text) {
  * @param {string} difficulty - difficulty (easy, normal, hard, extreme)
  */
 async function generateMode1BlankWithAI(code, topic, difficulty = 'normal') {
-  // Difficulty presets: target percent applies to code tokens (exclude comments/variable names)
+  // Difficulty presets: fixed blank counts per difficulty
   const difficultySettings = {
     easy: {
-      blankCount: '2-4',
+      blankCount: '20-35',
       targetPercent: 0.15,
       focus: 'Only blank keywords, data types, and short literals. Do not blank identifiers or operators.',
-      minBlanks: 50,
-      description: '쉬움 - 낮은 빈칸 비율 (약 15%)'
+      minBlanks: 30,
+      description: '쉬움 - 빈칸 30개'
     },
     normal: {
-      blankCount: '4-7',
+      blankCount: '40-55',
       targetPercent: 0.30,
       focus: 'Only blank keywords, data types, and short literals. Never blank identifiers or operators.',
-      minBlanks: 70,
-      description: '보통 - 중간 빈칸 비율 (약 30%)'
+      minBlanks: 50,
+      description: '보통 - 빈칸 50개'
     },
     hard: {
-      blankCount: '7-12',
+      blankCount: '55-65',
       targetPercent: 0.50,
       focus: 'Only blank keywords, data types, and short literals. Never blank identifiers or operators.',
-      minBlanks: 90,
-      description: '어려움 - 높은 빈칸 비율 (약 50%)'
+      minBlanks: 60,
+      description: '어려움 - 빈칸 60개'
     },
     extreme: {
-      blankCount: '12-18',
+      blankCount: '75-85',
       targetPercent: 0.70,
       focus: 'Only blank keywords, data types, and short literals. Never blank identifiers or operators.',
-      minBlanks: 110,
-      description: '매우 어려움 - 매우 높은 빈칸 비율 (약 70%)'
+      minBlanks: 80,
+      description: '극한 - 빈칸 80개'
     }
   };
 

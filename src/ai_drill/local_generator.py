@@ -77,17 +77,12 @@ def build_local_session(content: str, mode: int, difficulty: int = 2) -> DrillSe
         log(f"모드 {mode}에 맞는 변환 함수 호출")
         
         if mode in (1, 2):
-            # 난이도별 빈칸 비율 설정
-            # 1(Easy): 15%, 2(Normal): 30%, 3(Hard): 50%, 4(Extreme): 70%
-            ratios = {1: 0.15, 2: 0.30, 3: 0.50, 4: 0.70}
-            ratio = ratios.get(difficulty, 0.30)
-            
-            # 유효 라인 수 (빈 줄, 주석 제외) 계산
-            lines = [l for l in content.splitlines() if l.strip() and not l.strip().startswith(('#', '"""', "'''"))]
-            valid_line_count = len(lines)
-            
-            target = max(5, int(valid_line_count * ratio))
-            log(f"빈칸 생성 목표: {target}개 (난이도 {difficulty}, 비율 {ratio}, 라인 {valid_line_count})")
+            # 난이도별 고정 빈칸 개수 설정
+            # 1(Easy): 30개, 2(Normal): 50개, 3(Hard): 60개, 4(Extreme): 80개
+            fixed_counts = {1: 30, 2: 50, 3: 60, 4: 80}
+            target = fixed_counts.get(difficulty, 50)
+            log(f"빈칸 생성 목표: {target}개 (난이도 {difficulty})")
+            log(f"난이도별 빈칸 개수: 쉬움=30, 보통=50, 어려움=60, 극한=80")
             
             question, answer_key = make_blanks_with_context(content, target)
             if mode == 2:
@@ -425,6 +420,9 @@ def make_blanks_with_context(code: str, target_count: int):
                 break
 
     blanks = blanks[:target_count]
+    
+    # 라인 순서로 정렬 후 번호 재할당 (왼쪽 빈칸 목록 순서 문제 해결)
+    blanks.sort(key=lambda b: (b["line_num"], b.get("col_offset", 0)))
     for idx, blank in enumerate(blanks, 1):
         blank["blank_num"] = idx
 
