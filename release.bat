@@ -49,6 +49,22 @@ if errorlevel 1 goto :end
 echo [5/5] Running sync.bat (git add/commit/push)...
 call sync.bat
 
+rem Optional: auto upload to GitHub Release when GH_UPLOAD=1 and gh CLI is available
+if "%GH_UPLOAD%"=="1" (
+    where gh >nul 2>&1
+    if errorlevel 1 (
+        echo [INFO] gh CLI not found. Skipping auto upload.
+    ) else (
+        echo [INFO] Publishing to GitHub Releases via gh...
+        gh release view v%VERSION% --repo %RELEASE_REPO% >nul 2>&1
+        if errorlevel 1 (
+            gh release create v%VERSION% dist/%RELEASE_ASSET% -t "v%VERSION%" -n "StudyHelper v%VERSION%" --repo %RELEASE_REPO%
+        ) else (
+            gh release upload v%VERSION% dist/%RELEASE_ASSET% --clobber --repo %RELEASE_REPO%
+        )
+    )
+)
+
 echo.
 echo Done. Upload dist\%RELEASE_ASSET% to GitHub Releases with tag v%VERSION%.
 
