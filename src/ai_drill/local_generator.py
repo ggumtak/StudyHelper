@@ -8,8 +8,8 @@ from .answer_key import MC_ANSWERS as QUIZ_ANSWERS  # 정답표는 answer_key.py
 # 고정 파일 경로
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-MODE2_FILE = os.path.join(DATA_DIR, "자료구조 12주차 소스코드.txt")
-MODE4_FILE = os.path.join(DATA_DIR, "전산수학 문제들.txt")
+MODE2_FILE = os.path.join(DATA_DIR, "4_Data_Structure_Code.txt")
+MODE4_FILE = os.path.join(DATA_DIR, "5_Computational_Math_Theory.txt")
 
 
 def get_fixed_file_for_mode(mode: int) -> str | None:

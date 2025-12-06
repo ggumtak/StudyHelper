@@ -1,14 +1,14 @@
 {
   "local_ip": "192.168.219.103",
-  "port": 8006,
-  "mobile_url": "http://192.168.219.103:8006",
+  "port": 8009,
+  "mobile_url": "http://192.168.219.103:8009",
   "presets": {
-    "oop_vocab": "1_OOP_영단어.txt",
-    "oop_concept": "2_OOP_개념어.txt",
-    "oop_code": "3_OOP_코드빈칸.txt",
-    "data_structure": "4_자료구조_코드.txt",
-    "math_theory": "5_전산수학_필기.txt",
-    "math_practice": "6_전산수학_실기.txt"
+    "oop_vocab": "1_OOP_Vocabulary.txt",
+    "oop_concept": "2_OOP_Concepts.txt",
+    "oop_code": "3_OOP_Code_Blanks.txt",
+    "data_structure": "4_Data_Structure_Code.txt",
+    "math_theory": "5_Computational_Math_Theory.txt",
+    "math_practice": "6_Computational_Math_Practice.txt"
   },
   "modes": {
     "1": "OOP 빈칸 채우기",

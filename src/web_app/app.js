@@ -3016,61 +3016,67 @@ async function handleChallengeCheck(num) {
   }
 
   // AI 채점 시작
-  resultDiv.innerHTML = `<span class="definition-loading">🔍 코드 비교 중...</span>`;
+  resultDiv.innerHTML = `<span class="definition-loading">🤖 AI가 채점 중...</span>`;
 
   const expected = state.answer.trim();
   const signature = state.signature || "";
 
   try {
-    // 띄어쓰기만 무시하고 정확히 비교 (AI 없이 로컬 비교)
-    // - 모든 공백(스페이스, 탭, 줄바꿈 연속)을 단일 공백으로
-    // - 주석은 제거
-    // - 나머지는 정확히 일치해야 함
-    const normalize = (s) => {
-      // 줄바꿈/탭/여러 공백 차이를 모두 흡수해 비교한다.
-      return s
-        .replace(/\r\n?/g, "\n")            // CRLF → LF
-        .replace(/\t/g, "    ")            // 탭 → 공백 4칸
-        .split("\n")
-        .map(line => line.replace(/#.*$/, "").trim()) // 주석 제거 + 양끝 공백 제거
-        .filter(line => line.length)       // 빈 줄 제거
-        .join("\n")
-        .replace(/\s+/g, " ")              // 연속 공백 하나로
-        .trim();
-    };
-
-    const normalizedUser = normalize(userAnswer);
-    const normalizedExpected = normalize(expected);
-    const isCorrect = normalizedUser === normalizedExpected;
-
-    let feedback = '';
-    if (isCorrect) {
-      feedback = '정답입니다! 코드가 정확히 일치합니다.';
-    } else {
-      // 어디가 다른지 힌트 제공
-      const userTokens = normalizedUser.split(' ');
-      const expectedTokens = normalizedExpected.split(' ');
-      let diffHint = '';
-      for (let i = 0; i < Math.max(userTokens.length, expectedTokens.length); i++) {
-        if (userTokens[i] !== expectedTokens[i]) {
-          const yourPart = userTokens[i] || '(없음)';
-          const correctPart = expectedTokens[i] || '(없음)';
-          diffHint = `[${yourPart}] → [${correctPart}]`;
-          break;
-        }
-      }
-      feedback = diffHint ? `첫 번째 차이: ${diffHint}` : '코드 내용이 다릅니다. 변수명/함수명을 확인하세요.';
+    // 먼저 간단한 로컬 비교 (공백 무시)
+    const normalize = (s) => s.replace(/\s+/g, '').replace(/#.*$/gm, '').toLowerCase();
+    if (normalize(userAnswer) === normalize(expected)) {
+      // 완전히 동일하면 바로 정답 처리
+      finishChallengeCheck(num, true, '정답입니다! 🎉');
+      return;
     }
 
-    const result = { correct: isCorrect, feedback };
+    // AI에게 융통성 있게 채점 요청
+    const prompt = `너는 친절한 코딩 선생님이야. 학생이 작성한 코드와 정답 코드를 비교해줘.
 
-    finishChallengeCheck(num, result.correct, result.feedback);
+## 정답 코드:
+\`\`\`python
+${expected}
+\`\`\`
+
+## 학생이 작성한 코드:
+\`\`\`python
+${userAnswer}
+\`\`\`
+
+## 채점 기준 (관대하게!):
+- 공백, 들여쓰기, 줄바꿈 차이는 무시해
+- 변수명이 같고 로직이 같으면 정답
+- 주석 유무는 상관없어
+- 코드가 실질적으로 동일한 동작을 하면 정답이야
+
+## 응답 형식 (반드시 이 형식으로!):
+첫 줄에 "CORRECT" 또는 "WRONG" 중 하나만 써줘.
+두 번째 줄부터는 짧은 설명 (1-2줄).
+
+예시:
+CORRECT
+완벽해요! 코드가 정확히 일치합니다.
+
+또는:
+WRONG  
+self.data 대신 self.value를 사용했어요.`;
+
+    const response = await callGeminiAPI(prompt, "채점 결과를 CORRECT 또는 WRONG으로 시작해서 알려줘.");
+
+    // AI 응답 파싱
+    const lines = response.trim().split('\n');
+    const verdict = lines[0].trim().toUpperCase();
+    const feedback = lines.slice(1).join(' ').trim() || (verdict === 'CORRECT' ? '정답입니다!' : '다시 확인해보세요.');
+
+    const isCorrect = verdict.includes('CORRECT') || verdict.includes('정답');
+
+    finishChallengeCheck(num, isCorrect, feedback);
 
   } catch (err) {
-    // API 오류 시 단순 비교로 폴백
-    const normalize = (s) => s.replace(/\s+/g, ' ').replace(/\s*#.*$/gm, '').trim();
+    // AI 오류 시 관대한 로컬 비교로 폴백
+    const normalize = (s) => s.replace(/\s+/g, '').replace(/#.*$/gm, '').toLowerCase();
     const isCorrect = normalize(userAnswer) === normalize(expected);
-    finishChallengeCheck(num, isCorrect, `${isCorrect ? "정답!" : "다시 확인해보세요"} (AI 오류: ${err.message})`);
+    finishChallengeCheck(num, isCorrect, `${isCorrect ? "정답!" : "다시 확인해보세요"} (AI 연결 오류)`);
   }
 }
 
@@ -4549,6 +4555,33 @@ function updateVocabScore() {
   applyNavFilter();
 }
 
+function renderVocabNav() {
+  if (!blankList || !vocabStates || vocabStates.length === 0) return;
+
+  blankList.innerHTML = "";
+  vocabStates.forEach((s) => {
+    const btn = document.createElement("div");
+    btn.className = "blank-pill pending";
+    btn.id = `nav-vocab-${s.wordNum}`;
+    btn.textContent = `V${s.wordNum}`;
+
+    if (s.answered) {
+      btn.classList.remove("pending");
+      btn.classList.add(s.isCorrect ? "correct" : "wrong");
+      if (s.hasBeenWrong && s.isCorrect) {
+        btn.classList.add("retried");
+      }
+    }
+
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(`vocab-${s.wordNum}`);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    blankList.appendChild(btn);
+  });
+  applyNavFilter();
+}
+
 // ========== FILE/MODE SELECTION MODAL ==========
 function initializeFileModeModal() {
   const modal = document.getElementById("file-mode-modal");
@@ -4563,12 +4596,12 @@ function initializeFileModeModal() {
   let selectedMode = 7;
 
   const fileNames = {
-    "oop_vocab": "1_OOP_영단어.txt",
-    "oop_concept": "2_OOP_개념어.txt",
-    "oop_code": "3_OOP_코드빈칸.txt",
-    "data_structure": "4_자료구조_코드.txt",
-    "math_theory": "5_전산수학_필기.txt",
-    "math_practice": "6_전산수학_실기.txt"
+    "oop_vocab": "1_OOP_Vocabulary.txt",
+    "oop_concept": "2_OOP_Concepts.txt",
+    "oop_code": "3_OOP_Code_Blanks.txt",
+    "data_structure": "4_Data_Structure_Code.txt",
+    "math_theory": "5_Computational_Math_Theory.txt",
+    "math_practice": "6_Computational_Math_Practice.txt"
   };
 
   // 모달 자동 표시 함수
@@ -5291,12 +5324,16 @@ async function renderMode1OOPBlanks() {
 
   try {
     // 파일 로드 (신규 이름 우선, 실패 시 구버전 이름으로 폴백)
-    const primaryUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
-    const legacyUrl = '/data/CSharp_코드문제.txt?t=' + Date.now();
+    const primaryUrl = '/data/3_OOP_Code_Blanks.txt?t=' + Date.now();
+    const legacyUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
+    const fallbackUrl = '/data/CSharp_코드문제.txt?t=' + Date.now();
     let text = "";
     let resp = await fetch(primaryUrl);
     if (!resp.ok) {
       resp = await fetch(legacyUrl);
+    }
+    if (!resp.ok) {
+      resp = await fetch(fallbackUrl);
     }
     if (!resp.ok) throw new Error('파일을 찾을 수 없습니다');
     text = await resp.text();
