@@ -126,32 +126,24 @@
   <!-- AI 사이드 패널 -->
   <aside id="ai-panel" class="ai-panel">
     <div class="ai-panel-header">
-      <h3>🤖 AI 패널</h3>
-      <button id="btn-close-panel" class="close-panel-btn">×</button>
+      <h3>💬 AI 채팅</h3>
+      <div class="ai-panel-header-btns">
+        <button onclick="startNewChatSession()" class="chat-header-btn" title="새 대화">🆕</button>
+        <button onclick="toggleChatHistory()" class="chat-header-btn" title="히스토리">📜</button>
+        <button id="btn-close-panel" class="close-panel-btn" title="닫기">×</button>
+      </div>
     </div>
 
-    <div class="ai-panel-content">
-      <div id="explanation-area" class="explanation-area">
-        <div class="explanation-placeholder">
-          빈칸의 <span class="help-icon">?</span> 버튼을 누르거나<br>
-          코드를 선택해서 해설을 받아보세요
-        </div>
-      </div>
+    <!-- 리사이즈 핸들 -->
+    <div class="ai-panel-resize-handle" id="ai-panel-resize"></div>
 
-      <div class="chat-area">
-        <div class="chat-panel-header">
-          <span class="chat-title">💬 AI 채팅</span>
-          <div class="chat-header-btns">
-            <button onclick="startNewChatSession()" class="chat-header-btn" title="새 대화">🆕 새 대화</button>
-            <button onclick="toggleChatHistory()" class="chat-header-btn" title="히스토리">📜 히스토리</button>
-            <button onclick="closeAIPanel()" class="chat-header-btn chat-close-btn" title="닫기">✕</button>
-          </div>
-        </div>
+    <div class="ai-panel-content">
+      <div class="chat-messages-wrapper">
         <div id="chat-messages" class="chat-messages"></div>
-        <div class="chat-input-area">
-          <textarea id="chat-input" placeholder="질문을 입력하세요... (Enter=전송)"></textarea>
-          <button id="btn-send-chat" class="chat-send-btn">전송</button>
-        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" placeholder="질문을 입력하세요... (Enter=전송)"></textarea>
+        <button id="btn-send-chat" class="chat-send-btn">전송</button>
       </div>
     </div>
   </aside>

@@ -658,76 +658,30 @@ ${context}
 }
 
 /**
- * Mode 2 빨간 물음표 - 왜 틀렸어요?
+ * Mode 2 빨간 물음표 - 왜 틀렸어요? -> 채팅창 자동입력
  */
-async function explainWhyWrongBlank(key) {
+function explainWhyWrongBlank(key) {
   const answer = answerKeyMap[key];
   const input = document.querySelector(`input.blank[data-key="${key}"]`);
   const userAnswer = input?.value || '';
 
   if (!answer) return;
 
-  openAIPanel();
-  explanationArea.innerHTML = `<div class="explanation-loading">❓ 틀린 이유 분석 중...</div>`;
-
-  const prompt = `학생이 빈칸 #${key}에 "${userAnswer}"라고 썼는데 정답은 "${answer}"야.
-
-왜 틀렸는지 간단히 설명해줘:
-1. 정답과 학생 답의 차이점
-2. 왜 정답이 맞는지 1줄 설명`;
-
-  try {
-    const response = await callGeminiAPI(prompt, "차이점을 간결하게 설명해줘.");
-    explanationArea.innerHTML = `
-      <div class="explanation-content">
-        <strong style="color: var(--red);">❓ 왜 틀렸나요?</strong>
-        <p style="color: var(--muted); margin: 8px 0;">내 답: <code>${escapeHtml(userAnswer)}</code> → 정답: <code>${escapeHtml(answer)}</code></p>
-        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
-        ${formatMarkdown(response)}
-      </div>`;
-  } catch (err) {
-    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">에러: ${err.message}</div>`;
-  }
+  // 채팅창에 자동입력
+  const msg = `${key}번 빈칸 왜 틀렸어? (내 답: ${userAnswer}, 정답: ${answer})`;
+  fillChatAndOpen(msg);
 }
 
-async function explainSelection(text) {
-  if (!text.trim()) return;
+/**
+ * 선택한 코드 설명 -> 채팅창 자동입력
+ */
+function explainSelection(text) {
+  if (!text || !text.trim()) return;
 
-  openAIPanel();
-  explanationArea.innerHTML = `<div class="explanation-loading">AI가 설명을 생성하고 있습니다...</div>`;
-
-  // Determine language based on current mode
-  const isMode1 = mode1State && mode1State.questions && mode1State.questions.length > 0;
-  const language = isMode1 ? "C#" : (currentSession?.language || "Python");
-  const languageCode = isMode1 ? "csharp" : "python";
-
-  const prompt = `다음 ${language} 코드 조각에 대해 설명해주세요:
-
-\`\`\`${languageCode}
-${text}
-\`\`\`
-
-다음을 포함해서 설명해주세요:
-1. 이 코드가 무엇을 하는지
-2. 각 부분이 왜 필요한지
-3. 어떤 상황에서 사용되는지`;
-
-  try {
-    const tutorContext = isMode1
-      ? "당신은 친절한 C# 및 객체지향 프로그래밍 튜터입니다. 초보자가 이해하기 쉽게 설명해주세요."
-      : "당신은 친절한 파이썬 프로그래밍 튜터입니다. 초보자가 이해하기 쉽게 설명해주세요.";
-
-    const response = await callGeminiAPI(prompt, tutorContext);
-    explanationArea.innerHTML = `
-      <div class="explanation-content">
-        <strong style="color: var(--accent);">💡 선택한 코드 설명</strong>
-        <pre style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 12px; overflow-x: auto;">${escapeHtml(text)}</pre>
-        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
-        ${formatMarkdown(response)}
-      </div>`;
-  } catch (err) {
-    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ 오류: ${err.message}</div>`;
-  }
+  // 코드가 너무 길면 앞부분만
+  const truncatedCode = text.length > 200 ? text.slice(0, 200) + '...' : text;
+  const msg = `이 코드 설명해줘: ${truncatedCode}`;
+  fillChatAndOpen(msg);
 }
 
 // ========== CHAT FEATURE ==========
