@@ -597,15 +597,53 @@ ${context}
   }
 }
 
+/**
+ * Mode 2 빨간 물음표 - 왜 틀렸어요?
+ */
+async function explainWhyWrongBlank(key) {
+  const answer = answerKeyMap[key];
+  const input = document.querySelector(`input.blank[data-key="${key}"]`);
+  const userAnswer = input?.value || '';
+
+  if (!answer) return;
+
+  openAIPanel();
+  explanationArea.innerHTML = `<div class="explanation-loading">❓ 틀린 이유 분석 중...</div>`;
+
+  const prompt = `학생이 빈칸 #${key}에 "${userAnswer}"라고 썼는데 정답은 "${answer}"야.
+
+왜 틀렸는지 간단히 설명해줘:
+1. 정답과 학생 답의 차이점
+2. 왜 정답이 맞는지 1줄 설명`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "차이점을 간결하게 설명해줘.");
+    explanationArea.innerHTML = `
+      <div class="explanation-content">
+        <strong style="color: var(--red);">❓ 왜 틀렸나요?</strong>
+        <p style="color: var(--muted); margin: 8px 0;">내 답: <code>${escapeHtml(userAnswer)}</code> → 정답: <code>${escapeHtml(answer)}</code></p>
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
+        ${formatMarkdown(response)}
+      </div>`;
+  } catch (err) {
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">에러: ${err.message}</div>`;
+  }
+}
+
 async function explainSelection(text) {
   if (!text.trim()) return;
 
   openAIPanel();
   explanationArea.innerHTML = `<div class="explanation-loading">AI가 설명을 생성하고 있습니다...</div>`;
 
-  const prompt = `다음 Python 코드 조각에 대해 설명해주세요:
+  // Determine language based on current mode
+  const isMode1 = mode1State && mode1State.questions && mode1State.questions.length > 0;
+  const language = isMode1 ? "C#" : (currentSession?.language || "Python");
+  const languageCode = isMode1 ? "csharp" : "python";
 
-\`\`\`python
+  const prompt = `다음 ${language} 코드 조각에 대해 설명해주세요:
+
+\`\`\`${languageCode}
 ${text}
 \`\`\`
 
@@ -615,7 +653,11 @@ ${text}
 3. 어떤 상황에서 사용되는지`;
 
   try {
-    const response = await callGeminiAPI(prompt, "당신은 친절한 파이썬 프로그래밍 튜터입니다. 초보자가 이해하기 쉽게 설명해주세요.");
+    const tutorContext = isMode1
+      ? "당신은 친절한 C# 및 객체지향 프로그래밍 튜터입니다. 초보자가 이해하기 쉽게 설명해주세요."
+      : "당신은 친절한 파이썬 프로그래밍 튜터입니다. 초보자가 이해하기 쉽게 설명해주세요.";
+
+    const response = await callGeminiAPI(prompt, tutorContext);
     explanationArea.innerHTML = `
       <div class="explanation-content">
         <strong style="color: var(--accent);">💡 선택한 코드 설명</strong>
@@ -719,6 +761,12 @@ function formatMarkdown(text) {
 let previousAnswers = new Set();
 
 async function regenerateBlanks() {
+  // Mode 1 (C# OOP 빈칸)인 경우 메시지 표시
+  if (mode1State && mode1State.questions && mode1State.questions.length > 0) {
+    alert('Mode 1에서는 파일/모드 버튼으로 다시 로드해주세요.');
+    return;
+  }
+
   if (!currentSession?.answer) {
     alert("정답 코드가 없어 새 빈칸을 생성할 수 없습니다.");
     return;
@@ -1697,7 +1745,12 @@ function renderQuestion(questionText, answerKey, language) {
     lineKeys.forEach((key) => {
       const answer = answerKey[key];
       const dataAnswer = answer !== undefined ? ` data-answer="${escapeHtml(String(answer))}"` : "";
-      const inputHtml = `<span class="placeholder" id="blank-${key}"><input type="text" class="blank" data-key="${key}"${dataAnswer} placeholder="#${key}"><button class="help-btn" data-key="${key}" title="이 빈칸 설명">?</button><span class="answer-chip">#${key}</span></span>`;
+      const inputHtml = `<span class="placeholder" id="blank-${key}">
+        <input type="text" class="blank" data-key="${key}"${dataAnswer} placeholder="#${key}" autocomplete="off">
+        <button class="help-btn" data-key="${key}" title="힌트 보기" style="background: rgba(247, 215, 116, 0.2); color: #f7d774; border: 1px solid rgba(247, 215, 116, 0.5);">?</button>
+        <button class="why-wrong-btn" data-key="${key}" title="왜 틀렸어요?" style="display: none; background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.5);">?</button>
+        <span class="answer-chip">#${key}</span>
+      </span>`;
       const markerRegex = new RegExp(`__BLANK_MARKER_${key}__`, 'g');
       lineHtml = lineHtml.replace(markerRegex, inputHtml);
     });
@@ -1722,11 +1775,19 @@ function renderQuestion(questionText, answerKey, language) {
     });
   });
 
-  // Add help button listeners
+  // Add help button listeners (yellow - hint)
   codeArea.querySelectorAll(".help-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       explainBlank(btn.dataset.key);
+    });
+  });
+
+  // Add why-wrong button listeners (red - explain wrong answer)
+  codeArea.querySelectorAll(".why-wrong-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      explainWhyWrongBlank(btn.dataset.key);
     });
   });
 
@@ -3022,58 +3083,35 @@ async function handleChallengeCheck(num) {
   const signature = state.signature || "";
 
   try {
-    // 먼저 간단한 로컬 비교 (공백 무시)
-    const normalize = (s) => s.replace(/\s+/g, '').replace(/#.*$/gm, '').toLowerCase();
-    if (normalize(userAnswer) === normalize(expected)) {
-      // 완전히 동일하면 바로 정답 처리
-      finishChallengeCheck(num, true, '정답입니다! 🎉');
-      return;
-    }
+    // AI 채점 - 간단한 프롬프트
+    const prompt = `Python 코드를 채점해줘.
 
-    // AI에게 융통성 있게 채점 요청
-    const prompt = `너는 친절한 코딩 선생님이야. 학생이 작성한 코드와 정답 코드를 비교해줘.
-
-## 정답 코드:
+## 정답 코드
 \`\`\`python
 ${expected}
 \`\`\`
 
-## 학생이 작성한 코드:
+## 학생 코드
 \`\`\`python
 ${userAnswer}
 \`\`\`
 
-## 채점 기준 (관대하게!):
-- 공백, 들여쓰기, 줄바꿈 차이는 무시해
-- 변수명이 같고 로직이 같으면 정답
-- 주석 유무는 상관없어
-- 코드가 실질적으로 동일한 동작을 하면 정답이야
+## 채점 기준
+1. 정답 코드의 모든 내용이 학생 코드에 있어야 함
+2. 공백, 들여쓰기 스타일 차이는 무시
+3. 변수명, 함수명은 정확히 같아야 함
+4. 빠진 코드가 있으면 WRONG
 
-## 응답 형식 (반드시 이 형식으로!):
-첫 줄에 "CORRECT" 또는 "WRONG" 중 하나만 써줘.
-두 번째 줄부터는 짧은 설명 (1-2줄).
+CORRECT 또는 WRONG 중 하나만 응답해.`;
 
-예시:
-CORRECT
-완벽해요! 코드가 정확히 일치합니다.
+    const response = await callGeminiAPI(prompt, "CORRECT 또는 WRONG 중 하나만 응답.");
+    const isCorrect = response.toUpperCase().includes('CORRECT') && !response.toUpperCase().includes('WRONG');
 
-또는:
-WRONG  
-self.data 대신 self.value를 사용했어요.`;
-
-    const response = await callGeminiAPI(prompt, "채점 결과를 CORRECT 또는 WRONG으로 시작해서 알려줘.");
-
-    // AI 응답 파싱
-    const lines = response.trim().split('\n');
-    const verdict = lines[0].trim().toUpperCase();
-    const feedback = lines.slice(1).join(' ').trim() || (verdict === 'CORRECT' ? '정답입니다!' : '다시 확인해보세요.');
-
-    const isCorrect = verdict.includes('CORRECT') || verdict.includes('정답');
-
+    const feedback = isCorrect ? '정답입니다! 🎉' : '코드를 다시 확인해보세요.';
     finishChallengeCheck(num, isCorrect, feedback);
 
   } catch (err) {
-    // AI 오류 시 관대한 로컬 비교로 폴백
+    // AI 오류 시 로컬 비교로 폴백
     const normalize = (s) => s.replace(/\s+/g, '').replace(/#.*$/gm, '').toLowerCase();
     const isCorrect = normalize(userAnswer) === normalize(expected);
     finishChallengeCheck(num, isCorrect, `${isCorrect ? "정답!" : "다시 확인해보세요"} (AI 연결 오류)`);
@@ -3325,10 +3363,16 @@ function checkOne(input) {
   const user = input.value.trim();
   const key = input.dataset.key;
   const isCorrect = user === expected.trim();
+
+  // 빨간 물음표 버튼 표시/숨김
+  const whyBtn = input.parentElement?.querySelector('.why-wrong-btn');
+
   if (!user) {
     setState(input, "pending");
+    if (whyBtn) whyBtn.style.display = 'none';
   } else {
     setState(input, isCorrect ? "correct" : "wrong");
+    if (whyBtn) whyBtn.style.display = isCorrect ? 'none' : 'inline-flex';
   }
   toggleReview(key, !isCorrect && !!user);
   updateScore();
@@ -5341,68 +5385,91 @@ function parseCSharpQuestions(text) {
 }
 
 /**
- * 모드 1 렌더링 함수
- * - CSharp_코드문제.txt 파일을 로드하고 파싱
- * - blank-card 스타일 UI로 표시
- * - 구문 강조 적용
+ * 모드 1 렌더링 함수 (완전 AI 기반)
+ * - C# 코드 파일 로드
+ * - AI가 랜덤 빈칸 생성
+ * - AI 채점/정답 표시
  */
 async function renderMode1OOPBlanks() {
   const codeArea = document.getElementById('code-area');
-  codeArea.innerHTML = `<div class="definition-loading">📂 C# OOP 문제를 불러오는 중...</div>`;
+  codeArea.innerHTML = `<div class="definition-loading">🤖 AI가 C# OOP 빈칸 문제를 생성 중...<br><span style="font-size: 12px; color: var(--muted);">잠시만 기다려주세요...</span></div>`;
 
   // 제목 업데이트
-  sessionTitle.textContent = "C# OOP 빈칸 채우기";
+  sessionTitle.textContent = "C# OOP 빈칸 채우기 (AI)";
   sessionMode.textContent = "OOP 빈칸 채우기";
 
   try {
-    // 파일 로드 (신규 이름 우선, 실패 시 구버전 이름으로 폴백)
+    // 파일 로드
     const primaryUrl = '/data/3_OOP_Code_Blanks.txt?t=' + Date.now();
     const legacyUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
-    const fallbackUrl = '/data/CSharp_코드문제.txt?t=' + Date.now();
-    let text = "";
     let resp = await fetch(primaryUrl);
-    if (!resp.ok) {
-      resp = await fetch(legacyUrl);
-    }
-    if (!resp.ok) {
-      resp = await fetch(fallbackUrl);
-    }
+    if (!resp.ok) resp = await fetch(legacyUrl);
     if (!resp.ok) throw new Error('파일을 찾을 수 없습니다');
-    text = await resp.text();
+    const rawText = await resp.text();
 
-    // 문제 파싱
-    const allQuestions = parseCSharpQuestions(text);
+    // 원본 C# 코드 블록들 추출 (빈칸 없는 상태)
+    const codeBlocks = extractCSharpCodeBlocks(rawText);
 
-    if (allQuestions.length === 0) {
-      throw new Error('문제를 파싱할 수 없습니다');
+    if (codeBlocks.length === 0) {
+      throw new Error('코드 블록을 찾을 수 없습니다');
     }
 
-    // 난이도에 따라 문제 선택 (현재는 전체 사용)
-    mode1State.questions = allQuestions;
+    // 모든 코드 블록에서 빈칸 생성 (랜덤 선택 X → 전체 커버)
+    const aiGeneratedQuestions = [];
+
+    for (let i = 0; i < codeBlocks.length; i++) {
+      const block = codeBlocks[i];
+      codeArea.innerHTML = `<div class="definition-loading">🤖 문제 ${i + 1}/${codeBlocks.length} 생성 중...</div>`;
+
+      const generated = await generateMode1BlankWithAI(block.code, block.topic);
+      if (generated) {
+        aiGeneratedQuestions.push({
+          ...generated,
+          topic: block.topic,
+          originalCode: block.code
+        });
+      }
+    }
+
+    if (aiGeneratedQuestions.length === 0) {
+      throw new Error('AI 빈칸 생성 실패');
+    }
+
+    // 상태 저장 (AI 생성 데이터)
+    mode1State.questions = aiGeneratedQuestions;
     mode1State.userAnswers = {};
     mode1State.submitted = false;
+    mode1State.isAIMode = true; // AI 모드 플래그
 
-    // UI 렌더링 - blank-card 스타일
+    // UI 렌더링
     let questionsHtml = '';
     let navHtml = '';
     let globalBlankIdx = 0;
 
-    allQuestions.forEach((q, qIdx) => {
+    aiGeneratedQuestions.forEach((q, qIdx) => {
       const questionNum = qIdx + 1;
 
-      // C# 구문 강조 후 빈칸을 입력 필드로 변환
-      let processedCode = highlightCSharpSyntax(q.code);
+      // 빈칸이 있는 코드를 입력 필드로 변환
+      let processedCode = highlightCSharpSyntax(q.codeWithBlanks);
       let blankCounter = 1;
+
       processedCode = processedCode.replace(/_____/g, () => {
-        const blank = q.blanks.find(b => b.num === blankCounter);
-        const answer = blank ? blank.answer : '';
-        const inputWidth = Math.max(answer.length * 10 + 20, 80);
         globalBlankIdx++;
         const blankId = `mode1-${questionNum}-${blankCounter}`;
 
         navHtml += `<span class="blank-pill pending" id="nav-${blankId}" data-q="${questionNum}" data-blank="${blankCounter}" onclick="document.getElementById('input-${blankId}').focus()">${globalBlankIdx}</span>`;
 
-        const result = `<input type="text" id="input-${blankId}" class="blank-card-input mode1-input" data-q="${questionNum}" data-blank="${blankCounter}" data-answer="${escapeHtml(answer)}" placeholder="[${globalBlankIdx}]" style="width: ${inputWidth}px; padding: 6px 10px; border-radius: 6px; border: 2px solid #6fb3ff; background: rgba(111, 179, 255, 0.15); color: #e5e9f0; font-family: var(--font-code); font-size: 13px; transition: all 0.15s ease;">`;
+        // 입력 필드 + 노란 물음표(힌트) + 빨간 물음표(왜 틀림)
+        const result = `<span class="mode1-blank-wrapper" style="display: inline-flex; align-items: center; gap: 3px;">
+          <input type="text" id="input-${blankId}" class="blank-card-input mode1-input" 
+            data-q="${questionNum}" data-blank="${blankCounter}" data-global-idx="${globalBlankIdx}" 
+            placeholder="[${globalBlankIdx}]" autocomplete="off"
+            style="width: 100px; padding: 6px 10px; border-radius: 6px; border: 2px solid #6fb3ff; background: rgba(111, 179, 255, 0.15); color: #e5e9f0; font-family: var(--font-code); font-size: 13px;">
+          <button class="mode1-hint-btn" onclick="explainMode1BlankAI(${questionNum}, ${blankCounter})" title="힌트 보기" 
+            style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background: rgba(247, 215, 116, 0.2); border: 1px solid rgba(247, 215, 116, 0.5); color: #f7d774; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;">?</button>
+          <button class="mode1-why-btn" onclick="explainMode1WhyWrong(${questionNum}, ${blankCounter})" title="왜 틀렸어요?" 
+            style="width: 20px; height: 20px; padding: 0; border-radius: 50%; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.5); color: #ff6b6b; font-size: 11px; cursor: pointer; display: none; align-items: center; justify-content: center;">?</button>
+        </span>`;
         blankCounter++;
         return result;
       });
@@ -5413,7 +5480,7 @@ async function renderMode1OOPBlanks() {
             <span class="blank-card-num">Q${questionNum}</span>
             <span style="color: var(--accent-2); font-weight: 600;">${escapeHtml(q.topic)}</span>
           </div>
-          <p style="color: var(--muted); margin: 0 0 12px 0; font-size: 13px;">${escapeHtml(q.description)}</p>
+          <p style="color: var(--muted); margin: 0 0 12px 0; font-size: 13px;">${escapeHtml(q.description || '아래 코드의 빈칸을 채우세요.')}</p>
           <pre class="blank-card-code" style="background: rgba(0,0,0,0.4); padding: 16px; border-radius: 8px; overflow-x: auto; margin: 0; line-height: 1.6;">${processedCode}</pre>
           <div class="blank-card-result" id="result-mode1-${questionNum}"></div>
         </div>
@@ -5424,21 +5491,342 @@ async function renderMode1OOPBlanks() {
 
     // 빈칸 목록 업데이트
     const blankList = document.getElementById('blank-list');
-    if (blankList) {
-      blankList.innerHTML = navHtml;
-    }
+    if (blankList) blankList.innerHTML = navHtml;
 
     // 세션 카운트 업데이트
     sessionCount.textContent = globalBlankIdx.toString();
     sessionScore.textContent = `0 / ${globalBlankIdx}`;
 
     // 이벤트 리스너 설정
-    setupMode1EventListeners();
+    setupMode1AIEventListeners();
+
+    // 컨트롤 버튼 표시
+    updateControlButtonsForMode(1);
 
   } catch (err) {
+    console.error('Mode 1 error:', err);
     codeArea.innerHTML = `<div class="mc-wrong" style="padding: 20px;">❌ 오류: ${err.message}<br><br><button onclick="renderMode1OOPBlanks()" style="padding: 10px 20px; background: var(--accent-2); border: none; border-radius: 6px; cursor: pointer;">🔄 다시 시도</button></div>`;
   }
 }
+
+/**
+ * C# 코드 블록 추출 (파일에서 원본 코드만 추출)
+ */
+function extractCSharpCodeBlocks(text) {
+  const blocks = [];
+  const sections = text.split(/={5,}\s*문제\s*\d+\s*:\s*/);
+
+  sections.forEach((section, idx) => {
+    if (idx === 0) return; // 헤더 스킵
+
+    const lines = section.trim().split('\n');
+    let topic = '';
+    let code = '';
+    let inAnswerKey = false;
+
+    for (const line of lines) {
+      // 제목 추출
+      if (line.includes('=====')) {
+        topic = line.replace(/=+/g, '').trim();
+        continue;
+      }
+      // 정답키 섹션 시작
+      if (line.includes('정답키:')) {
+        inAnswerKey = true;
+        continue;
+      }
+      // 정답키 스킵
+      if (inAnswerKey) continue;
+
+      // 힌트 주석 제거 (// 빈칸: XXX 형태)
+      let cleanLine = line.replace(/\s*\/\/\s*빈칸[^:\n]*:[^\n]*/g, '');
+
+      // 코드 수집
+      code += cleanLine + '\n';
+    }
+
+    // 빈칸 마커 _____ 도 제거하지 않음 (AI가 이미 빈칸이 있는 코드를 받아서 새로 생성)
+    // 하지만 이미 빈칸이 있는 코드는 그대로 사용하되, 주석만 제거된 상태
+
+    if (topic && code.trim()) {
+      blocks.push({ topic, code: code.trim() });
+    }
+  });
+
+  return blocks;
+}
+
+/**
+ * AI에게 빈칸 생성 요청
+ */
+async function generateMode1BlankWithAI(code, topic) {
+  const prompt = `다음 C# 코드에서 학습에 도움이 되는 빈칸 1-3개를 만들어줘.
+
+## 주제: ${topic}
+
+## 원본 코드
+\`\`\`csharp
+${code}
+\`\`\`
+
+## 요구사항
+1. 중요한 키워드나 값을 빈칸(_____)으로 교체
+2. 빈칸 위치는 랜덤하게 선택
+3. 각 빈칸에는 고유 번호 부여 (1, 2, 3...)
+
+## 응답 형식 (JSON만 응답)
+{
+  "codeWithBlanks": "빈칸이 포함된 코드 (_____ 사용)",
+  "description": "문제 설명 (한 줄)",
+  "blanks": [
+    {"num": 1, "hint": "이 위치에 필요한 것에 대한 힌트"}
+  ]
+}`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답해. 코드 블록 없이 순수 JSON만.");
+
+    // JSON 추출
+    let jsonStr = response;
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) jsonStr = jsonMatch[0];
+
+    const parsed = JSON.parse(jsonStr);
+    return parsed;
+  } catch (err) {
+    console.error('AI blank generation error:', err);
+    // 폴백: 원본 코드 그대로 반환 (빈칸 없음)
+    return null;
+  }
+}
+
+/**
+ * Mode 1 AI 이벤트 리스너 설정 (Enter 시 AI 채점)
+ */
+function setupMode1AIEventListeners() {
+  const inputs = document.querySelectorAll('.mode1-input');
+
+  inputs.forEach(input => {
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+
+        // 이미 채점된 경우
+        if (input.classList.contains('correct') || input.classList.contains('revealed')) {
+          focusNextMode1Input(input);
+          return;
+        }
+
+        // 오답 상태에서 다시 Enter
+        if (input.classList.contains('wrong')) {
+          await revealMode1AnswerAI(input);
+          focusNextMode1Input(input);
+          return;
+        }
+
+        // AI 채점
+        await checkMode1AnswerAI(input);
+      }
+    });
+  });
+}
+
+/**
+ * AI 채점
+ */
+async function checkMode1AnswerAI(input) {
+  const qNum = parseInt(input.dataset.q);
+  const blankNum = parseInt(input.dataset.blank);
+  const userAnswer = input.value.trim();
+
+  if (!userAnswer) return;
+
+  const question = mode1State.questions[qNum - 1];
+  if (!question) return;
+
+  const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
+  const whyBtn = input.parentElement.querySelector('.mode1-why-btn');
+
+  // 로딩 표시
+  input.style.borderColor = 'var(--yellow)';
+
+  // 전체 원본 코드와 빈칸 정보 전달
+  const prompt = `C# 빈칸 문제 채점.
+
+## 원본 전체 코드
+\`\`\`csharp
+${question.originalCode || question.codeWithBlanks}
+\`\`\`
+
+## 빈칸 ${blankNum}번
+학생 답: "${userAnswer}"
+
+빈칸 ${blankNum}에 "${userAnswer}"가 맞으면 CORRECT, 틀리면 WRONG.
+대소문자 무시. 한 단어만 응답.`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "CORRECT 또는 WRONG 한 단어만 응답.");
+    const isCorrect = response.toUpperCase().includes('CORRECT') && !response.toUpperCase().includes('WRONG');
+
+    input.classList.remove('correct', 'wrong');
+    navPill?.classList.remove('pending', 'correct', 'wrong');
+
+    if (isCorrect) {
+      input.classList.add('correct');
+      input.style.borderColor = 'var(--green)';
+      navPill?.classList.add('correct');
+      if (whyBtn) whyBtn.style.display = 'none';
+      SoundEffects.play('correct');
+      LearningStats.recordAnswer(true);
+    } else {
+      input.classList.add('wrong');
+      input.style.borderColor = 'var(--red)';
+      navPill?.classList.add('wrong');
+      if (whyBtn) whyBtn.style.display = 'flex';
+      SoundEffects.play('wrong');
+      LearningStats.recordAnswer(false);
+    }
+
+    updateMode1Score();
+
+  } catch (err) {
+    console.error('AI grading error:', err);
+    input.style.borderColor = '#6fb3ff';
+  }
+}
+
+/**
+ * AI 정답 표시
+ */
+async function revealMode1AnswerAI(input) {
+  const qNum = parseInt(input.dataset.q);
+  const blankNum = parseInt(input.dataset.blank);
+
+  const question = mode1State.questions[qNum - 1];
+  if (!question) return;
+
+  const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
+
+  input.value = "정답 로딩중...";
+  input.disabled = true;
+
+  // 전체 원본 코드로 정답 요청
+  const prompt = `C# 코드의 빈칸 정답 알려줘.
+
+## 원본 전체 코드
+\`\`\`csharp
+${question.originalCode || question.codeWithBlanks}
+\`\`\`
+
+위 코드에서 빈칸 ${blankNum}번의 정답은?
+설명 없이 정답 단어/키워드만 응답. 예: public, try, catch 등`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "정답 단어만 응답해. 다른 설명 없이 한 단어.");
+    // 응답에서 불필요한 부분 제거
+    let answer = response.trim()
+      .replace(/```/g, '')
+      .replace(/\n/g, ' ')
+      .replace(/정답[은:]?\s*/gi, '')
+      .replace(/빈칸\s*\d+[번:]?\s*/gi, '')
+      .replace(/^\s*["`']|["`']\s*$/g, '')
+      .trim();
+
+    // 첫 단어만 추출 (너무 긴 응답 방지)
+    const words = answer.split(/\s+/);
+    if (words.length > 2) {
+      answer = words.slice(0, 2).join(' ');
+    }
+
+    input.value = answer;
+    input.classList.remove('wrong');
+    input.classList.add('revealed');
+    input.style.borderColor = 'var(--yellow)';
+    navPill?.classList.remove('wrong');
+    navPill?.classList.add('revealed');
+
+  } catch (err) {
+    input.value = "정답 로드 실패";
+  }
+
+  updateMode1Score();
+}
+
+/**
+ * 힌트 보기 (노란 물음표)
+ */
+async function explainMode1BlankAI(questionNum, blankNum) {
+  const question = mode1State.questions[questionNum - 1];
+  if (!question) return;
+
+  openAIPanel();
+  explanationArea.innerHTML = `<div class="explanation-loading">💡 힌트 생성 중...</div>`;
+
+  const prompt = `C# 코드에서 빈칸 ${blankNum}번에 대한 힌트를 줘.
+
+## 전체 코드
+\`\`\`csharp
+${question.originalCode || question.codeWithBlanks}
+\`\`\`
+
+## 힌트 형식
+1. 이 위치에 무엇이 필요한지 (정답은 알려주지 마!)
+2. 관련 C# 개념 설명 (1-2줄)
+
+정답을 직접 알려주지 말고 힌트만!`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "힌트만 주고 정답은 절대 알려주지 마.");
+    explanationArea.innerHTML = `
+      <div class="explanation-content">
+        <strong style="color: var(--yellow);">💡 빈칸 ${blankNum}번 힌트</strong>
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
+        ${formatMarkdown(response)}
+      </div>`;
+  } catch (err) {
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ ${err.message}</div>`;
+  }
+}
+
+/**
+ * 왜 틀렸어요? (빨간 물음표)
+ */
+async function explainMode1WhyWrong(questionNum, blankNum) {
+  const question = mode1State.questions[questionNum - 1];
+  if (!question) return;
+
+  const input = document.getElementById(`input-mode1-${questionNum}-${blankNum}`);
+  const userAnswer = input?.value || '';
+
+  openAIPanel();
+  explanationArea.innerHTML = `<div class="explanation-loading">❓ 분석 중...</div>`;
+
+  const prompt = `C# 코드에서 학생의 답이 왜 틀렸는지 설명해줘.
+
+## 전체 코드
+\`\`\`csharp
+${question.originalCode || question.codeWithBlanks}
+\`\`\`
+
+## 빈칸 ${blankNum}번
+학생의 답: "${userAnswer}"
+
+왜 틀렸는지, 정답이 무엇인지 간단히 설명해줘.`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "왜 틀렸는지 친절하게 설명.");
+    explanationArea.innerHTML = `
+      <div class="explanation-content">
+        <strong style="color: var(--red);">❓ 왜 틀렸나요?</strong>
+        <p style="color: var(--muted); margin: 8px 0;">내 답: <code>${escapeHtml(userAnswer)}</code></p>
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
+        ${formatMarkdown(response)}
+      </div>`;
+  } catch (err) {
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ ${err.message}</div>`;
+  }
+}
+
 
 /**
  * C# 코드 구문 강조
@@ -5481,41 +5869,54 @@ function highlightCSharpSyntax(code) {
  */
 function setupMode1EventListeners() {
   const inputs = document.querySelectorAll('.mode1-input');
-  let lastEnterTime = {};
 
   inputs.forEach(input => {
-    // Enter 키 처리: 1번 = 체크, 2번 = 정답 표시
+    // Enter key: Mode 2 style two-step grading
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const inputId = input.id;
-        const now = Date.now();
-        const lastTime = lastEnterTime[inputId] || 0;
 
-        if (now - lastTime < 500) {
-          // 더블 엔터: 정답 표시
+        // Already wrong -> show answer and move to next
+        if (input.classList.contains('wrong') && !input.classList.contains('revealed')) {
           checkMode1Single(input, true);
-        } else {
-          // 싱글 엔터: 정답/오답만 체크
-          checkMode1Single(input, false);
+          focusNextMode1Input(input);
+          return;
         }
-        lastEnterTime[inputId] = now;
 
-        // 다음 빈칸으로 이동
-        const allInputs = Array.from(document.querySelectorAll('.mode1-input'));
-        const currentIdx = allInputs.indexOf(input);
-        if (currentIdx < allInputs.length - 1) {
-          setTimeout(() => allInputs[currentIdx + 1].focus(), 100);
+        // Already graded -> move to next
+        if (input.classList.contains('correct') || input.classList.contains('revealed')) {
+          focusNextMode1Input(input);
+          return;
         }
+
+        // Step 1: Grade
+        checkMode1Single(input, false);
+
+        // If correct, move to next
+        if (input.classList.contains('correct')) {
+          focusNextMode1Input(input);
+        }
+        // If wrong, stay (wait for next Enter)
       }
     });
   });
 }
 
 /**
- * Mode 1 개별 빈칸 체크
+ * Focus next Mode 1 blank input
  */
-function checkMode1Single(input, showAnswer = false) {
+function focusNextMode1Input(current) {
+  const allInputs = Array.from(document.querySelectorAll('.mode1-input'));
+  const currentIdx = allInputs.indexOf(current);
+  if (currentIdx < allInputs.length - 1) {
+    allInputs[currentIdx + 1].focus();
+  }
+}
+
+/**
+ * Mode 1 개별 빈칸 체크 (AI 채점 우선, 실패 시 로컬 폴백)
+ */
+async function checkMode1Single(input, showAnswer = false) {
   const qNum = input.dataset.q;
   const blankNum = input.dataset.blank;
   const correctAnswer = input.dataset.answer;
@@ -5524,20 +5925,32 @@ function checkMode1Single(input, showAnswer = false) {
   if (!userAnswer && !showAnswer) return;
 
   const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
+
+  // 이미 채점된 경우 스킵
+  if (input.classList.contains('correct') || input.classList.contains('revealed')) {
+    return;
+  }
+
+  // 정답 표시 요청인 경우
+  if (showAnswer && !input.classList.contains('correct')) {
+    input.value = correctAnswer;
+    input.classList.add('revealed');
+    navPill?.classList.remove('pending', 'correct', 'wrong');
+    navPill?.classList.add('revealed');
+    input.disabled = true;
+    SoundEffects.play('wrong');
+    updateMode1Score();
+    return;
+  }
+
+  // 로컬 비교 (대소문자, 공백 무시)
   const normalize = s => s.replace(/\s+/g, '').toLowerCase();
   const isCorrect = normalize(userAnswer) === normalize(correctAnswer);
 
   input.classList.remove('correct', 'wrong', 'revealed');
   navPill?.classList.remove('pending', 'correct', 'wrong', 'revealed');
 
-  if (showAnswer && !isCorrect) {
-    // 정답 표시
-    input.value = correctAnswer;
-    input.classList.add('revealed');
-    navPill?.classList.add('revealed');
-    input.disabled = true;
-    SoundEffects.play('wrong');
-  } else if (isCorrect) {
+  if (isCorrect) {
     input.classList.add('correct');
     navPill?.classList.add('correct');
     SoundEffects.play('correct');
@@ -5586,3 +5999,194 @@ function checkMode1Answers() {
 }
 
 // End of Mode 1 implementation
+
+/**
+ * Mode 1 빈칸에 대한 AI 설명 제공
+ */
+async function explainMode1Blank(questionNum, blankNum) {
+  const question = mode1State.questions.find((q, idx) => idx + 1 === questionNum);
+  if (!question) return;
+
+  const blank = question.blanks.find(b => b.num === blankNum);
+  const answer = blank ? blank.answer : '';
+
+  openAIPanel();
+  explanationArea.innerHTML = `<div class="explanation-loading">🤔 빈칸 [${blankNum}]에 대해 분석 중...</div>`;
+
+  // 코드에서 해당 빈칸 주변 컨텍스트 추출
+  const codeLines = question.code.split('\n');
+  let blankLineIdx = -1;
+  let blankCount = 0;
+
+  for (let i = 0; i < codeLines.length; i++) {
+    const matches = codeLines[i].match(/_____/g);
+    if (matches) {
+      for (let j = 0; j < matches.length; j++) {
+        blankCount++;
+        if (blankCount === blankNum) {
+          blankLineIdx = i;
+          break;
+        }
+      }
+    }
+    if (blankLineIdx !== -1) break;
+  }
+
+  // 빈칸 주변 3줄 컨텍스트
+  const startLine = Math.max(0, blankLineIdx - 2);
+  const endLine = Math.min(codeLines.length, blankLineIdx + 3);
+  const contextCode = codeLines.slice(startLine, endLine).join('\n');
+
+  const prompt = `C# 코드에서 [빈칸 ${blankNum}]의 정답이 무엇인지 핵심만 알려줘.
+정답을 직접 알려주지 말고, 힌트와 설명만 해줘.
+
+## 문제 주제
+${question.topic}
+
+## 코드 컨텍스트 (빈칸은 _____ 로 표시)
+\`\`\`csharp
+${contextCode}
+\`\`\`
+
+## 설명 형식
+1. 이 위치에 무엇이 필요한지 (1줄)
+2. 관련 C# 개념 핵심 설명 (1-2줄)
+
+힌트만 주고 정답은 알려주지 마!`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "C# 튜터로서 핵심만 짧게 설명해줘. 정답은 절대 알려주지 마.");
+    explanationArea.innerHTML = `
+      <div class="explanation-content">
+        <strong style="color: var(--yellow);">💡 빈칸 [${blankNum}] 힌트</strong>
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
+        ${formatMarkdown(response)}
+      </div>`;
+  } catch (err) {
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ 오류: ${err.message}</div>`;
+  }
+}
+
+/**
+ * Mode 1 AI 기반 채점 (코드 맥락 이해)
+ */
+async function checkMode1WithAI(input, showAnswer = false) {
+  const qNum = parseInt(input.dataset.q);
+  const blankNum = parseInt(input.dataset.blank);
+  const storedAnswer = input.dataset.answer;
+  const userAnswer = input.value.trim();
+  const globalIdx = input.dataset.globalIdx || blankNum;
+
+  if (!userAnswer && !showAnswer) return;
+
+  const question = mode1State.questions.find((q, idx) => idx + 1 === qNum);
+  if (!question) {
+    // Fallback to local check
+    checkMode1SingleLocal(input, showAnswer);
+    return;
+  }
+
+  const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
+
+  // 이미 채점된 경우 스킵
+  if (input.classList.contains('correct') || input.classList.contains('revealed')) {
+    return;
+  }
+
+  // 정답 표시 요청인 경우
+  if (showAnswer && !input.classList.contains('correct')) {
+    input.value = storedAnswer;
+    input.classList.add('revealed');
+    navPill?.classList.remove('pending', 'correct', 'wrong');
+    navPill?.classList.add('revealed');
+    input.disabled = true;
+    SoundEffects.play('wrong');
+    updateMode1Score();
+    return;
+  }
+
+  // AI 채점 프롬프트
+  const prompt = `C# 코드에서 빈칸에 들어갈 답을 채점해줘.
+
+## 코드 맥락
+${question.code.split('\n').slice(0, 30).join('\n')}
+
+## 빈칸 ${blankNum}번
+- 저장된 정답: "${storedAnswer}"
+- 학생 답변: "${userAnswer}"
+
+## 채점 기준
+1. 정확히 일치하면 CORRECT
+2. 대소문자 차이만 있으면 CORRECT
+3. 공백 차이만 있어도 CORRECT
+4. 같은 의미의 다른 표현이면 CORRECT (예: "new int[]"와 "new int []")
+5. 그 외는 WRONG
+
+반드시 CORRECT 또는 WRONG 중 하나만 응답해.`;
+
+  try {
+    const response = await callGeminiAPI(prompt, "CORRECT 또는 WRONG 중 하나만 응답해.");
+    const isCorrect = response.toUpperCase().includes('CORRECT');
+
+    input.classList.remove('correct', 'wrong', 'revealed');
+    navPill?.classList.remove('pending', 'correct', 'wrong', 'revealed');
+
+    if (isCorrect) {
+      input.classList.add('correct');
+      navPill?.classList.add('correct');
+      SoundEffects.play('correct');
+      LearningStats.recordAnswer(true);
+    } else {
+      input.classList.add('wrong');
+      navPill?.classList.add('wrong');
+      SoundEffects.play('wrong');
+      LearningStats.recordAnswer(false);
+    }
+
+    updateMode1Score();
+
+  } catch (err) {
+    console.error('AI grading error:', err);
+    // AI 실패 시 로컬 채점으로 폴백
+    checkMode1SingleLocal(input, showAnswer);
+  }
+}
+
+/**
+ * Mode 1 로컬 채점 (폴백용)
+ */
+function checkMode1SingleLocal(input, showAnswer = false) {
+  const qNum = input.dataset.q;
+  const blankNum = input.dataset.blank;
+  const correctAnswer = input.dataset.answer;
+  const userAnswer = input.value.trim();
+
+  if (!userAnswer && !showAnswer) return;
+
+  const navPill = document.getElementById(`nav-mode1-${qNum}-${blankNum}`);
+  const normalize = s => s.replace(/\s+/g, '').toLowerCase();
+  const isCorrect = normalize(userAnswer) === normalize(correctAnswer);
+
+  input.classList.remove('correct', 'wrong', 'revealed');
+  navPill?.classList.remove('pending', 'correct', 'wrong', 'revealed');
+
+  if (showAnswer && !isCorrect) {
+    input.value = correctAnswer;
+    input.classList.add('revealed');
+    navPill?.classList.add('revealed');
+    input.disabled = true;
+    SoundEffects.play('wrong');
+  } else if (isCorrect) {
+    input.classList.add('correct');
+    navPill?.classList.add('correct');
+    SoundEffects.play('correct');
+    LearningStats.recordAnswer(true);
+  } else {
+    input.classList.add('wrong');
+    navPill?.classList.add('wrong');
+    SoundEffects.play('wrong');
+    LearningStats.recordAnswer(false);
+  }
+
+  updateMode1Score();
+}

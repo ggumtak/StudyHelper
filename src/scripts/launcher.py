@@ -345,6 +345,16 @@ def main() -> int:
     server_script = project_root / "src" / "ai_drill" / "web_server.py"
     if not server_script.exists():
         server_script = project_root / "ai_drill" / "web_server.py"  # 이전 구조 호환
+    
+    # PYTHONPATH 설정 (src 폴더를 Python 경로에 추가)
+    src_dir = project_root / "src"
+    if src_dir.exists():
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        if existing_pythonpath:
+            env["PYTHONPATH"] = f"{src_dir}{os.pathsep}{existing_pythonpath}"
+        else:
+            env["PYTHONPATH"] = str(src_dir)
+    
     splash.set_status("서버 실행 중...")
     creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     try:
