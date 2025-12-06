@@ -5,7 +5,7 @@ rem ---------------------------------------------
 rem Build all StudyHelper executables (one-file)
 rem ---------------------------------------------
 set "BASE=%~dp0"
-set "PROJ=%BASE%.."
+set "PROJ=%BASE%..\\.."
 cd /d "%PROJ%"
 
 rem Pick python command (3.11 priority -> latest 3.x -> python)
@@ -41,4 +41,4 @@ echo.
 echo [INFO] Done. Outputs are in dist\\
 echo [INFO] Distribute StudyHelper.exe + StudyHelperLauncher.exe + StudyHelperPatcher.exe together.
 echo.
-pause
+if /i not "%NOPAUSE%"=="1" pause
