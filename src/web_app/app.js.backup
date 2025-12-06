@@ -28,7 +28,7 @@ const LearningStats = {
     this.loadFromStorage();
   },
 
-  // 정답 기록
+  // ?뺣떟 湲곕줉
   recordAnswer(isCorrect) {
     this.totalAnswered++;
     if (isCorrect) {
@@ -37,11 +37,11 @@ const LearningStats = {
       if (this.correctStreak > this.maxStreak) {
         this.maxStreak = this.correctStreak;
       }
-      // 5연속 정답 시 축하 메시지
+      // 5?곗냽 ?뺣떟 ??異뺥븯 硫붿떆吏
       if (this.correctStreak === 5) {
-        this.showStreakNotification('🔥 5연속 정답!');
+        this.showStreakNotification('?뵦 5?곗냽 ?뺣떟!');
       } else if (this.correctStreak === 10) {
-        this.showStreakNotification('🌟 10연속 정답! 대단해요!');
+        this.showStreakNotification('?뙚 10?곗냽 ?뺣떟! ??⑦빐??');
       }
     } else {
       this.correctStreak = 0;
@@ -72,7 +72,7 @@ const LearningStats = {
     }
   },
 
-  // 저장/불러오기
+  // ???遺덈윭?ㅺ린
   saveToStorage() {
     const data = {
       maxStreak: this.maxStreak,
@@ -101,7 +101,7 @@ const LearningStats = {
 // ========== API RATE LIMITER ==========
 const APIRateLimiter = {
   lastCall: 0,
-  minInterval: 500, // 최소 0.5초 간격
+  minInterval: 500, // 理쒖냼 0.5珥?媛꾧꺽
   queue: [],
 
   async throttle(fn) {
@@ -181,7 +181,7 @@ const StudyTimer = {
 
   showBreakReminder() {
     if (Notification.permission === 'granted') {
-      new Notification('🍅 25분 학습 완료!', {
+      new Notification('☕ 25분 학습 완료!', {
         body: '5분 휴식을 권장합니다.',
         icon: '/icon-192.png'
       });
@@ -190,9 +190,9 @@ const StudyTimer = {
     reminder.className = 'break-reminder';
     reminder.innerHTML = `
       <div class="break-content">
-        <span class="break-icon">🍅</span>
+        <span class="break-icon">☕</span>
         <strong>25분 학습 완료!</strong>
-        <p>잠시 휴식하고 오세요</p>
+        <p>잠시 휴식하고 오세요!</p>
         <button onclick="this.parentElement.parentElement.remove()">확인</button>
       </div>
     `;
@@ -234,7 +234,7 @@ const SessionSaver = {
       const saved = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
       if (!saved.answers) return;
 
-      // 30분 이내의 저장만 복원
+      // 30遺??대궡????λ쭔 蹂듭썝
       if (Date.now() - saved.timestamp > 30 * 60 * 1000) return;
 
       Object.entries(saved.answers).forEach(([key, value]) => {
@@ -260,7 +260,7 @@ const KeyboardShortcuts = {
     document.addEventListener('keydown', (e) => {
       if (!this.enabled) return;
 
-      // Ctrl+Enter: 전체 채점 (입력 중에도 작동!)
+      // Ctrl+Enter: ?꾩껜 梨꾩젏 (?낅젰 以묒뿉???묐룞!)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         if (typeof checkAll === 'function') checkAll();
@@ -268,41 +268,40 @@ const KeyboardShortcuts = {
       }
 
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        // Escape: 입력 필드 탈출
+        // Escape: ?낅젰 ?꾨뱶 ?덉텧
         if (e.key === 'Escape') {
           e.target.blur();
           return;
         }
-        return; // 다른 단축키는 입력 중에는 무시
+        return; // ?ㅻⅨ ?⑥텞?ㅻ뒗 ?낅젰 以묒뿉??臾댁떆
       }
 
       // Global shortcuts
       switch (e.key.toLowerCase()) {
         case 'a':
-          // A: AI 패널 토글
+          // A: AI ?⑤꼸 ?좉?
           if (typeof toggleAIPanel === 'function') toggleAIPanel();
           break;
         case 'r':
-          // R: 리셋
-          if (e.ctrlKey || e.metaKey) return; // Ctrl+R 새로고침은 허용
+          // R: 由ъ뀑
+          if (e.ctrlKey || e.metaKey) return; // Ctrl+R ?덈줈怨좎묠? ?덉슜
           document.getElementById('btn-reset')?.click();
           break;
         case 's':
-          // S: 셔플
+          // S: ?뷀뵆
           document.getElementById('btn-shuffle')?.click();
           break;
         case 'k':
-          if (e.ctrlKey || e.metaKey) return; // 복사 단축키와 충돌 방지
-          // K: 전체 채점
+          if (e.ctrlKey || e.metaKey) return; // 蹂듭궗 ?⑥텞?ㅼ? 異⑸룎 諛⑹?
+          // K: ?꾩껜 梨꾩젏
           document.getElementById('btn-check')?.click();
           break;
         case 'n':
-          // N: 다음 미답 문제로 이동
+          // N: ?ㅼ쓬 誘몃떟 臾몄젣濡??대룞
           this.focusNextUnanswered();
           break;
         case '?':
-          // ?: 단축키 도움말
-          this.showHelp();
+          // ?: ?⑥텞???꾩?留?          this.showHelp();
           break;
         case 'arrowdown':
           e.preventDefault();
@@ -351,19 +350,19 @@ const KeyboardShortcuts = {
     modal.className = 'shortcuts-modal';
     modal.innerHTML = `
       <div class="shortcuts-content">
-        <h3>⌨️ 키보드 단축키</h3>
+        <h3>?⑨툘 ?ㅻ낫???⑥텞??/h3>
         <div class="shortcut-list">
-          <div><kbd>N</kbd> 다음 미답 문제로 이동</div>
-          <div><kbd>↑</kbd><kbd>↓</kbd> 이전/다음 문제</div>
-          <div><kbd>A</kbd> AI 패널 토글</div>
-          <div><kbd>S</kbd> 순서 섞기</div>
-          <div><kbd>C</kbd> 전체 채점</div>
-          <div><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 전체 채점 (입력 중에도!)</div>
-          <div><kbd>R</kbd> 리셋</div>
-          <div><kbd>Esc</kbd> 입력 필드 탈출</div>
-          <div><kbd>?</kbd> 이 도움말</div>
+          <div><kbd>N</kbd> ?ㅼ쓬 誘몃떟 臾몄젣濡??대룞</div>
+          <div><kbd>??/kbd><kbd>??/kbd> ?댁쟾/?ㅼ쓬 臾몄젣</div>
+          <div><kbd>A</kbd> AI ?⑤꼸 ?좉?</div>
+          <div><kbd>S</kbd> ?쒖꽌 ?욊린</div>
+          <div><kbd>C</kbd> ?꾩껜 梨꾩젏</div>
+          <div><kbd>Ctrl</kbd>+<kbd>Enter</kbd> ?꾩껜 梨꾩젏 (?낅젰 以묒뿉??)</div>
+          <div><kbd>R</kbd> 由ъ뀑</div>
+          <div><kbd>Esc</kbd> ?낅젰 ?꾨뱶 ?덉텧</div>
+          <div><kbd>?</kbd> ???꾩?留?/div>
         </div>
-        <button onclick="this.parentElement.parentElement.remove()">닫기</button>
+        <button onclick="this.parentElement.parentElement.remove()">?リ린</button>
       </div>
     `;
     document.body.appendChild(modal);
@@ -376,7 +375,7 @@ const KeyboardShortcuts = {
 
 // ========== SOUND EFFECTS (disabled by default) ==========
 const SoundEffects = {
-  enabled: false,  // 기본값: 사용 안함
+  enabled: false,  // 湲곕낯媛? ?ъ슜 ?덊븿
 
   play(type) {
     if (!this.enabled) return;
@@ -411,7 +410,7 @@ const SoundEffects = {
 // Initialize keyboard shortcuts
 KeyboardShortcuts.init();
 
-// 단축키 가이드 버튼
+// ?⑥텞??媛?대뱶 踰꾪듉
 const btnShortcuts = document.getElementById("btn-shortcuts");
 if (btnShortcuts) {
   btnShortcuts.addEventListener("click", () => KeyboardShortcuts.showHelp());
@@ -446,22 +445,22 @@ let hasAnswers = false;
 let warnedMissingAnswers = false;
 let hideCompletedNav = false;
 
-// 사용된 위치 추적 (재생성 시 중복 방지)
-let usedPositions = {}; // { "1": 3, "2": 1 } = 위치별 사용 횟수
+// ?ъ슜???꾩튂 異붿쟻 (?ъ깮????以묐났 諛⑹?)
+let usedPositions = {}; // { "1": 3, "2": 1 } = ?꾩튂蹂??ъ슜 ?잛닔
 
 const placeholderRegexFlex = /_{3,10}/g;
 const placeholderRegexIndexed = /__\[(\d+)\]__/g;
 const modeLabels = {
-  1: "1. OOP 빈칸 채우기",
-  2: "2. 자료구조 빈칸",
-  3: "3. 백지 연습 (Whiteboard)",
-  4: "4. 실전 모의고사",
-  5: "5. OOP 정의 퀴즈",
-  6: "6. 코드 작성 (전산수학)",
-  7: "7. 영단어 훈련",
+  1: "1. OOP 鍮덉뭏 梨꾩슦湲?,
+  2: "2. ?먮즺援ъ“ 鍮덉뭏",
+  3: "3. 諛깆? ?곗뒿 (Whiteboard)",
+  4: "4. ?ㅼ쟾 紐⑥쓽怨좎궗",
+  5: "5. OOP ?뺤쓽 ?댁쫰",
+  6: "6. 肄붾뱶 ?묒꽦 (?꾩궛?섑븰)",
+  7: "7. ?곷떒???덈젴",
 };
 
-const missingAnswerMessage = "정답 키가 없어 채점할 수 없습니다. 세션을 다시 생성해 주세요.";
+const missingAnswerMessage = "?뺣떟 ?ㅺ? ?놁뼱 梨꾩젏?????놁뒿?덈떎. ?몄뀡???ㅼ떆 ?앹꽦??二쇱꽭??";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 let baseSystemPromptCache = null;
 
@@ -490,12 +489,25 @@ function hideApiKeyModal() {
 }
 
 // ========== GEMINI API ==========
+function scrubSystemPrompt(rawPrompt) {
+  if (!rawPrompt) return "";
+  const lines = rawPrompt.split(/\r?\n/);
+  const filtered = lines.filter(line => {
+    const lower = line.toLowerCase();
+    const hasHtmlTag = line.includes("<") || lower.includes("html");
+    const isCanvasHtml = lower.includes("canvas") && (hasHtmlTag || lower.includes("html"));
+    return !(hasHtmlTag || isCanvasHtml);
+  });
+  return filtered.join("\n").trim();
+}
+
 async function loadBaseSystemPrompt() {
   if (baseSystemPromptCache !== null) return baseSystemPromptCache;
   try {
     const resp = await fetch("/data/gemini_system_prompt.txt?t=" + Date.now());
     if (resp.ok) {
-      baseSystemPromptCache = await resp.text();
+      const raw = await resp.text();
+      baseSystemPromptCache = scrubSystemPrompt(raw);
       return baseSystemPromptCache;
     }
   } catch (err) {
@@ -509,7 +521,7 @@ async function callGeminiAPI(prompt, systemInstruction = "") {
   const apiKey = getApiKey();
   if (!apiKey) {
     showApiKeyModal();
-    throw new Error("API 키가 필요합니다.");
+    throw new Error("API ?ㅺ? ?꾩슂?⑸땲??");
   }
 
   const basePrompt = await loadBaseSystemPrompt();
@@ -535,7 +547,7 @@ async function callGeminiAPI(prompt, systemInstruction = "") {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error?.message || "API 호출 실패");
+    throw new Error(error.error?.message || "API ?몄텧 ?ㅽ뙣");
   }
 
   const data = await response.json();
@@ -569,31 +581,31 @@ async function explainBlank(key) {
   const numbered = lines.map((ln, idx) => `${idx + 1}: ${ln}`).join("\n");
   const context = numbered.split("\n").slice(0, 120).join("\n");
 
-  explanationArea.innerHTML = `<div class="explanation-loading">AI가 설명을 생성하고 있습니다...</div>`;
+  explanationArea.innerHTML = `<div class="explanation-loading">AI媛 ?ㅻ챸???앹꽦?섍퀬 ?덉뒿?덈떎...</div>`;
 
-  const prompt = `빈칸 #${key}에 들어갈 답은 "${answer}"야. 아래 코드 맥락을 보고 정말 짧게 핵심만 알려줘.
+  const prompt = `鍮덉뭏 #${key}???ㅼ뼱媛??듭? "${answer}"?? ?꾨옒 肄붾뱶 留λ씫??蹂닿퀬 ?뺣쭚 吏㏐쾶 ?듭떖留??뚮젮以?
 
-코드 일부 (앞 120줄):
+肄붾뱶 ?쇰? (??120以?:
 \`\`\`python
 ${context}
 \`\`\`
 
-형식 예시:
-#3번에 뭐가 들어가야해 ?
--> 3번에는 리스트 비었는지 체크해서 빈 리스트면 "(빈 리스트)" 출력하고 종료하는 조건. if start == None:
+?뺤떇 ?덉떆:
+#3踰덉뿉 萸먭? ?ㅼ뼱媛?쇳빐 ?
+-> 3踰덉뿉??由ъ뒪??鍮꾩뿀?붿? 泥댄겕?댁꽌 鍮?由ъ뒪?몃㈃ "(鍮?由ъ뒪??" 異쒕젰?섍퀬 醫낅즺?섎뒗 議곌굔. if start == None:
 
-규칙: 한두 줄, 바로 적용할 수 있는 힌트만. 장황한 설명 금지.`;
+洹쒖튃: ?쒕몢 以? 諛붾줈 ?곸슜?????덈뒗 ?뚰듃留? ?ν솴???ㅻ챸 湲덉?.`;
 
   try {
-    const response = await callGeminiAPI(prompt, "친근하고 짧은 힌트만 주는 코치처럼, 1-2줄로 핵심만 말해줘.");
+    const response = await callGeminiAPI(prompt, "移쒓렐?섍퀬 吏㏃? ?뚰듃留?二쇰뒗 肄붿튂泥섎읆, 1-2以꾨줈 ?듭떖留?留먰빐以?");
     explanationArea.innerHTML = `
       <div class="explanation-content">
-        <strong style="color: var(--accent-2);">빈칸 #${key}: <code>${escapeHtml(answer)}</code></strong>
+        <strong style="color: var(--accent-2);">鍮덉뭏 #${key}: <code>${escapeHtml(answer)}</code></strong>
         <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
         ${formatMarkdown(response)}
       </div>`;
   } catch (err) {
-    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">에러: ${err.message}</div>`;
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">?먮윭: ${err.message}</div>`;
   }
 }
 
@@ -601,30 +613,30 @@ async function explainSelection(text) {
   if (!text.trim()) return;
 
   openAIPanel();
-  explanationArea.innerHTML = `<div class="explanation-loading">AI가 설명을 생성하고 있습니다...</div>`;
+  explanationArea.innerHTML = `<div class="explanation-loading">AI媛 ?ㅻ챸???앹꽦?섍퀬 ?덉뒿?덈떎...</div>`;
 
-  const prompt = `다음 Python 코드 조각에 대해 설명해주세요:
+  const prompt = `?ㅼ쓬 Python 肄붾뱶 議곌컖??????ㅻ챸?댁＜?몄슂:
 
 \`\`\`python
 ${text}
 \`\`\`
 
-다음을 포함해서 설명해주세요:
-1. 이 코드가 무엇을 하는지
-2. 각 부분이 왜 필요한지
-3. 어떤 상황에서 사용되는지`;
+?ㅼ쓬???ы븿?댁꽌 ?ㅻ챸?댁＜?몄슂:
+1. ??肄붾뱶媛 臾댁뾿???섎뒗吏
+2. 媛?遺遺꾩씠 ???꾩슂?쒖?
+3. ?대뼡 ?곹솴?먯꽌 ?ъ슜?섎뒗吏`;
 
   try {
-    const response = await callGeminiAPI(prompt, "당신은 친절한 파이썬 프로그래밍 튜터입니다. 초보자가 이해하기 쉽게 설명해주세요.");
+    const response = await callGeminiAPI(prompt, "?뱀떊? 移쒖젅???뚯씠???꾨줈洹몃옒諛??쒗꽣?낅땲?? 珥덈낫?먭? ?댄빐?섍린 ?쎄쾶 ?ㅻ챸?댁＜?몄슂.");
     explanationArea.innerHTML = `
       <div class="explanation-content">
-        <strong style="color: var(--accent);">💡 선택한 코드 설명</strong>
+        <strong style="color: var(--accent);">?뮕 ?좏깮??肄붾뱶 ?ㅻ챸</strong>
         <pre style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 12px; overflow-x: auto;">${escapeHtml(text)}</pre>
         <hr style="border: none; border-top: 1px solid var(--border); margin: 12px 0;">
         ${formatMarkdown(response)}
       </div>`;
   } catch (err) {
-    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">❌ 오류: ${err.message}</div>`;
+    explanationArea.innerHTML = `<div class="explanation-content" style="color: var(--red);">???ㅻ쪟: ${err.message}</div>`;
   }
 }
 
@@ -639,7 +651,7 @@ async function sendChatMessage() {
 
   // Add loading indicator
   const loadingId = Date.now();
-  chatMessages.innerHTML += `<div class="chat-message assistant" id="loading-${loadingId}">🤔 생각 중...</div>`;
+  chatMessages.innerHTML += `<div class="chat-message assistant" id="loading-${loadingId}">?쨺 ?앷컖 以?..</div>`;
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   // Build context with question information
@@ -648,51 +660,51 @@ async function sendChatMessage() {
   // If parsed quiz mode, include question list for AI to understand question numbers
   if (currentSession?.answer_key?._questions && currentQuestions.length > 0) {
     const questionList = currentQuestions.map((q, idx) => {
-      const displayIdx = idx + 1;  // 현재 표시 순서 (1, 2, 3...)
-      const qId = q.id;            // 전역 고유 ID
-      const qType = q.type === "short_answer" ? "단답형" :
-        q.type === "fill_blank" ? "빈칸" : "객관식";
-      const codeSnippet = q.code ? `\n코드: ${q.code.slice(0, 100)}...` : "";
-      return `${displayIdx}번 [Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
+      const displayIdx = idx + 1;  // ?꾩옱 ?쒖떆 ?쒖꽌 (1, 2, 3...)
+      const qId = q.id;            // ?꾩뿭 怨좎쑀 ID
+      const qType = q.type === "short_answer" ? "?⑤떟?? :
+        q.type === "fill_blank" ? "鍮덉뭏" : "媛앷???;
+      const codeSnippet = q.code ? `\n肄붾뱶: ${q.code.slice(0, 100)}...` : "";
+      return `${displayIdx}踰?[Q${qId}] ${qType}: ${q.text.slice(0, 80)}${codeSnippet}`;
     }).join("\n");
 
-    context = `현재 문제 목록 (총 ${currentQuestions.length}개):
+    context = `?꾩옱 臾몄젣 紐⑸줉 (珥?${currentQuestions.length}媛?:
 ---
 ${questionList}
 ---
-※ 학생이 "N번 문제"라고 하면 위 목록에서 N번에 해당하는 문제입니다.
-※ [Q숫자]는 전역 고유 ID입니다.
+???숈깮??"N踰?臾몄젣"?쇨퀬 ?섎㈃ ??紐⑸줉?먯꽌 N踰덉뿉 ?대떦?섎뒗 臾몄젣?낅땲??
+??[Q?レ옄]???꾩뿭 怨좎쑀 ID?낅땲??
 `;
   } else if (currentSession?.question) {
-    context = `현재 학습 중인 코드:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
+    context = `?꾩옱 ?숈뒿 以묒씤 肄붾뱶:\n\`\`\`python\n${currentSession.question.slice(0, 2000)}\n\`\`\``;
   }
 
   // Check if user is asking about a specific question number
-  const numMatch = message.match(/(\d+)\s*번/);
+  const numMatch = message.match(/(\d+)\s*踰?);
   if (numMatch && currentQuestions.length > 0) {
     const qNum = parseInt(numMatch[1]);
     if (qNum >= 1 && qNum <= currentQuestions.length) {
       const targetQ = currentQuestions[qNum - 1];
-      context += `\n\n🎯 ${qNum}번 문제 상세:
-- 전역 ID: [Q${targetQ.id}]
-- 유형: ${targetQ.type}
-- 문제: ${targetQ.text}
-${targetQ.code ? `- 코드:\n\`\`\`python\n${targetQ.code}\n\`\`\`` : ""}
-${targetQ.options ? `- 선지:\n${targetQ.options.map(o => `  ${o.num}. ${o.text}`).join("\n")}` : ""}
-${targetQ.correct ? `- 정답: ${targetQ.correct}번` : ""}
+      context += `\n\n?렞 ${qNum}踰?臾몄젣 ?곸꽭:
+- ?꾩뿭 ID: [Q${targetQ.id}]
+- ?좏삎: ${targetQ.type}
+- 臾몄젣: ${targetQ.text}
+${targetQ.code ? `- 肄붾뱶:\n\`\`\`python\n${targetQ.code}\n\`\`\`` : ""}
+${targetQ.options ? `- ?좎?:\n${targetQ.options.map(o => `  ${o.num}. ${o.text}`).join("\n")}` : ""}
+${targetQ.correct ? `- ?뺣떟: ${targetQ.correct}踰? : ""}
 `;
     }
   }
 
-  const prompt = `${context}\n\n학생의 질문: ${message}`;
+  const prompt = `${context}\n\n?숈깮??吏덈Ц: ${message}`;
 
   try {
-    const response = await callGeminiAPI(prompt, "당신은 친절한 프로그래밍 튜터입니다. 현재 학생이 객관식/단답형 문제를 풀고 있습니다. 학생이 N번 문제라고 하면 위 문제 목록에서 해당 번호의 문제를 찾아 설명해주세요. 간결하고 명확하게 답변해주세요.");
+    const response = await callGeminiAPI(prompt, "?뱀떊? 移쒖젅???꾨줈洹몃옒諛??쒗꽣?낅땲?? ?꾩옱 ?숈깮??媛앷????⑤떟??臾몄젣瑜??怨??덉뒿?덈떎. ?숈깮??N踰?臾몄젣?쇨퀬 ?섎㈃ ??臾몄젣 紐⑸줉?먯꽌 ?대떦 踰덊샇??臾몄젣瑜?李얠븘 ?ㅻ챸?댁＜?몄슂. 媛꾧껐?섍퀬 紐낇솗?섍쾶 ?듬??댁＜?몄슂.");
     document.getElementById(`loading-${loadingId}`).outerHTML =
       `<div class="chat-message assistant">${formatMarkdown(response)}</div>`;
   } catch (err) {
     document.getElementById(`loading-${loadingId}`).outerHTML =
-      `<div class="chat-message error">❌ ${err.message}</div>`;
+      `<div class="chat-message error">??${err.message}</div>`;
   }
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -715,29 +727,29 @@ function formatMarkdown(text) {
 }
 
 // ========== REGENERATE BLANKS ==========
-// 이전 빈칸 정답들 저장 (중복 체크용)
+// ?댁쟾 鍮덉뭏 ?뺣떟?????(以묐났 泥댄겕??
 let previousAnswers = new Set();
 
 async function regenerateBlanks() {
   if (!currentSession?.answer) {
-    alert("정답 코드가 없어 새 빈칸을 생성할 수 없습니다.");
+    alert("?뺣떟 肄붾뱶媛 ?놁뼱 ??鍮덉뭏???앹꽦?????놁뒿?덈떎.");
     return;
   }
 
-  // 모달 요소 찾기
+  // 紐⑤떖 ?붿냼 李얘린
   let modal = document.getElementById("regenerate-modal");
 
-  // 모달이 없으면 동적으로 생성 (방어 코드)
+  // 紐⑤떖???놁쑝硫??숈쟻?쇰줈 ?앹꽦 (諛⑹뼱 肄붾뱶)
   if (!modal) {
     const modalHtml = `
       <div id="regenerate-modal" class="modal" style="display:none;">
         <div class="modal-content">
-          <h3>🔄 새 빈칸 생성</h3>
-          <p>생성할 빈칸의 개수를 입력하세요 (10~100)</p>
+          <h3>?봽 ??鍮덉뭏 ?앹꽦</h3>
+          <p>?앹꽦??鍮덉뭏??媛쒖닔瑜??낅젰?섏꽭??(10~100)</p>
           <input type="number" id="regen-count-input" value="50" min="10" max="100" />
           <div class="modal-actions">
-            <button id="btn-confirm-regen">생성하기</button>
-            <button id="btn-cancel-regen">취소</button>
+            <button id="btn-confirm-regen">?앹꽦?섍린</button>
+            <button id="btn-cancel-regen">痍⑥냼</button>
           </div>
         </div>
       </div>
@@ -746,7 +758,7 @@ async function regenerateBlanks() {
     modal = document.getElementById("regenerate-modal");
   }
 
-  // 이벤트 리스너 연결 (중복 방지 - 한 번만 등록)
+  // ?대깽??由ъ뒪???곌껐 (以묐났 諛⑹? - ??踰덈쭔 ?깅줉)
   const btnConfirm = document.getElementById("btn-confirm-regen");
   const btnCancel = document.getElementById("btn-cancel-regen");
   const input = document.getElementById("regen-count-input");
@@ -767,7 +779,7 @@ async function regenerateBlanks() {
     });
   }
 
-  // 모달 열기
+  // 紐⑤떖 ?닿린
   if (modal) {
     modal.style.display = "flex";
     if (input) input.focus();
@@ -779,17 +791,16 @@ async function executeRegenerate(targetCount) {
   if (targetCount > 100) targetCount = 100;
 
   openAIPanel();
-  explanationArea.innerHTML = `<div class="explanation-loading">새로운 빈칸 ${targetCount}개를 생성하고 있습니다...</div>`;
+  explanationArea.innerHTML = `<div class="explanation-loading">?덈줈??鍮덉뭏 ${targetCount}媛쒕? ?앹꽦?섍퀬 ?덉뒿?덈떎...</div>`;
 
-  // 현재 정답들을 이전 정답에 저장
-  const currentAnswers = new Set(Object.values(answerKeyMap));
+  // ?꾩옱 ?뺣떟?ㅼ쓣 ?댁쟾 ?뺣떟?????  const currentAnswers = new Set(Object.values(answerKeyMap));
 
   try {
-    // 로컬에서 빈칸 생성 (API보다 안정적)
+    // 濡쒖뺄?먯꽌 鍮덉뭏 ?앹꽦 (API蹂대떎 ?덉젙??
     const result = generateBlanksLocally(currentSession.answer, targetCount, currentAnswers, 5);
 
     if (result.answerKey && Object.keys(result.answerKey).length > 0) {
-      // 이전 정답 업데이트
+      // ?댁쟾 ?뺣떟 ?낅뜲?댄듃
       previousAnswers = currentAnswers;
 
       // Update session
@@ -811,24 +822,24 @@ async function executeRegenerate(targetCount) {
       const duplicateCount = result.duplicates;
       explanationArea.innerHTML = `
         <div class="explanation-content">
-          <strong style="color: var(--green);">✅ 새 빈칸 ${Object.keys(result.answerKey).length}개 생성!</strong>
-          <p>이전 문제와 중복: ${duplicateCount}개</p>
-          <p style="color: var(--muted); font-size: 12px;">새로운 위치에 빈칸이 생성되었습니다.</p>
+          <strong style="color: var(--green);">????鍮덉뭏 ${Object.keys(result.answerKey).length}媛??앹꽦!</strong>
+          <p>?댁쟾 臾몄젣? 以묐났: ${duplicateCount}媛?/p>
+          <p style="color: var(--muted); font-size: 12px;">?덈줈???꾩튂??鍮덉뭏???앹꽦?섏뿀?듬땲??</p>
         </div>`;
     } else {
-      throw new Error("빈칸 생성 실패");
+      throw new Error("鍮덉뭏 ?앹꽦 ?ㅽ뙣");
     }
   } catch (err) {
     console.error("Regenerate error:", err);
     explanationArea.innerHTML = `
       <div class="explanation-content" style="color: var(--red);">
-        ❌ ${err.message}
-        <p style="color: var(--muted); margin-top: 8px;">다시 시도해주세요.</p>
+        ??${err.message}
+        <p style="color: var(--muted); margin-top: 8px;">?ㅼ떆 ?쒕룄?댁＜?몄슂.</p>
       </div>`;
   }
 }
 
-// 모달 이벤트 리스너 설정
+// 紐⑤떖 ?대깽??由ъ뒪???ㅼ젙
 document.addEventListener("DOMContentLoaded", () => {
   const regenModal = document.getElementById("regenerate-modal");
   const btnConfirmRegen = document.getElementById("btn-confirm-regen");
@@ -851,36 +862,33 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /**
- * 로컬에서 빈칸 생성 (API 없이)
- * @param {string} code - 정답 코드
- * @param {number} targetCount - 목표 빈칸 수
- * @param {Set} previousAnswers - 이전 정답들 (중복 체크용)
- * @param {number} maxDuplicates - 최대 중복 허용 수
- */
+ * 濡쒖뺄?먯꽌 鍮덉뭏 ?앹꽦 (API ?놁씠)
+ * @param {string} code - ?뺣떟 肄붾뱶
+ * @param {number} targetCount - 紐⑺몴 鍮덉뭏 ?? * @param {Set} previousAnswers - ?댁쟾 ?뺣떟??(以묐났 泥댄겕??
+ * @param {number} maxDuplicates - 理쒕? 以묐났 ?덉슜 ?? */
 function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates) {
   const lines = code.split("\n");
   const answerKey = {};
   let blankCount = 0;
   let duplicateCount = 0;
 
-  // 정답 유효성 검사 함수
+  // ?뺣떟 ?좏슚??寃???⑥닔
   function isValidAnswer(ans) {
     if (!ans || ans.length <= 1) return false;
 
-    // 특수기호만 있으면 제외
+    // ?뱀닔湲고샇留??덉쑝硫??쒖쇅
     const specialOnly = new Set("()[]{}:,;'\"` ");
     if ([...ans].every(c => specialOnly.has(c))) return false;
 
-    // 따옴표와 공백만 있어도 제외 (예: ' ', "")
+    // ?곗샂?쒖? 怨듬갚留??덉뼱???쒖쇅 (?? ' ', "")
     if (/^['\"]\s*['"]?\)?$/.test(ans)) return false;
 
-    // 숫자나 알파벳이 최소 하나는 있어야 함
-    if (!/[a-zA-Z0-9_]/.test(ans)) return false;
+    // ?レ옄???뚰뙆踰녹씠 理쒖냼 ?섎굹???덉뼱????    if (!/[a-zA-Z0-9_]/.test(ans)) return false;
 
     return true;
   }
 
-  // 정답 정리 함수 (후행 괄호/쉼표 제거)
+  // ?뺣떟 ?뺣━ ?⑥닔 (?꾪뻾 愿꾪샇/?쇳몴 ?쒓굅)
   function cleanAnswer(ans) {
     let cleaned = ans.trim();
     while (cleaned.endsWith(')') || cleaned.endsWith(',') || cleaned.endsWith(';')) {
@@ -899,14 +907,14 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     return cleaned;
   }
 
-  // 빈칸 후보들을 먼저 수집
+  // 鍮덉뭏 ?꾨낫?ㅼ쓣 癒쇱? ?섏쭛
   const candidates = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const stripped = line.trim();
 
-    // 건너뛸 줄들
+    // 嫄대꼫??以꾨뱾
     if (!stripped ||
       stripped.startsWith("def ") ||
       stripped.startsWith("class ") ||
@@ -918,8 +926,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       continue;
     }
 
-    // 대입문 패턴: = 뒤의 값
-    const assignMatch = line.match(/=\s*([^#\n=]+)$/);
+    // ??낅Ц ?⑦꽩: = ?ㅼ쓽 媛?    const assignMatch = line.match(/=\s*([^#\n=]+)$/);
     if (assignMatch) {
       const rawAns = assignMatch[1].trim();
       const ans = cleanAnswer(rawAns);
@@ -933,8 +940,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       }
     }
 
-    // return 문
-    const returnMatch = line.match(/return\s+([^#\n]+)$/);
+    // return 臾?    const returnMatch = line.match(/return\s+([^#\n]+)$/);
     if (returnMatch) {
       const rawAns = returnMatch[1].trim();
       const ans = cleanAnswer(rawAns);
@@ -948,7 +954,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       }
     }
 
-    // while 조건
+    // while 議곌굔
     const whileMatch = line.match(/while\s+([^:]+):/);
     if (whileMatch) {
       const ans = whileMatch[1].trim();
@@ -962,7 +968,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
       }
     }
 
-    // if 조건
+    // if 議곌굔
     const ifMatch = line.match(/if\s+([^:]+):/);
     if (ifMatch) {
       const ans = ifMatch[1].trim();
@@ -977,30 +983,28 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     }
   }
 
-  // 중복이 아닌 것들 먼저, 그 다음 중복 (최대 maxDuplicates개)
+  // 以묐났???꾨땶 寃껊뱾 癒쇱?, 洹??ㅼ쓬 以묐났 (理쒕? maxDuplicates媛?
   const nonDuplicates = candidates.filter(c => !c.isDuplicate);
   const duplicates = candidates.filter(c => c.isDuplicate);
 
-  // 셔플 함수
+  // ?뷀뵆 ?⑥닔
   const shuffle = arr => arr.sort(() => Math.random() - 0.5);
 
-  // 비중복 섞기
+  // 鍮꾩쨷蹂??욊린
   shuffle(nonDuplicates);
   shuffle(duplicates);
 
-  // 선택할 후보들
-  const selected = [];
+  // ?좏깮???꾨낫??  const selected = [];
   const usedLines = new Set();
 
-  // 비중복 먼저 추가
+  // 鍮꾩쨷蹂?癒쇱? 異붽?
   for (const c of nonDuplicates) {
     if (selected.length >= targetCount) break;
-    if (usedLines.has(c.lineIndex)) continue; // 한 줄에 하나만
-    selected.push(c);
+    if (usedLines.has(c.lineIndex)) continue; // ??以꾩뿉 ?섎굹留?    selected.push(c);
     usedLines.add(c.lineIndex);
   }
 
-  // 부족하면 중복에서 추가 (최대 maxDuplicates개)
+  // 遺議깊븯硫?以묐났?먯꽌 異붽? (理쒕? maxDuplicates媛?
   let addedDuplicates = 0;
   for (const c of duplicates) {
     if (selected.length >= targetCount) break;
@@ -1011,10 +1015,10 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     addedDuplicates++;
   }
 
-  // 라인 순서대로 정렬
+  // ?쇱씤 ?쒖꽌?濡??뺣젹
   selected.sort((a, b) => a.lineIndex - b.lineIndex);
 
-  // 빈칸 적용 - __[N]__ 형식으로 생성 (인덱스형 빈칸)
+  // 鍮덉뭏 ?곸슜 - __[N]__ ?뺤떇?쇰줈 ?앹꽦 (?몃뜳?ㅽ삎 鍮덉뭏)
   const newLines = [...lines];
   for (const item of selected) {
     blankCount++;
@@ -1022,7 +1026,7 @@ function generateBlanksLocally(code, targetCount, previousAnswers, maxDuplicates
     answerKey[key] = item.answer;
     if (item.isDuplicate) duplicateCount++;
 
-    // 해당 줄에서 값을 __[N]__로 치환 (인덱스형 빈칸)
+    // ?대떦 以꾩뿉??媛믪쓣 __[N]__濡?移섑솚 (?몃뜳?ㅽ삎 鍮덉뭏)
     const line = newLines[item.lineIndex];
     const escaped = item.answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const blankMarker = `__[${key}]__`;
@@ -1082,7 +1086,7 @@ if (fileInput) {
         const data = JSON.parse(evt.target.result);
         setSession(data);
       } catch (err) {
-        alert("JSON 파싱 실패: " + err.message);
+        alert("JSON ?뚯떛 ?ㅽ뙣: " + err.message);
       }
     };
     reader.readAsText(file, "utf-8");
@@ -1105,7 +1109,7 @@ if (btnReview) btnReview.addEventListener("click", () => startReviewCycle());
 if (btnToggleCompleted) {
   btnToggleCompleted.addEventListener("click", () => {
     hideCompletedNav = !hideCompletedNav;
-    btnToggleCompleted.textContent = hideCompletedNav ? "완료 보이기" : "완료 숨기기";
+    btnToggleCompleted.textContent = hideCompletedNav ? "?꾨즺 蹂댁씠湲? : "?꾨즺 ?④린湲?;
     applyNavFilter();
   });
 }
@@ -1116,7 +1120,7 @@ if (btnRegenerate) btnRegenerate.addEventListener("click", () => regenerateBlank
 const btnShuffle = document.getElementById("btn-shuffle");
 if (btnShuffle) btnShuffle.addEventListener("click", () => toggleShuffle());
 
-// 모드별로 노출할 컨트롤 버튼 매핑
+// 紐⑤뱶蹂꾨줈 ?몄텧??而⑦듃濡?踰꾪듉 留ㅽ븨
 const controlButtonsByMode = {
   1: ["btn-check", "btn-reveal", "btn-reset", "btn-review", "btn-toggle-completed", "btn-regenerate", "btn-shuffle"],
   2: ["btn-check", "btn-reveal", "btn-reset", "btn-review", "btn-toggle-completed", "btn-regenerate", "btn-shuffle"],
@@ -1159,16 +1163,16 @@ if (btnApiKey) btnApiKey.addEventListener("click", showApiKeyModal);
 const btnShutdown = document.getElementById("btn-shutdown");
 if (btnShutdown) {
   btnShutdown.addEventListener("click", async () => {
-    if (!confirm("서버를 종료할까요? (브라우저만 닫아도 서버는 계속 실행됩니다)")) return;
+    if (!confirm("?쒕쾭瑜?醫낅즺?좉퉴?? (釉뚮씪?곗?留??レ븘???쒕쾭??怨꾩냽 ?ㅽ뻾?⑸땲??")) return;
     btnShutdown.disabled = true;
-    btnShutdown.textContent = "종료 요청...";
+    btnShutdown.textContent = "醫낅즺 ?붿껌...";
     try {
       await fetch("/shutdown", { method: "POST" });
-      btnShutdown.textContent = "서버 종료됨";
+      btnShutdown.textContent = "?쒕쾭 醫낅즺??;
     } catch (e) {
-      alert("서버 종료 요청 실패: " + e.message);
+      alert("?쒕쾭 醫낅즺 ?붿껌 ?ㅽ뙣: " + e.message);
       btnShutdown.disabled = false;
-      btnShutdown.textContent = "⛔ 서버 종료";
+      btnShutdown.textContent = "???쒕쾭 醫낅즺";
     }
   });
 }
@@ -1178,10 +1182,9 @@ if (btnSaveApiKey) {
   btnSaveApiKey.addEventListener("click", async () => {
     const key = document.getElementById("api-key-input").value.trim();
     if (key) {
-      // 로컬 저장
-      setApiKey(key);
+      // 濡쒖뺄 ???      setApiKey(key);
 
-      // 서버에 영구 저장 (키 파일에 기록)
+      // ?쒕쾭???곴뎄 ???(???뚯씪??湲곕줉)
       try {
         const response = await fetch('/api/save-key', {
           method: 'POST',
@@ -1190,12 +1193,12 @@ if (btnSaveApiKey) {
         });
         const result = await response.json();
         if (result.success) {
-          alert('✅ API 키가 서버에 저장되었습니다.\n다음 실행에서도 자동 적용됩니다.');
+          alert('??API ?ㅺ? ?쒕쾭????λ릺?덉뒿?덈떎.\n?ㅼ쓬 ?ㅽ뻾?먯꽌???먮룞 ?곸슜?⑸땲??');
         } else {
-          console.warn('서버 저장 실패:', result.error);
+          console.warn('?쒕쾭 ????ㅽ뙣:', result.error);
         }
       } catch (err) {
-        console.warn('서버 저장 오류:', err);
+        console.warn('?쒕쾭 ????ㅻ쪟:', err);
       }
 
       hideApiKeyModal();
@@ -1206,7 +1209,7 @@ if (btnSaveApiKey) {
 const btnCancelApiKey = document.getElementById("btn-cancel-api-key");
 if (btnCancelApiKey) btnCancelApiKey.addEventListener("click", hideApiKeyModal);
 
-// 모바일 AI 토글 버튼
+// 紐⑤컮??AI ?좉? 踰꾪듉
 const aiToggleBtn = document.getElementById("btn-ai-toggle");
 if (aiToggleBtn) {
   aiToggleBtn.addEventListener("click", () => {
@@ -1281,7 +1284,7 @@ function flattenAnswerKey(rawKey) {
   }
   const normalized = {};
   Object.entries(rawKey).forEach(([k, v]) => {
-    // 숫자 키 또는 _로 시작하는 특수 키 유지
+    // ?レ옄 ???먮뒗 _濡??쒖옉?섎뒗 ?뱀닔 ???좎?
     if (/^\d+$/.test(k) || k.startsWith("_")) {
       normalized[String(k)] = v;
     }
@@ -1405,7 +1408,7 @@ function normalizeSession(session) {
   placeholderRegexFlex.lastIndex = 0;
 
   return {
-    title: session.title || "제목 없음",
+    title: session.title || "?쒕ぉ ?놁쓬",
     language: session.language === "text" ? "python" : (session.language || "python"),
     mode: session.mode || "-",
     question: questionCode,
@@ -1417,7 +1420,7 @@ function normalizeSession(session) {
 function loadSessionFromUrl(url, fallback = true) {
   fetch(url + "?t=" + Date.now())
     .then((r) => {
-      if (!r.ok) throw new Error("세션을 불러오지 못했습니다.");
+      if (!r.ok) throw new Error("?몄뀡??遺덈윭?ㅼ? 紐삵뻽?듬땲??");
       return r.json();
     })
     .then((data) => setSession(data))
@@ -1431,18 +1434,16 @@ function loadSessionFromUrl(url, fallback = true) {
     });
 }
 
-// === Mode 2 인라인 빈칸 변환 ===
+// === Mode 2 ?몃씪??鍮덉뭏 蹂??===
 function buildInlineBlankCode(originalCode, blanks, answerKey) {
   /**
-   * 원본 코드와 빈칸 정보를 받아서 __[N]__ 형식의 인라인 빈칸 코드로 변환
-   * blanks: [{line_num, answer, full_line, context}, ...]
+   * ?먮낯 肄붾뱶? 鍮덉뭏 ?뺣낫瑜?諛쏆븘??__[N]__ ?뺤떇???몃씪??鍮덉뭏 肄붾뱶濡?蹂??   * blanks: [{line_num, answer, full_line, context}, ...]
    */
   const lines = originalCode.split('\n');
 
   const blanksByLine = {};
 
-  // 라인별로 빈칸 그룹화
-  blanks.forEach((blank, idx) => {
+  // ?쇱씤蹂꾨줈 鍮덉뭏 洹몃９??  blanks.forEach((blank, idx) => {
     const lineNum = blank.line_num;  // 1-indexed
     if (!blanksByLine[lineNum]) {
       blanksByLine[lineNum] = [];
@@ -1458,7 +1459,7 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
   let replacedCount = 0;
   let failedCount = 0;
 
-  // 각 라인 처리
+  // 媛??쇱씤 泥섎━
   const resultLines = lines.map((line, idx) => {
     const lineNum = idx + 1;  // 1-indexed
     if (!blanksByLine[lineNum]) return line;
@@ -1466,20 +1467,20 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
     let modifiedLine = line;
     const blanksForLine = blanksByLine[lineNum];
 
-    // 해당 라인의 모든 빈칸 처리 (역순으로 처리해서 인덱스 꼬임 방지)
+    // ?대떦 ?쇱씤??紐⑤뱺 鍮덉뭏 泥섎━ (??닚?쇰줈 泥섎━?댁꽌 ?몃뜳??瑗ъ엫 諛⑹?)
     blanksForLine.sort((a, b) => b.blankNum - a.blankNum);
 
     for (const blank of blanksForLine) {
       const answer = blank.answer;
       const blankMarker = `__[${blank.blankNum}]__`;
 
-      // 정답 위치 찾아서 빈칸으로 교체
+      // ?뺣떟 ?꾩튂 李얠븘??鍮덉뭏?쇰줈 援먯껜
       const answerIndex = modifiedLine.indexOf(answer);
       if (answerIndex !== -1) {
         modifiedLine = modifiedLine.slice(0, answerIndex) + blankMarker + modifiedLine.slice(answerIndex + answer.length);
         replacedCount++;
       } else {
-        // 정답을 찾지 못한 경우, 라인 끝에 마커 추가 (fallback)
+        // ?뺣떟??李얠? 紐삵븳 寃쎌슦, ?쇱씤 ?앹뿉 留덉빱 異붽? (fallback)
         console.warn(`[Blank ${blank.blankNum}] Answer not found in line ${lineNum}: "${answer}" in "${line}"`);
         failedCount++;
       }
@@ -1493,23 +1494,22 @@ function buildInlineBlankCode(originalCode, blanks, answerKey) {
   return resultLines.join('\n');
 }
 
-// === Mode 3 인라인 빈칸 변환 (함수 본문을 빈칸으로) ===
+// === Mode 3 ?몃씪??鍮덉뭏 蹂??(?⑥닔 蹂몃Ц??鍮덉뭏?쇰줈) ===
 function buildInlineChallengeCode(originalCode, challenges, answerKey) {
   /**
-   * 원본 코드와 챌린지 정보를 받아서 함수 본문을 __[N]__ 형식으로 변환
-   * challenges: [{signature, body, line_num}, ...]
+   * ?먮낯 肄붾뱶? 梨뚮┛吏 ?뺣낫瑜?諛쏆븘???⑥닔 蹂몃Ц??__[N]__ ?뺤떇?쇰줈 蹂??   * challenges: [{signature, body, line_num}, ...]
    */
   const lines = originalCode.split('\n');
   let challengeNum = 0;
   let resultLines = [...lines];
 
-  // 각 챌린지(함수)별로 처리
+  // 媛?梨뚮┛吏(?⑥닔)蹂꾨줈 泥섎━
   challenges.forEach((ch, idx) => {
     challengeNum = idx + 1;
     const signature = ch.signature;
     const body = ch.body;
 
-    // 시그니처 라인 찾기
+    // ?쒓렇?덉쿂 ?쇱씤 李얘린
     let sigLineIdx = -1;
     for (let i = 0; i < resultLines.length; i++) {
       if (resultLines[i].trim().startsWith(signature.trim().split('(')[0])) {
@@ -1519,14 +1519,14 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
     }
 
     if (sigLineIdx !== -1) {
-      // 함수 본문 라인들을 빈칸으로 교체
+      // ?⑥닔 蹂몃Ц ?쇱씤?ㅼ쓣 鍮덉뭏?쇰줈 援먯껜
       const bodyLines = body.split('\n').filter(l => l.trim());
       if (bodyLines.length > 0) {
-        // 첫 번째 본문 라인 인덱스 찾기 (시그니처 다음 라인들)
+        // 泥?踰덉㎏ 蹂몃Ц ?쇱씤 ?몃뜳??李얘린 (?쒓렇?덉쿂 ?ㅼ쓬 ?쇱씤??
         let bodyStartIdx = sigLineIdx + 1;
         let bodyEndIdx = bodyStartIdx;
 
-        // 본문 끝 찾기 (들여쓰기 기준)
+        // 蹂몃Ц ??李얘린 (?ㅼ뿬?곌린 湲곗?)
         const sigIndent = resultLines[sigLineIdx].match(/^(\s*)/)[1].length;
         for (let i = bodyStartIdx; i < resultLines.length; i++) {
           const line = resultLines[i];
@@ -1538,18 +1538,18 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
           bodyEndIdx = i + 1;
         }
 
-        // 본문 라인들을 빈칸으로 교체
+        // 蹂몃Ц ?쇱씤?ㅼ쓣 鍮덉뭏?쇰줈 援먯껜
         const indent = resultLines[sigLineIdx + 1]?.match(/^(\s*)/)?.[1] || '    ';
-        const blankPlaceholder = `${indent}# __[${challengeNum}]__ 이 함수의 구현부를 작성하세요`;
+        const blankPlaceholder = `${indent}# __[${challengeNum}]__ ???⑥닔??援ы쁽遺瑜??묒꽦?섏꽭??;
 
-        // 원래 라인들을 주석 처리하거나 빈칸으로 교체
+        // ?먮옒 ?쇱씤?ㅼ쓣 二쇱꽍 泥섎━?섍굅??鍮덉뭏?쇰줈 援먯껜
         for (let i = bodyStartIdx; i < bodyEndIdx && i < resultLines.length; i++) {
           const line = resultLines[i];
           if (line.trim() && !line.trim().startsWith('#') && !line.trim().startsWith('"""') && !line.trim().startsWith("'''")) {
             resultLines[i] = indent + `__[${challengeNum}]__  # ${line.trim()}`;
-            // 첫 줄만 빈칸으로, 나머지는 숨김
+            // 泥?以꾨쭔 鍮덉뭏?쇰줈, ?섎㉧吏???④?
             if (i > bodyStartIdx) {
-              resultLines[i] = '';  // 나머지 라인 제거
+              resultLines[i] = '';  // ?섎㉧吏 ?쇱씤 ?쒓굅
             }
           }
         }
@@ -1557,9 +1557,9 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
     }
   });
 
-  // 빈 라인 정리
+  // 鍮??쇱씤 ?뺣━
   resultLines = resultLines.filter((line, idx, arr) => {
-    // 연속 빈 라인 제거
+    // ?곗냽 鍮??쇱씤 ?쒓굅
     if (line === '' && arr[idx - 1] === '') return false;
     return true;
   });
@@ -1569,7 +1569,7 @@ function buildInlineChallengeCode(originalCode, challenges, answerKey) {
 
 
 function setSession(rawSession) {
-  // rawSession.answer_key에서 특수 필드들을 먼저 추출 (normalizeSession 전에)
+  // rawSession.answer_key?먯꽌 ?뱀닔 ?꾨뱶?ㅼ쓣 癒쇱? 異붿텧 (normalizeSession ?꾩뿉)
   const rawAnswerKey = rawSession.answer_key || rawSession.answerKey || {};
   const rawBlanks = rawAnswerKey._blanks;
   const rawOriginalCode = rawAnswerKey._original_code;
@@ -1579,7 +1579,7 @@ function setSession(rawSession) {
   const { title, language, mode, question, answer, answer_key } = currentSession;
   challengeReviewQueue = new Set();
 
-  // 특수 필드들을 answer_key에 복원 (normalizeSession에서 손실되었을 수 있음)
+  // ?뱀닔 ?꾨뱶?ㅼ쓣 answer_key??蹂듭썝 (normalizeSession?먯꽌 ?먯떎?섏뿀?????덉쓬)
   if (rawBlanks && !answer_key._blanks) {
     answer_key._blanks = rawBlanks;
   }
@@ -1593,34 +1593,31 @@ function setSession(rawSession) {
   warnedMissingAnswers = false;
   usedPositions = {}; // Reset used positions for new session
 
-  sessionTitle.textContent = title || "제목 없음";
+  sessionTitle.textContent = title || "?쒕ぉ ?놁쓬";
   sessionLang.textContent = language || "python";
   sessionMode.textContent = modeLabels[mode] || mode || "-";
   updateControlButtonsForMode(mode);
-  answerBlock.textContent = answer || "(정답/해설이 없습니다)";
+  answerBlock.textContent = answer || "(?뺣떟/?댁꽕???놁뒿?덈떎)";
   highlightAnswer(language);
 
   answerKeyMap = answer_key || {};
 
-  // 모드별 렌더링
-  const type = answer_key?._type;
+  // 紐⑤뱶蹂??뚮뜑留?  const type = answer_key?._type;
 
   if (type === "parsed_quiz" && answer_key?._questions) {
     renderParsedQuiz(answer_key._questions, answer_key, language);
   } else if (type === "multiple_choice" && answer_key?._questions) {
     renderMultipleChoiceNew(answer_key._questions, answer_key, language);
   } else if ((type === "fill_in_blank_cards" || type === "fill_in_blank_inline") && answer_key?._blanks) {
-    // Mode 2: 전체 코드에 인라인 빈칸 형태로 렌더링
-    // Python에서 question에 인라인 빈칸 코드를 직접 생성함
-    // question이 이미 인라인 빈칸 형식인지 확인 (__[N]__ 패턴 포함)
+    // Mode 2: ?꾩껜 肄붾뱶???몃씪??鍮덉뭏 ?뺥깭濡??뚮뜑留?    // Python?먯꽌 question???몃씪??鍮덉뭏 肄붾뱶瑜?吏곸젒 ?앹꽦??    // question???대? ?몃씪??鍮덉뭏 ?뺤떇?몄? ?뺤씤 (__[N]__ ?⑦꽩 ?ы븿)
     const hasInlineBlanks = /__\[\d+\]__/.test(question);
 
     if (hasInlineBlanks && question.length > 50) {
-      // Python 백엔드에서 생성한 인라인 빈칸 코드를 직접 사용
+      // Python 諛깆뿏?쒖뿉???앹꽦???몃씪??鍮덉뭏 肄붾뱶瑜?吏곸젒 ?ъ슜
 
       renderQuestion(question, answer_key, language);
     } else {
-      // 폴백: JS에서 인라인 빈칸 빌드 시도
+      // ?대갚: JS?먯꽌 ?몃씪??鍮덉뭏 鍮뚮뱶 ?쒕룄
       const originalCode = answer_key._original_code || currentSession.answer || "";
       if (originalCode && originalCode.length > 50) {
         const inlineCode = buildInlineBlankCode(originalCode, answer_key._blanks, answer_key);
@@ -1631,7 +1628,7 @@ function setSession(rawSession) {
       }
     }
   } else if (type === "implementation_challenge" && answer_key?._challenges) {
-    // Mode 3: 항상 카드 형태로 렌더링 (코드 에디터 + AI 채점)
+    // Mode 3: ??긽 移대뱶 ?뺥깭濡??뚮뜑留?(肄붾뱶 ?먮뵒??+ AI 梨꾩젏)
     renderImplementationChallenge(answer_key._challenges, answer_key, language);
   } else if (type === "definition_quiz" && answer_key?._definitions) {
     renderDefinitionQuiz(answer_key._definitions, answer_key, language);
@@ -1697,7 +1694,7 @@ function renderQuestion(questionText, answerKey, language) {
     lineKeys.forEach((key) => {
       const answer = answerKey[key];
       const dataAnswer = answer !== undefined ? ` data-answer="${escapeHtml(String(answer))}"` : "";
-      const inputHtml = `<span class="placeholder" id="blank-${key}"><input type="text" class="blank" data-key="${key}"${dataAnswer} placeholder="#${key}"><button class="help-btn" data-key="${key}" title="이 빈칸 설명">?</button><span class="answer-chip">#${key}</span></span>`;
+      const inputHtml = `<span class="placeholder" id="blank-${key}"><input type="text" class="blank" data-key="${key}"${dataAnswer} placeholder="#${key}"><button class="help-btn" data-key="${key}" title="??鍮덉뭏 ?ㅻ챸">?</button><span class="answer-chip">#${key}</span></span>`;
       const markerRegex = new RegExp(`__BLANK_MARKER_${key}__`, 'g');
       lineHtml = lineHtml.replace(markerRegex, inputHtml);
     });
@@ -1736,12 +1733,11 @@ function renderQuestion(questionText, answerKey, language) {
   renderBlankNav();
 }
 
-// ========== PARSED QUIZ (기존 문제 파일) ==========
+// ========== PARSED QUIZ (湲곗〈 臾몄젣 ?뚯씪) ==========
 let parsedQuizStates = [];
-let originalQuestions = [];  // 원본 문제 순서 저장
-let currentQuestions = [];   // 현재 표시 중인 문제 순서
-let isShuffled = false;      // 섞임 상태
-let parsedQuizMap = new Map(); // qId -> 문제 객체
+let originalQuestions = [];  // ?먮낯 臾몄젣 ?쒖꽌 ???let currentQuestions = [];   // ?꾩옱 ?쒖떆 以묒씤 臾몄젣 ?쒖꽌
+let isShuffled = false;      // ?욎엫 ?곹깭
+let parsedQuizMap = new Map(); // qId -> 臾몄젣 媛앹껜
 
 function renderParsedQuiz(questions, answerKey, language, preserveOrder = false) {
   codeArea.innerHTML = "";
@@ -1751,7 +1747,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
   parsedQuizStates = [];
   parsedQuizMap = new Map();
 
-  // 원본 순서 저장 (첫 로드 시)
+  // ?먮낯 ?쒖꽌 ???(泥?濡쒕뱶 ??
   if (!preserveOrder) {
     originalQuestions = [...questions];
     currentQuestions = [...questions];
@@ -1762,29 +1758,27 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
   const frag = document.createDocumentFragment();
 
   questions.forEach((q, idx) => {
-    const qId = q.id || (idx + 1);  // 원본 고유 ID
-    const displayIdx = idx + 1;      // 현재 표시 순서 (1, 2, 3...)
+    const qId = q.id || (idx + 1);  // ?먮낯 怨좎쑀 ID
+    const displayIdx = idx + 1;      // ?꾩옱 ?쒖떆 ?쒖꽌 (1, 2, 3...)
     const displayNum = q.original_num || q.num || qId;
     const qType = q.type || "multiple_choice";
 
     const cardDiv = document.createElement("div");
     cardDiv.className = "mc-question";
     cardDiv.id = `pq-${qId}`;
-    cardDiv.dataset.displayIdx = displayIdx;  // 현재 표시 순서 저장
-
-    // 문제 헤더
+    cardDiv.dataset.displayIdx = displayIdx;  // ?꾩옱 ?쒖떆 ?쒖꽌 ???
+    // 臾몄젣 ?ㅻ뜑
     const headerDiv = document.createElement("div");
     headerDiv.className = "mc-header";
 
-    // 문제 유형 뱃지
-    const typeBadge = qType === "short_answer" ? "📝 단답형" :
-      qType === "fill_blank" ? "✏️ 빈칸" : "📋 객관식";
+    // 臾몄젣 ?좏삎 諭껋?
+    const typeBadge = qType === "short_answer" ? "?뱷 ?⑤떟?? :
+      qType === "fill_blank" ? "?륅툘 鍮덉뭏" : "?뱥 媛앷???;
 
-    // [Q#] 형식으로 전역 고유 ID 표시 - AI가 구분 가능
-    headerDiv.innerHTML = `<span class="global-qid" style="background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;font-size:0.75em;margin-right:6px;font-weight:bold;">[Q${qId}]</span> <span style="opacity:0.6;font-size:0.8em">${typeBadge}</span> <strong>${displayNum}.</strong> ${escapeHtml(q.text)}`;
+    // [Q#] ?뺤떇?쇰줈 ?꾩뿭 怨좎쑀 ID ?쒖떆 - AI媛 援щ텇 媛??    headerDiv.innerHTML = `<span class="global-qid" style="background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;font-size:0.75em;margin-right:6px;font-weight:bold;">[Q${qId}]</span> <span style="opacity:0.6;font-size:0.8em">${typeBadge}</span> <strong>${displayNum}.</strong> ${escapeHtml(q.text)}`;
     cardDiv.appendChild(headerDiv);
 
-    // 코드 블록
+    // 肄붾뱶 釉붾줉
     if (q.code && q.code.trim()) {
       const codeDiv = document.createElement("pre");
       codeDiv.className = "mc-code";
@@ -1801,10 +1795,9 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
       cardDiv.appendChild(codeDiv);
     }
 
-    // 선지 또는 입력 영역
+    // ?좎? ?먮뒗 ?낅젰 ?곸뿭
     if (q.options && q.options.length > 0) {
-      // 객관식
-      const optionsDiv = document.createElement("div");
+      // 媛앷???      const optionsDiv = document.createElement("div");
       optionsDiv.className = "mc-options";
 
       q.options.forEach((opt) => {
@@ -1812,10 +1805,10 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
         optionBtn.className = "mc-option";
         optionBtn.dataset.question = String(qId);
         optionBtn.dataset.option = String(opt.num);
-        // 정답이 있으면 저장 (채점용)
+        // ?뺣떟???덉쑝硫????(梨꾩젏??
         optionBtn.dataset.correct = q.correct ? String(q.correct) : "";
 
-        const numSymbols = ["①", "②", "③", "④", "⑤"];
+        const numSymbols = ["??, "??, "??, "??, "??];
         const symbol = numSymbols[opt.num - 1] || opt.num;
 
         optionBtn.innerHTML = `<span class="mc-option-num">${symbol}</span><span class="mc-option-text">${escapeHtml(opt.text)}</span>`;
@@ -1826,7 +1819,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
 
       cardDiv.appendChild(optionsDiv);
     } else {
-      // 단답형/빈칸 - 입력 필드
+      // ?⑤떟??鍮덉뭏 - ?낅젰 ?꾨뱶
       const inputDiv = document.createElement("div");
       inputDiv.className = "short-answer-input";
       inputDiv.style.cssText = "margin-top: 1rem;";
@@ -1834,21 +1827,21 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
       const textarea = document.createElement("textarea");
       textarea.className = "challenge-textarea";
       textarea.id = `pq-input-${qId}`;
-      textarea.placeholder = qType === "fill_blank" ? "빈칸에 들어갈 내용을 입력하세요..." : "답을 입력하세요... (Enter=제출, Enter 두 번=AI 정답)";
+      textarea.placeholder = qType === "fill_blank" ? "鍮덉뭏???ㅼ뼱媛??댁슜???낅젰?섏꽭??.." : "?듭쓣 ?낅젰?섏꽭??.. (Enter=?쒖텧, Enter ??踰?AI ?뺣떟)";
       textarea.rows = 2;
       textarea.style.cssText = "width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--fg); font-family: inherit; resize: vertical;";
 
-      // 엔터 두 번 = AI 정답 보기
+      // ?뷀꽣 ??踰?= AI ?뺣떟 蹂닿린
       let lastEnterTime = 0;
       textarea.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
           const now = Date.now();
           if (now - lastEnterTime < 500) {
-            // 엔터 두 번 빠르게 → AI 정답 보기
+            // ?뷀꽣 ??踰?鍮좊Ⅴ寃???AI ?뺣떟 蹂닿린
             e.preventDefault();
             showShortAnswerWithAI(qId, q.question, q.code || "");
           } else {
-            // 첫 번째 엔터 → 제출
+            // 泥?踰덉㎏ ?뷀꽣 ???쒖텧
             e.preventDefault();
             handleShortAnswerSubmit(qId, textarea.value);
           }
@@ -1856,26 +1849,25 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
         }
       });
 
-      // 버튼들
-      const btnDiv = document.createElement("div");
+      // 踰꾪듉??      const btnDiv = document.createElement("div");
       btnDiv.style.cssText = "display: flex; gap: 8px; margin-top: 0.5rem; flex-wrap: wrap;";
 
       const submitBtn = document.createElement("button");
       submitBtn.className = "challenge-btn";
-      submitBtn.textContent = "제출";
+      submitBtn.textContent = "?쒖텧";
       submitBtn.style.cssText = "padding: 0.5rem 1rem; background: var(--accent-2); color: #0f1117; border: none; border-radius: 6px; cursor: pointer;";
       submitBtn.addEventListener("click", () => handleShortAnswerSubmit(qId, textarea.value));
 
       const resetBtn = document.createElement("button");
       resetBtn.className = "challenge-btn";
       resetBtn.id = `pq-reset-${qId}`;
-      resetBtn.textContent = "🔄 다시";
+      resetBtn.textContent = "?봽 ?ㅼ떆";
       resetBtn.style.cssText = "padding: 0.5rem 1rem; background: var(--muted); color: var(--fg); border: none; border-radius: 6px; cursor: pointer;";
       resetBtn.addEventListener("click", () => resetShortAnswer(qId));
 
       const aiBtn = document.createElement("button");
       aiBtn.className = "challenge-btn";
-      aiBtn.textContent = "💡 AI정답";
+      aiBtn.textContent = "?뮕 AI?뺣떟";
       aiBtn.style.cssText = "padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; cursor: pointer;";
       aiBtn.addEventListener("click", () => showShortAnswerWithAI(qId, q.question, q.code || ""));
 
@@ -1888,7 +1880,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
       cardDiv.appendChild(inputDiv);
     }
 
-    // 결과 표시
+    // 寃곌낵 ?쒖떆
     const resultDiv = document.createElement("div");
     resultDiv.className = "mc-result";
     resultDiv.id = `pq-result-${qId}`;
@@ -1899,7 +1891,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
 
     parsedQuizStates.push({
       qId,
-      displayIdx,  // 현재 표시 순서
+      displayIdx,  // ?꾩옱 ?쒖떆 ?쒖꽌
       displayNum,
       qType,
       selected: null,
@@ -1915,7 +1907,7 @@ function renderParsedQuiz(questions, answerKey, language, preserveOrder = false)
   updateParsedQuizScore();
 }
 
-// ========== 순서 섞기 기능 ==========
+// ========== ?쒖꽌 ?욊린 湲곕뒫 ==========
 function shuffleArray(array) {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -1931,15 +1923,14 @@ function shuffleQuestions() {
   const answerKey = currentSession.answer_key;
   const language = currentSession.language;
 
-  // 문제 순서 섞기
+  // 臾몄젣 ?쒖꽌 ?욊린
   currentQuestions = shuffleArray(originalQuestions);
   isShuffled = true;
 
-  // 다시 렌더링
-  renderParsedQuiz(currentQuestions, answerKey, language, true);
+  // ?ㅼ떆 ?뚮뜑留?  renderParsedQuiz(currentQuestions, answerKey, language, true);
   updateShuffleButton();
 
-  // 스크롤 맨 위로
+  // ?ㅽ겕濡?留??꾨줈
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1949,15 +1940,14 @@ function resetQuizOrder() {
   const answerKey = currentSession.answer_key;
   const language = currentSession.language;
 
-  // 원본 순서로 복원
+  // ?먮낯 ?쒖꽌濡?蹂듭썝
   currentQuestions = [...originalQuestions];
   isShuffled = false;
 
-  // 다시 렌더링
-  renderParsedQuiz(currentQuestions, answerKey, language, true);
+  // ?ㅼ떆 ?뚮뜑留?  renderParsedQuiz(currentQuestions, answerKey, language, true);
   updateShuffleButton();
 
-  // 스크롤 맨 위로
+  // ?ㅽ겕濡?留??꾨줈
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1966,16 +1956,16 @@ function updateShuffleButton() {
   if (!btn) return;
 
   if (isShuffled) {
-    btn.textContent = "📋 원래 순서로";
+    btn.textContent = "?뱥 ?먮옒 ?쒖꽌濡?;
     btn.classList.add("shuffled");
   } else {
-    btn.textContent = "🔀 순서 섞기";
+    btn.textContent = "?? ?쒖꽌 ?욊린";
     btn.classList.remove("shuffled");
   }
 }
 
 function toggleShuffle() {
-  // 4번 모드 (객관식)
+  // 4踰?紐⑤뱶 (媛앷???
   if (currentSession?.answer_key?._questions) {
     if (isShuffled) {
       resetQuizOrder();
@@ -1985,20 +1975,20 @@ function toggleShuffle() {
     return;
   }
 
-  // 5번 모드 (정의 퀴즈)
+  // 5踰?紐⑤뱶 (?뺤쓽 ?댁쫰)
   if (definitionStates && definitionStates.length > 0) {
     shuffleDefinitions();
     return;
   }
 
-  // 7번 모드 (영단어)
+  // 7踰?紐⑤뱶 (?곷떒??
   if (vocabStates && vocabStates.length > 0) {
     shuffleVocab();
     return;
   }
 }
 
-// 정의 퀴즈 순서 섞기
+// ?뺤쓽 ?댁쫰 ?쒖꽌 ?욊린
 function shuffleDefinitions() {
   const container = document.getElementById('definition-container') || codeBlock;
   if (!container) return;
@@ -2006,22 +1996,22 @@ function shuffleDefinitions() {
   const cards = Array.from(container.querySelectorAll('.definition-card'));
   if (cards.length === 0) return;
 
-  // Fisher-Yates 셔플
+  // Fisher-Yates ?뷀뵆
   for (let i = cards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     container.appendChild(cards[j]);
   }
 
-  // 모든 카드 다시 추가 (순서 섞인 상태로)
+  // 紐⑤뱺 移대뱶 ?ㅼ떆 異붽? (?쒖꽌 ?욎씤 ?곹깭濡?
   cards.sort(() => Math.random() - 0.5).forEach(card => container.appendChild(card));
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const btn = document.getElementById('btn-shuffle');
-  if (btn) btn.textContent = '🔀 다시 섞기';
+  if (btn) btn.textContent = '?? ?ㅼ떆 ?욊린';
 }
 
-// 영단어 순서 섞기
+// ?곷떒???쒖꽌 ?욊린
 function shuffleVocab() {
   const container = document.getElementById('vocab-container') || codeBlock;
   if (!container) return;
@@ -2029,23 +2019,23 @@ function shuffleVocab() {
   const cards = Array.from(container.querySelectorAll('.vocab-card'));
   if (cards.length === 0) return;
 
-  // Fisher-Yates 셔플
+  // Fisher-Yates ?뷀뵆
   cards.sort(() => Math.random() - 0.5).forEach(card => container.appendChild(card));
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const btn = document.getElementById('btn-shuffle');
-  if (btn) btn.textContent = '🔀 다시 섞기';
+  if (btn) btn.textContent = '?? ?ㅼ떆 ?욊린';
 }
 
 function handleParsedQuizClick(btn, qId) {
   const selectedOption = btn.dataset.option;
-  const correctAnswer = btn.dataset.correct;  // 정답 (있으면)
+  const correctAnswer = btn.dataset.correct;  // ?뺣떟 (?덉쑝硫?
   const state = parsedQuizStates.find(s => s.qId === qId);
 
   if (state?.answered) return;
 
-  // 상태 업데이트
+  // ?곹깭 ?낅뜲?댄듃
   if (state) {
     state.answered = true;
     state.selected = selectedOption;
@@ -2058,45 +2048,44 @@ function handleParsedQuizClick(btn, qId) {
   const resultDiv = document.getElementById(`pq-result-${qId}`);
   const nav = document.getElementById(`nav-pq-${qId}`);
 
-  // 정답이 있으면 채점
+  // ?뺣떟???덉쑝硫?梨꾩젏
   if (correctAnswer) {
     const isCorrect = selectedOption === correctAnswer;
 
     options.forEach(opt => {
       opt.disabled = true;
       if (opt.dataset.option === correctAnswer) {
-        opt.classList.add("correct");  // 정답은 항상 녹색
+        opt.classList.add("correct");  // ?뺣떟? ??긽 ?뱀깋
       }
       if (opt.dataset.option === selectedOption && !isCorrect) {
-        opt.classList.add("wrong");  // 오답이면 빨간색
-      }
+        opt.classList.add("wrong");  // ?ㅻ떟?대㈃ 鍮④컙??      }
       if (opt.dataset.option === selectedOption && isCorrect) {
         opt.classList.add("correct");
       }
     });
 
     if (isCorrect) {
-      resultDiv.innerHTML = `<span style="color: var(--green);">✅ 정답! (${selectedOption}번)</span>`;
+      resultDiv.innerHTML = `<span style="color: var(--green);">???뺣떟! (${selectedOption}踰?</span>`;
       if (nav) {
         nav.classList.remove("pending");
         nav.classList.add("correct");
       }
     } else {
-      resultDiv.innerHTML = `<span style="color: var(--red);">❌ 오답! 정답은 ${correctAnswer}번</span>`;
+      resultDiv.innerHTML = `<span style="color: var(--red);">???ㅻ떟! ?뺣떟? ${correctAnswer}踰?/span>`;
       if (nav) {
         nav.classList.remove("pending");
         nav.classList.add("wrong");
       }
     }
   } else {
-    // 정답 없으면 선택만 표시
+    // ?뺣떟 ?놁쑝硫??좏깮留??쒖떆
     options.forEach(opt => {
       opt.disabled = true;
       if (opt.dataset.option === selectedOption) {
         opt.classList.add("selected");
       }
     });
-    resultDiv.innerHTML = `<span style="color: var(--accent-2);">✓ ${selectedOption}번 선택됨</span>`;
+    resultDiv.innerHTML = `<span style="color: var(--accent-2);">??${selectedOption}踰??좏깮??/span>`;
     if (nav) {
       nav.classList.remove("pending");
       nav.classList.add("correct");
@@ -2106,21 +2095,21 @@ function handleParsedQuizClick(btn, qId) {
   updateParsedQuizScore();
 }
 
-// 단답형/빈칸 제출 핸들러 (AI 채점)
+// ?⑤떟??鍮덉뭏 ?쒖텧 ?몃뱾??(AI 梨꾩젏)
 async function handleShortAnswerSubmit(qId, answer) {
   const state = parsedQuizStates.find(s => s.qId === qId);
 
   if (state?.isCorrect) return;
 
   if (!answer.trim()) {
-    alert("답을 입력해주세요.");
+    alert("?듭쓣 ?낅젰?댁＜?몄슂.");
     return;
   }
 
   const textarea = document.getElementById(`pq-input-${qId}`);
   const resultDiv = document.getElementById(`pq-result-${qId}`);
 
-  resultDiv.innerHTML = `<span style="color: var(--accent-2);">AI가 채점 중...</span>`;
+  resultDiv.innerHTML = `<span style="color: var(--accent-2);">AI媛 梨꾩젏 以?..</span>`;
 
   try {
     const questionCard = document.getElementById(`pq-${qId}`);
@@ -2155,7 +2144,7 @@ async function handleShortAnswerSubmit(qId, answer) {
         textarea.style.borderColor = "var(--green)";
         textarea.disabled = false;
       }
-      resultDiv.innerHTML = `<span class="mc-correct">정답! ${gradedBy === "exact" ? "정확히 일치합니다." : "AI가 인정했습니다."}</span>`;
+      resultDiv.innerHTML = `<span class="mc-correct">?뺣떟! ${gradedBy === "exact" ? "?뺥솗???쇱튂?⑸땲??" : "AI媛 ?몄젙?덉뒿?덈떎."}</span>`;
       LearningStats.recordAnswer(true);
       SoundEffects.play('correct');
     } else {
@@ -2164,7 +2153,7 @@ async function handleShortAnswerSubmit(qId, answer) {
         textarea.style.borderColor = "var(--red)";
         textarea.disabled = false;
       }
-      resultDiv.innerHTML = `<span class="mc-wrong">오답입니다. 다시 생각해보세요.</span>`;
+      resultDiv.innerHTML = `<span class="mc-wrong">?ㅻ떟?낅땲?? ?ㅼ떆 ?앷컖?대낫?몄슂.</span>`;
       LearningStats.recordAnswer(false);
       SoundEffects.play('wrong');
       if (state) state.answered = false;
@@ -2179,50 +2168,45 @@ async function handleShortAnswerSubmit(qId, answer) {
     updateParsedQuizScore();
 
   } catch (err) {
-    resultDiv.innerHTML = `<span class="mc-wrong">채점 오류: ${err.message}</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">梨꾩젏 ?ㅻ쪟: ${err.message}</span>`;
   }
 }
 
-// 단답형 AI 채점 (매우 엄격)
+// ?⑤떟??AI 梨꾩젏 (留ㅼ슦 ?꾧꺽)
 async function checkShortAnswerWithAI(question, code, userAnswer) {
-  const prompt = `당신은 매우 엄격한 프로그래밍 시험 채점관입니다. 학생들의 점수를 후하게 주지 않습니다.
+  const prompt = `?뱀떊? 留ㅼ슦 ?꾧꺽???꾨줈洹몃옒諛??쒗뿕 梨꾩젏愿?낅땲?? ?숈깮?ㅼ쓽 ?먯닔瑜??꾪븯寃?二쇱? ?딆뒿?덈떎.
 
-## 문제
+## 臾몄젣
 ${question}
 
-${code ? `## 관련 코드\n\`\`\`\n${code}\n\`\`\`` : ''}
+${code ? `## 愿??肄붾뱶\n\`\`\`\n${code}\n\`\`\`` : ''}
 
-## 학생의 답
-"${userAnswer}"
+## ?숈깮????"${userAnswer}"
 
-## 채점 기준 (매우 엄격)
-1. 정확한 값이나 결과여야 함
-2. 대략적인 답이나 설명은 오답
-3. 숫자 문제는 정확한 숫자여야 함
-4. 출력 결과 문제는 정확한 출력이어야 함
-5. 의미없는 답이나 임의의 답은 무조건 오답
-6. 확신이 없으면 오답으로 처리
+## 梨꾩젏 湲곗? (留ㅼ슦 ?꾧꺽)
+1. ?뺥솗??媛믪씠??寃곌낵?ъ빞 ??2. ??듭쟻???듭씠???ㅻ챸? ?ㅻ떟
+3. ?レ옄 臾몄젣???뺥솗???レ옄?ъ빞 ??4. 異쒕젰 寃곌낵 臾몄젣???뺥솗??異쒕젰?댁뼱????5. ?섎??녿뒗 ?듭씠???꾩쓽???듭? 臾댁“嫄??ㅻ떟
+6. ?뺤떊???놁쑝硫??ㅻ떟?쇰줈 泥섎━
 
-## 응답 (한 단어만)
-- 100% 확실히 정답이면: CORRECT
-- 그 외 모든 경우: WRONG`;
+## ?묐떟 (???⑥뼱留?
+- 100% ?뺤떎???뺣떟?대㈃: CORRECT
+- 洹???紐⑤뱺 寃쎌슦: WRONG`;
 
   try {
     const response = await callGeminiAPI(prompt, "You are an extremely strict exam grader. When in doubt, mark as WRONG.");
     const upperResponse = response.toUpperCase().trim();
-    // "CORRECT"가 명확히 있고 "WRONG"이 없을 때만 정답
+    // "CORRECT"媛 紐낇솗???덇퀬 "WRONG"???놁쓣 ?뚮쭔 ?뺣떟
     if (upperResponse.includes("CORRECT") && !upperResponse.includes("WRONG")) {
       return true;
     }
-    return false; // 기본값은 오답
+    return false; // 湲곕낯媛믪? ?ㅻ떟
   } catch (err) {
-    console.error("AI 채점 오류:", err);
-    return false; // API 실패 시 오답
+    console.error("AI 梨꾩젏 ?ㅻ쪟:", err);
+    return false; // API ?ㅽ뙣 ???ㅻ떟
   }
 }
 
-// 단답형 다시 풀기
-function resetShortAnswer(qId) {
+// ?⑤떟???ㅼ떆 ?湲?function resetShortAnswer(qId) {
   const state = parsedQuizStates.find(s => s.qId === qId);
   if (!state) return;
 
@@ -2230,13 +2214,11 @@ function resetShortAnswer(qId) {
   const resultDiv = document.getElementById(`pq-result-${qId}`);
   const nav = document.getElementById(`nav-pq-${qId}`);
 
-  // 상태 초기화
-  state.answered = false;
+  // ?곹깭 珥덇린??  state.answered = false;
   state.isCorrect = null;
   state.userAnswer = "";
 
-  // UI 초기화
-  if (textarea) {
+  // UI 珥덇린??  if (textarea) {
     textarea.value = "";
     textarea.disabled = false;
     textarea.style.background = "rgba(255,255,255,0.05)";
@@ -2256,40 +2238,40 @@ function resetShortAnswer(qId) {
   updateParsedQuizScore();
 }
 
-// AI 정답 보기
+// AI ?뺣떟 蹂닿린
 async function showShortAnswerWithAI(qId, question, code) {
   const resultDiv = document.getElementById(`pq-result-${qId}`);
   const state = parsedQuizStates.find(s => s.qId === qId);
 
-  resultDiv.innerHTML = `<span style="color: var(--accent-2);">🤔 AI가 정답을 분석 중...</span>`;
+  resultDiv.innerHTML = `<span style="color: var(--accent-2);">?쨺 AI媛 ?뺣떟??遺꾩꽍 以?..</span>`;
 
-  const prompt = `당신은 프로그래밍 문제 해설자입니다.
+  const prompt = `?뱀떊? ?꾨줈洹몃옒諛?臾몄젣 ?댁꽕?먯엯?덈떎.
 
-## 문제
+## 臾몄젣
 ${question}
 
-${code ? `## 코드\n\`\`\`\n${code}\n\`\`\`` : ''}
+${code ? `## 肄붾뱶\n\`\`\`\n${code}\n\`\`\`` : ''}
 
-이 문제의 정답과 간단한 해설을 알려주세요.
-- 정답을 먼저 명확하게 제시
-- 왜 그 답인지 1-2줄로 설명
+??臾몄젣???뺣떟怨?媛꾨떒???댁꽕???뚮젮二쇱꽭??
+- ?뺣떟??癒쇱? 紐낇솗?섍쾶 ?쒖떆
+- ??洹??듭씤吏 1-2以꾨줈 ?ㅻ챸
 
-형식: "정답: [답] / 해설: [설명]"`;
+?뺤떇: "?뺣떟: [?? / ?댁꽕: [?ㅻ챸]"`;
 
   try {
     const response = await callGeminiAPI(prompt, "Provide the correct answer clearly.");
 
-    // 정답 표시
+    // ?뺣떟 ?쒖떆
     resultDiv.innerHTML = `
       <div style="background: rgba(102, 126, 234, 0.1); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; padding: 12px; margin-top: 8px;">
-        <div style="color: #667eea; font-weight: bold; margin-bottom: 6px;">💡 AI 정답</div>
+        <div style="color: #667eea; font-weight: bold; margin-bottom: 6px;">?뮕 AI ?뺣떟</div>
         <div style="color: var(--fg);">${escapeHtml(response)}</div>
       </div>`;
 
-    // 상태 업데이트 (정답 봄으로 표시)
+    // ?곹깭 ?낅뜲?댄듃 (?뺣떟 遊꾩쑝濡??쒖떆)
     if (state && !state.answered) {
       state.answered = true;
-      state.isCorrect = false; // 정답을 봤으므로 틀린 것으로 처리
+      state.isCorrect = false; // ?뺣떟??遊ㅼ쑝誘濡??由?寃껋쑝濡?泥섎━
     }
 
     const nav = document.getElementById(`nav-pq-${qId}`);
@@ -2301,7 +2283,7 @@ ${code ? `## 코드\n\`\`\`\n${code}\n\`\`\`` : ''}
     updateParsedQuizScore();
 
   } catch (err) {
-    resultDiv.innerHTML = `<span class="mc-wrong">❌ AI 오류: ${err.message}</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">??AI ?ㅻ쪟: ${err.message}</span>`;
   }
 }
 
@@ -2311,8 +2293,8 @@ function renderParsedQuizNav() {
     const btn = document.createElement("div");
     btn.className = "blank-pill pending";
     btn.id = `nav-pq-${s.qId}`;
-    btn.textContent = `${idx + 1}`;  // 순차 번호 (1, 2, 3...)
-    btn.title = `[Q${s.qId}] ${s.displayNum}번`;  // 툴팁에 전역 ID + 원본 번호
+    btn.textContent = `${idx + 1}`;  // ?쒖감 踰덊샇 (1, 2, 3...)
+    btn.title = `[Q${s.qId}] ${s.displayNum}踰?;  // ?댄똻???꾩뿭 ID + ?먮낯 踰덊샇
     btn.addEventListener("click", () => {
       const target = document.getElementById(`pq-${s.qId}`);
       if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2327,14 +2309,14 @@ function updateParsedQuizScore() {
   const correct = parsedQuizStates.filter(s => s.isCorrect === true).length;
   const wrong = parsedQuizStates.filter(s => s.answered && s.isCorrect === false && s.correctAnswer).length;
 
-  // 채점 가능한 문제가 있으면 점수 표시
+  // 梨꾩젏 媛?ν븳 臾몄젣媛 ?덉쑝硫??먯닔 ?쒖떆
   const hasGradedQuestions = parsedQuizStates.some(s => s.correctAnswer);
 
   if (hasGradedQuestions && answered > 0) {
-    sessionScore.textContent = `✅${correct} ❌${wrong} / ${total}`;
+    sessionScore.textContent = `??{correct} ??{wrong} / ${total}`;
     sessionScore.style.color = correct > wrong ? "var(--green)" : "var(--red)";
   } else {
-    sessionScore.textContent = `${answered} / ${total} 완료`;
+    sessionScore.textContent = `${answered} / ${total} ?꾨즺`;
     sessionScore.style.color = "";
   }
 
@@ -2344,17 +2326,17 @@ function updateParsedQuizScore() {
   if (reviewBadge) {
     if (answered === total && hasGradedQuestions) {
       const percentage = Math.round((correct / total) * 100);
-      reviewBadge.textContent = `최종 점수: ${correct}/${total} (${percentage}%)`;
+      reviewBadge.textContent = `理쒖쥌 ?먯닔: ${correct}/${total} (${percentage}%)`;
       reviewBadge.style.color = percentage >= 60 ? "var(--green)" : "var(--red)";
     } else if (answered === total) {
-      reviewBadge.textContent = "모두 완료!";
+      reviewBadge.textContent = "紐⑤몢 ?꾨즺!";
     } else {
-      reviewBadge.textContent = `남은 문제 ${total - answered}개`;
+      reviewBadge.textContent = `?⑥? 臾몄젣 ${total - answered}媛?;
     }
   }
 }
 
-// ========== MULTIPLE CHOICE (코드 생성) ==========
+// ========== MULTIPLE CHOICE (肄붾뱶 ?앹꽦) ==========
 function renderMultipleChoiceNew(questions, answerKey, language) {
   codeArea.innerHTML = "";
   blankList.innerHTML = "";
@@ -2372,13 +2354,13 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
     cardDiv.className = "mc-question";
     cardDiv.id = `mc-${qNum}`;
 
-    // 문제 헤더
+    // 臾몄젣 ?ㅻ뜑
     const headerDiv = document.createElement("div");
     headerDiv.className = "mc-header";
-    headerDiv.innerHTML = `<strong>[문제 ${qNum}]</strong> ${escapeHtml(q.text)}`;
+    headerDiv.innerHTML = `<strong>[臾몄젣 ${qNum}]</strong> ${escapeHtml(q.text)}`;
     cardDiv.appendChild(headerDiv);
 
-    // 코드 블록
+    // 肄붾뱶 釉붾줉
     if (q.code) {
       const codeDiv = document.createElement("pre");
       codeDiv.className = "mc-code";
@@ -2394,7 +2376,7 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
       cardDiv.appendChild(codeDiv);
     }
 
-    // 선지
+    // ?좎?
     const optionsDiv = document.createElement("div");
     optionsDiv.className = "mc-options";
 
@@ -2413,7 +2395,7 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
 
     cardDiv.appendChild(optionsDiv);
 
-    // 결과
+    // 寃곌낵
     const resultDiv = document.createElement("div");
     resultDiv.className = "mc-result";
     resultDiv.id = `mc-result-${qNum}`;
@@ -2437,8 +2419,7 @@ function renderMultipleChoiceNew(questions, answerKey, language) {
 }
 
 // ========== MULTIPLE CHOICE (Legacy) ==========
-let mcQuestions = []; // 객관식 문제 상태 저장
-
+let mcQuestions = []; // 媛앷???臾몄젣 ?곹깭 ???
 function renderMultipleChoice(questions, answerKey, language) {
   codeArea.innerHTML = "";
   blankList.innerHTML = "";
@@ -2453,25 +2434,25 @@ function renderMultipleChoice(questions, answerKey, language) {
     const correctAnswer = answerKey[String(questionNum)];
     const details = answerKey._details?.[String(questionNum)];
 
-    // 문제 컨테이너
+    // 臾몄젣 而⑦뀒?대꼫
     const questionDiv = document.createElement("div");
     questionDiv.className = "mc-question";
     questionDiv.id = `mc-${questionNum}`;
 
-    // 문제 파싱 (텍스트에서 코드와 선지 분리)
+    // 臾몄젣 ?뚯떛 (?띿뒪?몄뿉??肄붾뱶? ?좎? 遺꾨━)
     const parts = questionText.split(/```python\n/);
     const header = parts[0] || "";
     const rest = parts[1]?.split(/```\n/) || ["", ""];
     const codeBlock = rest[0] || "";
     const optionsText = rest[1] || "";
 
-    // 문제 헤더
+    // 臾몄젣 ?ㅻ뜑
     const headerDiv = document.createElement("div");
     headerDiv.className = "mc-header";
     headerDiv.innerHTML = escapeHtml(header.trim());
     questionDiv.appendChild(headerDiv);
 
-    // 코드 블록
+    // 肄붾뱶 釉붾줉
     if (codeBlock) {
       const codeDiv = document.createElement("pre");
       codeDiv.className = "mc-code";
@@ -2487,8 +2468,7 @@ function renderMultipleChoice(questions, answerKey, language) {
       questionDiv.appendChild(codeDiv);
     }
 
-    // 선지 파싱 및 렌더링
-    const optionsDiv = document.createElement("div");
+    // ?좎? ?뚯떛 諛??뚮뜑留?    const optionsDiv = document.createElement("div");
     optionsDiv.className = "mc-options";
 
     const optionLines = optionsText.trim().split("\n").filter(line => /^\s*\d+\./.test(line));
@@ -2514,7 +2494,7 @@ function renderMultipleChoice(questions, answerKey, language) {
 
     questionDiv.appendChild(optionsDiv);
 
-    // 결과 표시 영역
+    // 寃곌낵 ?쒖떆 ?곸뿭
     const resultDiv = document.createElement("div");
     resultDiv.className = "mc-result";
     resultDiv.id = `mc-result-${questionNum}`;
@@ -2522,8 +2502,7 @@ function renderMultipleChoice(questions, answerKey, language) {
 
     frag.appendChild(questionDiv);
 
-    // 상태 저장
-    mcQuestions.push({
+    // ?곹깭 ???    mcQuestions.push({
       questionNum,
       correctAnswer,
       answered: false,
@@ -2533,8 +2512,7 @@ function renderMultipleChoice(questions, answerKey, language) {
 
   codeArea.appendChild(frag);
 
-  // 빈칸 목록 대신 문제 목록 렌더링
-  renderMCNav();
+  // 鍮덉뭏 紐⑸줉 ???臾몄젣 紐⑸줉 ?뚮뜑留?  renderMCNav();
 
   sessionCount.textContent = questions.length;
   hasAnswers = true;
@@ -2546,19 +2524,19 @@ function handleMCClick(btn) {
   const selectedOption = btn.dataset.option;
   const correctOption = btn.dataset.correct;
 
-  // 이미 답한 문제면 무시
+  // ?대? ?듯븳 臾몄젣硫?臾댁떆
   const questionState = mcQuestions.find(q => q.questionNum === questionNum);
   if (questionState?.answered) return;
 
   const isCorrect = selectedOption === correctOption;
 
-  // 상태 업데이트
+  // ?곹깭 ?낅뜲?댄듃
   if (questionState) {
     questionState.answered = true;
     questionState.isCorrect = isCorrect;
   }
 
-  // UI 업데이트
+  // UI ?낅뜲?댄듃
   const questionDiv = document.getElementById(`mc-${questionNum}`);
   const options = questionDiv.querySelectorAll(".mc-option");
 
@@ -2572,15 +2550,15 @@ function handleMCClick(btn) {
     }
   });
 
-  // 결과 메시지
+  // 寃곌낵 硫붿떆吏
   const resultDiv = document.getElementById(`mc-result-${questionNum}`);
   if (isCorrect) {
-    resultDiv.innerHTML = `<span class="mc-correct">✓ 정답입니다!</span>`;
+    resultDiv.innerHTML = `<span class="mc-correct">???뺣떟?낅땲??</span>`;
   } else {
-    resultDiv.innerHTML = `<span class="mc-wrong">✗ 오답입니다. 정답: ${correctOption}번</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">???ㅻ떟?낅땲?? ?뺣떟: ${correctOption}踰?/span>`;
   }
 
-  // 네비게이션 업데이트
+  // ?ㅻ퉬寃뚯씠???낅뜲?댄듃
   const nav = document.getElementById(`nav-mc-${questionNum}`);
   if (nav) {
     nav.classList.remove("pending");
@@ -2616,9 +2594,9 @@ function updateMCScore() {
 
   if (reviewBadge) {
     if (answered === total) {
-      reviewBadge.textContent = `완료! ${correct}/${total}`;
+      reviewBadge.textContent = `?꾨즺! ${correct}/${total}`;
     } else {
-      reviewBadge.textContent = `진행 중 ${answered}/${total}`;
+      reviewBadge.textContent = `吏꾪뻾 以?${answered}/${total}`;
     }
   }
 }
@@ -2643,18 +2621,17 @@ function renderBlankCards(blanks, answerKey, language) {
     cardDiv.className = "blank-card";
     cardDiv.id = `blank-card-${cardNum}`;
 
-    // 헤더
+    // ?ㅻ뜑
     const headerDiv = document.createElement("div");
     headerDiv.className = "blank-card-header";
     headerDiv.innerHTML = `<span class="blank-card-num">#${cardNum}</span> <span class="blank-card-line">Line ${blank.line_num}</span>`;
     cardDiv.appendChild(headerDiv);
 
-    // 코드 컨텍스트
+    // 肄붾뱶 而⑦뀓?ㅽ듃
     const codeDiv = document.createElement("pre");
     codeDiv.className = "blank-card-code";
 
-    // 코드에서 _____ 를 input으로 변환
-    let codeHtml = blank.context;
+    // 肄붾뱶?먯꽌 _____ 瑜?input?쇰줈 蹂??    let codeHtml = blank.context;
     if (window.hljs && language) {
       try {
         codeHtml = window.hljs.highlight(blank.context, { language, ignoreIllegals: true }).value;
@@ -2665,25 +2642,24 @@ function renderBlankCards(blanks, answerKey, language) {
       codeHtml = escapeHtml(blank.context);
     }
 
-    // _____ 를 input으로 변환
-    codeHtml = codeHtml.replace(/_____/g,
-      `<input type="text" class="blank-card-input" data-key="${cardNum}" data-answer="${escapeHtml(answer)}" placeholder="정답 입력">`
+    // _____ 瑜?input?쇰줈 蹂??    codeHtml = codeHtml.replace(/_____/g,
+      `<input type="text" class="blank-card-input" data-key="${cardNum}" data-answer="${escapeHtml(answer)}" placeholder="?뺣떟 ?낅젰">`
     );
 
     codeDiv.innerHTML = codeHtml;
     cardDiv.appendChild(codeDiv);
 
-    // 결과 표시
+    // 寃곌낵 ?쒖떆
     const resultDiv = document.createElement("div");
     resultDiv.className = "blank-card-result";
     resultDiv.id = `blank-result-${cardNum}`;
     cardDiv.appendChild(resultDiv);
 
-    // 도움말 버튼
+    // ?꾩?留?踰꾪듉
     const helpBtn = document.createElement("button");
     helpBtn.className = "help-btn blank-card-help";
     helpBtn.textContent = "?";
-    helpBtn.title = "이 빈칸 설명";
+    helpBtn.title = "??鍮덉뭏 ?ㅻ챸";
     helpBtn.addEventListener("click", () => explainBlank(String(cardNum)));
     cardDiv.appendChild(helpBtn);
 
@@ -2699,8 +2675,7 @@ function renderBlankCards(blanks, answerKey, language) {
 
   codeArea.appendChild(frag);
 
-  // input에 이벤트 바인딩
-  const allInputs = codeArea.querySelectorAll(".blank-card-input");
+  // input???대깽??諛붿씤??  const allInputs = codeArea.querySelectorAll(".blank-card-input");
   inputs = Array.from(allInputs);
 
   inputs.forEach((input) => {
@@ -2733,21 +2708,21 @@ function handleBlankCardEnter(input) {
     state.isCorrect = isCorrect;
   }
 
-  // UI 업데이트
+  // UI ?낅뜲?댄듃
   input.disabled = true;
   input.classList.add(isCorrect ? "correct" : "wrong");
 
   const resultDiv = document.getElementById(`blank-result-${cardNum}`);
   if (isCorrect) {
-    resultDiv.innerHTML = `<span class="mc-correct">✓ 정답!</span>`;
+    resultDiv.innerHTML = `<span class="mc-correct">???뺣떟!</span>`;
   } else {
     input.value = expected;
     input.classList.remove("wrong");
     input.classList.add("revealed");
-    resultDiv.innerHTML = `<span class="mc-wrong">✗ 오답 → 정답: ${expected}</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">???ㅻ떟 ???뺣떟: ${expected}</span>`;
   }
 
-  // 네비게이션 업데이트
+  // ?ㅻ퉬寃뚯씠???낅뜲?댄듃
   const nav = document.getElementById(`nav-blank-${cardNum}`);
   if (nav) {
     nav.classList.remove("pending");
@@ -2756,8 +2731,7 @@ function handleBlankCardEnter(input) {
 
   updateBlankCardScore();
 
-  // 다음 입력으로 포커스
-  const nextInput = inputs.find(inp => !inp.disabled);
+  // ?ㅼ쓬 ?낅젰?쇰줈 ?ъ빱??  const nextInput = inputs.find(inp => !inp.disabled);
   if (nextInput) nextInput.focus();
 }
 
@@ -2790,9 +2764,9 @@ function updateBlankCardScore() {
   if (reviewBadge) {
     const remaining = total - answered;
     if (remaining === 0) {
-      reviewBadge.textContent = `완료! ${correct}/${total}`;
+      reviewBadge.textContent = `?꾨즺! ${correct}/${total}`;
     } else {
-      reviewBadge.textContent = `남은 문제 ${remaining}개`;
+      reviewBadge.textContent = `?⑥? 臾몄젣 ${remaining}媛?;
     }
   }
 }
@@ -2817,13 +2791,13 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     cardDiv.className = "challenge-card";
     cardDiv.id = `challenge-${challengeNum}`;
 
-    // 헤더
+    // ?ㅻ뜑
     const headerDiv = document.createElement("div");
     headerDiv.className = "challenge-header";
-    headerDiv.innerHTML = `<span class="challenge-num">챌린지 ${challengeNum}</span>`;
+    headerDiv.innerHTML = `<span class="challenge-num">梨뚮┛吏 ${challengeNum}</span>`;
     cardDiv.appendChild(headerDiv);
 
-    // 함수 시그니처
+    // ?⑥닔 ?쒓렇?덉쿂
     const sigDiv = document.createElement("pre");
     sigDiv.className = "challenge-signature";
     if (window.hljs && language) {
@@ -2837,24 +2811,24 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     }
     cardDiv.appendChild(sigDiv);
 
-    // 힌트
+    // ?뚰듃
     const hintDiv = document.createElement("div");
     hintDiv.className = "challenge-hint";
-    hintDiv.textContent = "↓ 아래에 함수 본문을 구현하세요";
+    hintDiv.textContent = "???꾨옒???⑥닔 蹂몃Ц??援ы쁽?섏꽭??;
     cardDiv.appendChild(hintDiv);
 
-    // 입력 영역
+    // ?낅젰 ?곸뿭
     const textarea = document.createElement("textarea");
     textarea.className = "challenge-input";
     textarea.dataset.key = String(challengeNum);
     textarea.dataset.answer = answer;
-    textarea.placeholder = "    # 여기에 코드 구현...";
+    textarea.placeholder = "    # ?ш린??肄붾뱶 援ы쁽...";
     textarea.rows = 8;
     textarea.spellcheck = false;
 
-    // Python 자동 들여쓰기 및 Enter 키 채점
+    // Python ?먮룞 ?ㅼ뿬?곌린 諛?Enter ??梨꾩젏
     textarea.addEventListener("keydown", (e) => {
-      // Tab 키: 들여쓰기 추가
+      // Tab ?? ?ㅼ뿬?곌린 異붽?
       if (e.key === "Tab" && !e.shiftKey) {
         e.preventDefault();
         const start = textarea.selectionStart;
@@ -2865,7 +2839,7 @@ function renderImplementationChallenge(challenges, answerKey, language) {
         return;
       }
 
-      // Shift+Tab: 들여쓰기 제거
+      // Shift+Tab: ?ㅼ뿬?곌린 ?쒓굅
       if (e.key === "Tab" && e.shiftKey) {
         e.preventDefault();
         const start = textarea.selectionStart;
@@ -2879,17 +2853,17 @@ function renderImplementationChallenge(challenges, answerKey, language) {
         return;
       }
 
-      // ===== Enter 키: 자동 들여쓰기 + 채점 단축키 =====
-      // VSCode 스타일: 빈 줄에서 엔터 = 들여쓰기 한 단계 취소
+      // ===== Enter ?? ?먮룞 ?ㅼ뿬?곌린 + 梨꾩젏 ?⑥텞??=====
+      // VSCode ?ㅽ??? 鍮?以꾩뿉???뷀꽣 = ?ㅼ뿬?곌린 ???④퀎 痍⑥냼
       if (e.key === "Enter") {
-        // Shift+Enter: 개별 채점 (Mode3 전용)
+        // Shift+Enter: 媛쒕퀎 梨꾩젏 (Mode3 ?꾩슜)
         if (e.shiftKey) {
           e.preventDefault();
           handleChallengeCheck(challengeNum);
           return;
         }
 
-        // Ctrl+Enter는 전체 채점용으로 전파
+        // Ctrl+Enter???꾩껜 梨꾩젏?⑹쑝濡??꾪뙆
         if (e.ctrlKey || e.metaKey) {
           return;
         }
@@ -2900,21 +2874,21 @@ function renderImplementationChallenge(challenges, answerKey, language) {
         const lineStart = value.lastIndexOf("\n", start - 1) + 1;
         const currentLine = value.substring(lineStart, start);
 
-        // 현재 줄의 들여쓰기 추출
+        // ?꾩옱 以꾩쓽 ?ㅼ뿬?곌린 異붿텧
         const indentMatch = currentLine.match(/^(\s*)/);
         let indent = indentMatch ? indentMatch[1] : "";
 
-        // ★ VSCode 스타일: 현재 줄이 공백만 있으면 (빈 줄) 들여쓰기 한 단계 취소
+        // ??VSCode ?ㅽ??? ?꾩옱 以꾩씠 怨듬갚留??덉쑝硫?(鍮?以? ?ㅼ뿬?곌린 ???④퀎 痍⑥냼
         if (currentLine.trim() === "" && indent.length >= 4) {
-          // 이전 줄의 공백을 4칸 줄이기 (들여쓰기 취소)
+          // ?댁쟾 以꾩쓽 怨듬갚??4移?以꾩씠湲?(?ㅼ뿬?곌린 痍⑥냼)
           const newIndent = indent.substring(4);
-          // 현재 줄 내용을 새 들여쓰기로 교체
+          // ?꾩옱 以??댁슜?????ㅼ뿬?곌린濡?援먯껜
           textarea.value = value.substring(0, lineStart) + newIndent + "\n" + newIndent + value.substring(start);
           textarea.selectionStart = textarea.selectionEnd = lineStart + newIndent.length + 1 + newIndent.length;
           return;
         }
 
-        // : 로 끝나면 추가 들여쓰기 (def, if, for, while, class, try, except 등)
+        // : 濡??앸굹硫?異붽? ?ㅼ뿬?곌린 (def, if, for, while, class, try, except ??
         if (currentLine.trim().endsWith(":")) {
           indent += "    ";
         }
@@ -2927,34 +2901,34 @@ function renderImplementationChallenge(challenges, answerKey, language) {
 
     cardDiv.appendChild(textarea);
 
-    // 버튼 영역
+    // 踰꾪듉 ?곸뿭
     const btnDiv = document.createElement("div");
     btnDiv.className = "challenge-actions";
 
     const checkBtn = document.createElement("button");
     checkBtn.className = "challenge-check-btn";
-    checkBtn.textContent = "✓ AI 채점";
+    checkBtn.textContent = "??AI 梨꾩젏";
     checkBtn.addEventListener("click", () => handleChallengeCheck(challengeNum));
 
     const showBtn = document.createElement("button");
     showBtn.className = "challenge-show-btn";
-    showBtn.textContent = "정답 보기";
+    showBtn.textContent = "?뺣떟 蹂닿린";
     showBtn.addEventListener("click", () => handleChallengeShow(challengeNum));
 
     const resetBtn = document.createElement("button");
     resetBtn.className = "challenge-reset-btn";
-    resetBtn.textContent = "🔄 다시 풀기";
+    resetBtn.textContent = "?봽 ?ㅼ떆 ?湲?;
     resetBtn.addEventListener("click", () => handleChallengeReset(challengeNum));
 
     const helpBtn = document.createElement("button");
     helpBtn.className = "help-btn";
     helpBtn.textContent = "?";
-    helpBtn.title = "AI가 정답과 이유를 코드와 함께 설명합니다.";
+    helpBtn.title = "AI媛 ?뺣떟怨??댁쑀瑜?肄붾뱶? ?④퍡 ?ㅻ챸?⑸땲??";
     helpBtn.addEventListener("click", () => explainBlank(String(challengeNum)));
 
     const whyWrongBtn = document.createElement("button");
     whyWrongBtn.className = "why-wrong-btn";
-    whyWrongBtn.textContent = "❓ 왜 틀렸나요?";
+    whyWrongBtn.textContent = "??????몃굹??";
     whyWrongBtn.style.cssText = "background: linear-gradient(135deg, #ff6b6b, #ee5a5a); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;";
     whyWrongBtn.addEventListener("click", () => explainWhyWrong(challengeNum, 'challenge'));
 
@@ -2965,7 +2939,7 @@ function renderImplementationChallenge(challenges, answerKey, language) {
     btnDiv.appendChild(whyWrongBtn);
     cardDiv.appendChild(btnDiv);
 
-    // 결과
+    // 寃곌낵
     const resultDiv = document.createElement("div");
     resultDiv.className = "challenge-result";
     resultDiv.id = `challenge-result-${challengeNum}`;
@@ -2998,45 +2972,42 @@ async function handleChallengeCheck(num) {
 
   const userAnswer = textarea.value.trim();
 
-  // 빈 답안 체크
+  // 鍮??듭븞 泥댄겕
   if (!userAnswer) {
-    resultDiv.innerHTML = `<span class="mc-wrong">✗ 코드를 입력해주세요</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">??肄붾뱶瑜??낅젰?댁＜?몄슂</span>`;
     return;
   }
 
-  // 이미 오답으로 표시된 상태에서 다시 확인 버튼 → 정답 표시
+  // ?대? ?ㅻ떟?쇰줈 ?쒖떆???곹깭?먯꽌 ?ㅼ떆 ?뺤씤 踰꾪듉 ???뺣떟 ?쒖떆
   if (textarea.classList.contains("wrong") && !textarea.classList.contains("revealed")) {
     handleChallengeShow(num);
     return;
   }
 
-  // 이미 채점 완료된 상태면 무시
+  // ?대? 梨꾩젏 ?꾨즺???곹깭硫?臾댁떆
   if (textarea.classList.contains("correct") || textarea.classList.contains("revealed")) {
     return;
   }
 
-  // AI 채점 시작
-  resultDiv.innerHTML = `<span class="definition-loading">🔍 코드 비교 중...</span>`;
+  // AI 梨꾩젏 ?쒖옉
+  resultDiv.innerHTML = `<span class="definition-loading">?뵇 肄붾뱶 鍮꾧탳 以?..</span>`;
 
   const expected = state.answer.trim();
   const signature = state.signature || "";
 
   try {
-    // 띄어쓰기만 무시하고 정확히 비교 (AI 없이 로컬 비교)
-    // - 모든 공백(스페이스, 탭, 줄바꿈 연속)을 단일 공백으로
-    // - 주석은 제거
-    // - 나머지는 정확히 일치해야 함
-    const normalize = (s) => {
-      // 줄바꿈/탭/여러 공백 차이를 모두 흡수해 비교한다.
+    // ?꾩뼱?곌린留?臾댁떆?섍퀬 ?뺥솗??鍮꾧탳 (AI ?놁씠 濡쒖뺄 鍮꾧탳)
+    // - 紐⑤뱺 怨듬갚(?ㅽ럹?댁뒪, ?? 以꾨컮轅??곗냽)???⑥씪 怨듬갚?쇰줈
+    // - 二쇱꽍? ?쒓굅
+    // - ?섎㉧吏???뺥솗???쇱튂?댁빞 ??    const normalize = (s) => {
+      // 以꾨컮轅????щ윭 怨듬갚 李⑥씠瑜?紐⑤몢 ?≪닔??鍮꾧탳?쒕떎.
       return s
-        .replace(/\r\n?/g, "\n")            // CRLF → LF
-        .replace(/\t/g, "    ")            // 탭 → 공백 4칸
-        .split("\n")
-        .map(line => line.replace(/#.*$/, "").trim()) // 주석 제거 + 양끝 공백 제거
-        .filter(line => line.length)       // 빈 줄 제거
+        .replace(/\r\n?/g, "\n")            // CRLF ??LF
+        .replace(/\t/g, "    ")            // ????怨듬갚 4移?        .split("\n")
+        .map(line => line.replace(/#.*$/, "").trim()) // 二쇱꽍 ?쒓굅 + ?묐걹 怨듬갚 ?쒓굅
+        .filter(line => line.length)       // 鍮?以??쒓굅
         .join("\n")
-        .replace(/\s+/g, " ")              // 연속 공백 하나로
-        .trim();
+        .replace(/\s+/g, " ")              // ?곗냽 怨듬갚 ?섎굹濡?        .trim();
     };
 
     const normalizedUser = normalize(userAnswer);
@@ -3045,21 +3016,21 @@ async function handleChallengeCheck(num) {
 
     let feedback = '';
     if (isCorrect) {
-      feedback = '정답입니다! 코드가 정확히 일치합니다.';
+      feedback = '?뺣떟?낅땲?? 肄붾뱶媛 ?뺥솗???쇱튂?⑸땲??';
     } else {
-      // 어디가 다른지 힌트 제공
+      // ?대뵒媛 ?ㅻⅨ吏 ?뚰듃 ?쒓났
       const userTokens = normalizedUser.split(' ');
       const expectedTokens = normalizedExpected.split(' ');
       let diffHint = '';
       for (let i = 0; i < Math.max(userTokens.length, expectedTokens.length); i++) {
         if (userTokens[i] !== expectedTokens[i]) {
-          const yourPart = userTokens[i] || '(없음)';
-          const correctPart = expectedTokens[i] || '(없음)';
-          diffHint = `[${yourPart}] → [${correctPart}]`;
+          const yourPart = userTokens[i] || '(?놁쓬)';
+          const correctPart = expectedTokens[i] || '(?놁쓬)';
+          diffHint = `[${yourPart}] ??[${correctPart}]`;
           break;
         }
       }
-      feedback = diffHint ? `첫 번째 차이: ${diffHint}` : '코드 내용이 다릅니다. 변수명/함수명을 확인하세요.';
+      feedback = diffHint ? `泥?踰덉㎏ 李⑥씠: ${diffHint}` : '肄붾뱶 ?댁슜???ㅻ쫭?덈떎. 蹂?섎챸/?⑥닔紐낆쓣 ?뺤씤?섏꽭??';
     }
 
     const result = { correct: isCorrect, feedback };
@@ -3067,10 +3038,10 @@ async function handleChallengeCheck(num) {
     finishChallengeCheck(num, result.correct, result.feedback);
 
   } catch (err) {
-    // API 오류 시 단순 비교로 폴백
+    // API ?ㅻ쪟 ???⑥닚 鍮꾧탳濡??대갚
     const normalize = (s) => s.replace(/\s+/g, ' ').replace(/\s*#.*$/gm, '').trim();
     const isCorrect = normalize(userAnswer) === normalize(expected);
-    finishChallengeCheck(num, isCorrect, `${isCorrect ? "정답!" : "다시 확인해보세요"} (AI 오류: ${err.message})`);
+    finishChallengeCheck(num, isCorrect, `${isCorrect ? "?뺣떟!" : "?ㅼ떆 ?뺤씤?대낫?몄슂"} (AI ?ㅻ쪟: ${err.message})`);
   }
 }
 
@@ -3089,18 +3060,18 @@ function finishChallengeCheck(num, isCorrect, feedback) {
     if (wasWrongBefore) {
       textarea.classList.add("retried");
       challengeReviewQueue.add(String(num));
-      resultDiv.innerHTML = `<span class="mc-correct">✓ 정답! (재도전 성공)</span>`;
+      resultDiv.innerHTML = `<span class="mc-correct">???뺣떟! (?щ룄???깃났)</span>`;
     } else {
       textarea.classList.add("correct");
       challengeReviewQueue.delete(String(num));
-      resultDiv.innerHTML = `<span class="mc-correct">✓ ${feedback}</span>`;
+      resultDiv.innerHTML = `<span class="mc-correct">??${feedback}</span>`;
     }
     SoundEffects.play("correct");
   } else {
     state.hasBeenWrong = true;
     textarea.classList.add("wrong");
     challengeReviewQueue.add(String(num));
-    resultDiv.innerHTML = `<span class="mc-wrong">✗ ${feedback}<br><small style="color: var(--muted);">다시 확인 버튼을 누르면 정답을 볼 수 있습니다</small></span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">??${feedback}<br><small style="color: var(--muted);">?ㅼ떆 ?뺤씤 踰꾪듉???꾨Ⅴ硫??뺣떟??蹂????덉뒿?덈떎</small></span>`;
     SoundEffects.play("wrong");
   }
 
@@ -3119,7 +3090,7 @@ function finishChallengeCheck(num, isCorrect, feedback) {
   updateChallengeScore();
 }
 
-// 왜 틀렸나요? AI 설명
+// ????몃굹?? AI ?ㅻ챸
 async function explainWhyWrong(num, mode) {
   let userAnswer = '';
   let correctAnswer = '';
@@ -3151,37 +3122,36 @@ async function explainWhyWrong(num, mode) {
 
   if (!resultDiv) return;
 
-  resultDiv.innerHTML = `<span style="color: var(--accent-2);">🤔 차이점 분석 중...</span>`;
+  resultDiv.innerHTML = `<span style="color: var(--accent-2);">?쨺 李⑥씠??遺꾩꽍 以?..</span>`;
 
-  const prompt = `사용자가 입력한 답과 정답을 비교해서 구체적으로 무엇이 다른지 알려주세요.
+  const prompt = `?ъ슜?먭? ?낅젰???듦낵 ?뺣떟??鍮꾧탳?댁꽌 援ъ껜?곸쑝濡?臾댁뾿???ㅻⅨ吏 ?뚮젮二쇱꽭??
 
-## 문제/질문
+## 臾몄젣/吏덈Ц
 ${question}
 
-## 사용자 입력
+## ?ъ슜???낅젰
 \`\`\`
 ${userAnswer}
 \`\`\`
 
-## 정답
+## ?뺣떟
 \`\`\`
 ${correctAnswer}
 \`\`\`
 
-## 요청
-1. 두 답의 차이점을 구체적으로 지적
-2. 어떤 부분이 틀렸는지 명확하게 설명
-3. 2-3줄 이내로 간결하게`;
+## ?붿껌
+1. ???듭쓽 李⑥씠?먯쓣 援ъ껜?곸쑝濡?吏??2. ?대뼡 遺遺꾩씠 ??몃뒗吏 紐낇솗?섍쾶 ?ㅻ챸
+3. 2-3以??대궡濡?媛꾧껐?섍쾶`;
 
   try {
-    const response = await callGeminiAPI(prompt, "차이점을 구체적이고 간결하게 설명하세요.");
+    const response = await callGeminiAPI(prompt, "李⑥씠?먯쓣 援ъ껜?곸씠怨?媛꾧껐?섍쾶 ?ㅻ챸?섏꽭??");
     resultDiv.innerHTML = `
       <div style="background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; padding: 12px; margin-top: 8px;">
-        <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 6px;">❓ 왜 틀렸나요?</div>
+        <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 6px;">??????몃굹??</div>
         <div style="color: var(--fg);">${escapeHtml(response)}</div>
       </div>`;
   } catch (err) {
-    resultDiv.innerHTML = `<span class="mc-wrong">❌ 분석 오류: ${err.message}</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">??遺꾩꽍 ?ㅻ쪟: ${err.message}</span>`;
   }
 }
 
@@ -3199,7 +3169,7 @@ function handleChallengeShow(num) {
   state.isCorrect = false;
 
   const resultDiv = document.getElementById(`challenge-result-${num}`);
-  resultDiv.innerHTML = `<span class="mc-wrong">정답이 표시되었습니다</span>`;
+  resultDiv.innerHTML = `<span class="mc-wrong">?뺣떟???쒖떆?섏뿀?듬땲??/span>`;
 
   const nav = document.getElementById(`nav-challenge-${num}`);
   if (nav) {
@@ -3215,7 +3185,7 @@ function handleChallengeReset(num) {
   const textarea = card.querySelector("textarea");
   const state = challengeStates.find(s => s.challengeNum === num);
 
-  // 상태 리셋
+  // ?곹깭 由ъ뀑
   textarea.value = "";
   textarea.disabled = false;
   textarea.classList.remove("correct", "wrong", "revealed", "retried");
@@ -3226,12 +3196,10 @@ function handleChallengeReset(num) {
   state.hasBeenWrong = false;
   challengeReviewQueue.delete(String(num));
 
-  // 결과 초기화
-  const resultDiv = document.getElementById(`challenge-result-${num}`);
+  // 寃곌낵 珥덇린??  const resultDiv = document.getElementById(`challenge-result-${num}`);
   resultDiv.innerHTML = "";
 
-  // 네비게이션 초기화
-  const nav = document.getElementById(`nav-challenge-${num}`);
+  // ?ㅻ퉬寃뚯씠??珥덇린??  const nav = document.getElementById(`nav-challenge-${num}`);
   if (nav) {
     nav.classList.remove("correct", "wrong", "revealed", "retried");
     nav.classList.add("pending");
@@ -3270,11 +3238,11 @@ function updateChallengeScore() {
   if (reviewBadge) {
     const reviewCount = wrong + retried;
     if (reviewCount) {
-      reviewBadge.textContent = `복습 ${reviewCount}개`;
+      reviewBadge.textContent = `蹂듭뒿 ${reviewCount}媛?;
     } else if (answered === total) {
-      reviewBadge.textContent = `완료! ${correct}/${total}`;
+      reviewBadge.textContent = `?꾨즺! ${correct}/${total}`;
     } else {
-      reviewBadge.textContent = `진행 중 ${answered}/${total}`;
+      reviewBadge.textContent = `吏꾪뻾 以?${answered}/${total}`;
     }
   }
   applyNavFilter();
@@ -3330,14 +3298,14 @@ function checkOne(input) {
 }
 
 function checkAll() {
-  // Mode 7 (영단어) 처리
+  // Mode 7 (?곷떒?? 泥섎━
   if (vocabStates && vocabStates.length > 0) {
     const unansweredIndices = vocabStates
       .filter(s => !s.answered && !s.needsAi)
       .map(s => s.wordNum);
 
     if (unansweredIndices.length === 0) {
-      alert('모든 영단어가 이미 채점되었습니다.');
+      alert('紐⑤뱺 ?곷떒?닿? ?대? 梨꾩젏?섏뿀?듬땲??');
       return;
     }
 
@@ -3345,18 +3313,18 @@ function checkAll() {
     return;
   }
 
-  // Mode 5 (정의 퀴즈) 처리
+  // Mode 5 (?뺤쓽 ?댁쫰) 泥섎━
   if (definitionStates && definitionStates.length > 0) {
     const unansweredIndices = definitionStates
       .filter(s => !s.answered)
       .map(s => s.defNum);
 
     if (unansweredIndices.length === 0) {
-      alert('모든 정의가 이미 채점되었습니다.');
+      alert('紐⑤뱺 ?뺤쓽媛 ?대? 梨꾩젏?섏뿀?듬땲??');
       return;
     }
 
-    // 순차적으로 각 정의 채점 (AI 사용 시)
+    // ?쒖감?곸쑝濡?媛??뺤쓽 梨꾩젏 (AI ?ъ슜 ??
     const checkNextDef = async (indices) => {
       if (indices.length === 0) {
         updateDefinitionScore();
@@ -3371,18 +3339,18 @@ function checkAll() {
     return;
   }
 
-  // Mode 3 (백지복습 / 챌린지 모드) 처리
+  // Mode 3 (諛깆?蹂듭뒿 / 梨뚮┛吏 紐⑤뱶) 泥섎━
   if (challengeStates.length > 0) {
     const unansweredIndices = challengeStates
       .filter(s => !s.answered)
       .map(s => s.challengeNum);
 
     if (unansweredIndices.length === 0) {
-      alert('모든 챌린지가 이미 채점되었습니다.');
+      alert('紐⑤뱺 梨뚮┛吏媛 ?대? 梨꾩젏?섏뿀?듬땲??');
       return;
     }
 
-    // 순차적으로 각 챌린지 채점 시작
+    // ?쒖감?곸쑝濡?媛?梨뚮┛吏 梨꾩젏 ?쒖옉
     const checkNextChallenge = async (indices) => {
       if (indices.length === 0) {
         updateChallengeScore();
@@ -3390,7 +3358,7 @@ function checkAll() {
       }
       const num = indices[0];
       await handleChallengeCheck(num);
-      // 약간의 딜레이 후 다음 채점 (API 과부하 방지)
+      // ?쎄컙???쒕젅?????ㅼ쓬 梨꾩젏 (API 怨쇰???諛⑹?)
       setTimeout(() => checkNextChallenge(indices.slice(1)), 500);
     };
 
@@ -3398,7 +3366,7 @@ function checkAll() {
     return;
   }
 
-  // 일반 빈칸 모드
+  // ?쇰컲 鍮덉뭏 紐⑤뱶
   inputs.forEach((input) => checkOne(input));
 }
 
@@ -3419,9 +3387,9 @@ function resetInputs() {
 
 function updateScore() {
   if (!hasAnswers) {
-    sessionScore.textContent = "정답 키 없음";
+    sessionScore.textContent = "?뺣떟 ???놁쓬";
     sessionProgress.style.width = "0%";
-    if (reviewBadge) reviewBadge.textContent = "정답 키 없음";
+    if (reviewBadge) reviewBadge.textContent = "?뺣떟 ???놁쓬";
     return;
   }
   let correct = 0;
@@ -3432,17 +3400,17 @@ function updateScore() {
   });
   sessionScore.textContent =
     `${correct} / ${inputs.length}` +
-    (reviewQueue.size ? ` (복습 ${reviewQueue.size})` : revealed ? ` (정답 표시 ${revealed})` : "");
+    (reviewQueue.size ? ` (蹂듭뒿 ${reviewQueue.size})` : revealed ? ` (?뺣떟 ?쒖떆 ${revealed})` : "");
   const ratio = inputs.length ? (correct / inputs.length) * 100 : 0;
   sessionProgress.style.width = `${ratio}%`;
   if (reviewBadge) {
     const pending = Math.max(inputs.length - correct - revealed, 0);
     if (reviewQueue.size) {
-      reviewBadge.textContent = `복습 ${reviewQueue.size}개`;
+      reviewBadge.textContent = `蹂듭뒿 ${reviewQueue.size}媛?;
     } else if (pending > 0) {
-      reviewBadge.textContent = `미채점 ${pending}개`;
+      reviewBadge.textContent = `誘몄콈??${pending}媛?;
     } else {
-      reviewBadge.textContent = "모든 빈칸 완료";
+      reviewBadge.textContent = "紐⑤뱺 鍮덉뭏 ?꾨즺";
     }
   }
   applyNavFilter();
@@ -3516,24 +3484,23 @@ function revealOne(input, { autoAdvance = true } = {}) {
 }
 
 function handleEnter(input) {
-  // 2단계 채점 시스템:
-  // 1단계: 정답/오답 표시만
-  // 2단계: 오답인 경우 정답 표시 (노란색)
+  // 2?④퀎 梨꾩젏 ?쒖뒪??
+  // 1?④퀎: ?뺣떟/?ㅻ떟 ?쒖떆留?  // 2?④퀎: ?ㅻ떟??寃쎌슦 ?뺣떟 ?쒖떆 (?몃???
 
-  // 이미 오답으로 표시된 상태에서 다시 Enter를 누르면 정답 표시
+  // ?대? ?ㅻ떟?쇰줈 ?쒖떆???곹깭?먯꽌 ?ㅼ떆 Enter瑜??꾨Ⅴ硫??뺣떟 ?쒖떆
   if (input.classList.contains("wrong") && !input.classList.contains("revealed")) {
-    // 2단계: 정답 표시 (노란색)
+    // 2?④퀎: ?뺣떟 ?쒖떆 (?몃???
     revealOne(input, { autoAdvance: true });
     return;
   }
 
-  // 이미 채점 완료된 상태면 다음으로 이동
+  // ?대? 梨꾩젏 ?꾨즺???곹깭硫??ㅼ쓬?쇰줈 ?대룞
   if (input.classList.contains("correct") || input.classList.contains("revealed")) {
     focusNext(input);
     return;
   }
 
-  // 1단계: 채점만 수행
+  // 1?④퀎: 梨꾩젏留??섑뻾
   const ok = checkOne(input);
   if (ok === null) {
     if (!warnedMissingAnswers && !hasAnswers) {
@@ -3544,14 +3511,14 @@ function handleEnter(input) {
   }
 
   if (!ok) {
-    // 오답: 빨간색만 표시 (정답은 아직 표시 안 함)
+    // ?ㅻ떟: 鍮④컙?됰쭔 ?쒖떆 (?뺣떟? ?꾩쭅 ?쒖떆 ????
     setState(input, "wrong");
     SoundEffects.play("wrong");
     LearningStats.recordAnswer(false);
     updateScore();
-    // 다음 Enter를 기다림 (자동 정답 표시 제거)
+    // ?ㅼ쓬 Enter瑜?湲곕떎由?(?먮룞 ?뺣떟 ?쒖떆 ?쒓굅)
   } else {
-    // 정답
+    // ?뺣떟
     SoundEffects.play("correct");
     LearningStats.recordAnswer(true);
     focusNext(input);
@@ -3559,21 +3526,21 @@ function handleEnter(input) {
 }
 
 function startReviewCycle() {
-  // 4번 모드(파싱된 객관식/단답) 우선 처리
+  // 4踰?紐⑤뱶(?뚯떛??媛앷????⑤떟) ?곗꽑 泥섎━
   if (parsedQuizStates.length > 0) {
     const reviewTargets = parsedQuizStates.filter(
       (s) => s.isCorrect === false || s.isCorrect === null || !s.answered
     );
 
     if (!reviewTargets.length) {
-      alert("복습할 문제가 없습니다. 먼저 틀린 문제나 미응답 문제를 만들어주세요.");
+      alert("蹂듭뒿??臾몄젣媛 ?놁뒿?덈떎. 癒쇱? ?由?臾몄젣??誘몄쓳??臾몄젣瑜?留뚮뱾?댁＜?몄슂.");
       return;
     }
 
-    // 큐 초기화 후 대상 추가
+    // ??珥덇린???????異붽?
     reviewQueue = new Set(reviewTargets.map((s) => String(s.qId)));
 
-    // UI/상태 리셋 + 비대상 카드 숨김
+    // UI/?곹깭 由ъ뀑 + 鍮꾨???移대뱶 ?④?
     parsedQuizStates.forEach((s) => {
       const isTarget = reviewQueue.has(String(s.qId));
       const card = document.getElementById(`pq-${s.qId}`);
@@ -3613,13 +3580,13 @@ function startReviewCycle() {
     return;
   }
 
-  // Mode 3 챌린지 (백지 연습)
+  // Mode 3 梨뚮┛吏 (諛깆? ?곗뒿)
   if (challengeStates.length > 0) {
     const reviewTargets = challengeStates.filter(
       (s) => s.isCorrect === false || !s.answered || s.hasBeenWrong
     );
     if (!reviewTargets.length) {
-      alert("복습할 문제가 없습니다. 먼저 틀린 문제나 미응답 문제를 만들어주세요.");
+      alert("蹂듭뒿??臾몄젣媛 ?놁뒿?덈떎. 癒쇱? ?由?臾몄젣??誘몄쓳??臾몄젣瑜?留뚮뱾?댁＜?몄슂.");
       return;
     }
     reviewQueue = new Set(reviewTargets.map((s) => String(s.challengeNum)));
@@ -3656,12 +3623,12 @@ function startReviewCycle() {
     return;
   }
 
-  // 정의 퀴즈 / 영단어 카드
+  // ?뺤쓽 ?댁쫰 / ?곷떒??移대뱶
   if (definitionStates.length > 0 || vocabStates.length > 0) {
     const defTargets = definitionStates.filter((s) => s.isCorrect === false || !s.answered);
     const vocabTargets = vocabStates.filter((s) => s.isCorrect === false || !s.answered);
     if (!defTargets.length && !vocabTargets.length) {
-      alert("복습할 카드가 없습니다.");
+      alert("蹂듭뒿??移대뱶媛 ?놁뒿?덈떎.");
       return;
     }
     reviewQueue = new Set([
@@ -3669,7 +3636,7 @@ function startReviewCycle() {
       ...vocabTargets.map((s) => `vocab-${s.wordNum}`)
     ]);
 
-    // 정의 카드
+    // ?뺤쓽 移대뱶
     definitionStates.forEach((s) => {
       const isTarget = reviewQueue.has(`definition-${s.defNum}`);
       const card = document.getElementById(`definition-${s.defNum}`);
@@ -3688,7 +3655,7 @@ function startReviewCycle() {
       }
     });
 
-    // 영단어 카드
+    // ?곷떒??移대뱶
     vocabStates.forEach((s) => {
       const isTarget = reviewQueue.has(`vocab-${s.wordNum}`);
       const card = document.getElementById(`vocab-${s.wordNum}`);
@@ -3713,7 +3680,7 @@ function startReviewCycle() {
     return;
   }
 
-  // 일반 빈칸 모드
+  // ?쇰컲 鍮덉뭏 紐⑤뱶
   const targets = inputs.filter(
     (inp) =>
       inp.classList.contains("wrong") ||
@@ -3721,14 +3688,14 @@ function startReviewCycle() {
       inp.classList.contains("retried")
   );
   if (!targets.length && !reviewQueue.size) {
-    alert("복습할 빈칸이 없습니다. 먼저 채점/정답을 확인해주세요.");
+    alert("蹂듭뒿??鍮덉뭏???놁뒿?덈떎. 癒쇱? 梨꾩젏/?뺣떟???뺤씤?댁＜?몄슂.");
     return;
   }
   reviewQueue = new Set(reviewQueue);
   targets.forEach((inp) => {
     reviewQueue.add(inp.dataset.key);
   });
-  // 대상 외 빈칸은 비활성/숨김, 대상은 리셋
+  // ?????鍮덉뭏? 鍮꾪솢???④?, ??곸? 由ъ뀑
   inputs.forEach((inp) => {
     const isTarget = reviewQueue.has(inp.dataset.key);
     const nav = document.getElementById(`nav-${inp.dataset.key}`) || document.getElementById(`nav-blank-${inp.dataset.key}`);
@@ -3751,7 +3718,7 @@ function startReviewCycle() {
 function focusNextReview() {
   if (parsedQuizStates.length > 0) {
     if (!reviewQueue.size) {
-      alert("복습 큐가 비어 있습니다.");
+      alert("蹂듭뒿 ?먭? 鍮꾩뼱 ?덉뒿?덈떎.");
       return;
     }
     const [qId] = reviewQueue;
@@ -3773,7 +3740,7 @@ function focusNextReview() {
 
   if (challengeStates.length > 0) {
     if (!reviewQueue.size) {
-      alert("복습 큐가 비어 있습니다.");
+      alert("蹂듭뒿 ?먭? 鍮꾩뼱 ?덉뒿?덈떎.");
       return;
     }
     const [id] = reviewQueue;
@@ -3791,7 +3758,7 @@ function focusNextReview() {
 
   if (definitionStates.length > 0 || vocabStates.length > 0) {
     if (!reviewQueue.size) {
-      alert("복습 큐가 비어 있습니다.");
+      alert("蹂듭뒿 ?먭? 鍮꾩뼱 ?덉뒿?덈떎.");
       return;
     }
     const [key] = reviewQueue;
@@ -3813,7 +3780,7 @@ function focusNextReview() {
   }
 
   if (!reviewQueue.size) {
-    alert("복습 큐가 비어 있습니다.");
+    alert("蹂듭뒿 ?먭? 鍮꾩뼱 ?덉뒿?덈떎.");
     return;
   }
   const [key] = reviewQueue;
@@ -3835,36 +3802,36 @@ function highlightAnswer(language) {
 }
 
 // ========== BUTTON EVENT HANDLERS ==========
-// DOMContentLoaded 대신 즉시 실행 함수로 변경 (동적 스크립트 로드 대응)
+// DOMContentLoaded ???利됱떆 ?ㅽ뻾 ?⑥닔濡?蹂寃?(?숈쟻 ?ㅽ겕由쏀듃 濡쒕뱶 ???
 function initializeButtonHandlers() {
-  // 핸드폰 접속 주소 및 ngrok URL 로드 및 표시
+  // ?몃뱶???묒냽 二쇱냼 諛?ngrok URL 濡쒕뱶 諛??쒖떆
   const mobileUrlEl = document.getElementById("mobile-url");
   const ngrokUrlEl = document.getElementById("ngrok-url");
 
-  // server_info.json에서 IP 및 ngrok URL 로드
+  // server_info.json?먯꽌 IP 諛?ngrok URL 濡쒕뱶
   fetch("/server_info.json")
     .then(r => r.json())
     .then(info => {
       const currentPort = window.location.port || "8000";
 
-      // 모바일 URL 표시
+      // 紐⑤컮??URL ?쒖떆
       if (mobileUrlEl) {
         const mobileUrl = `http://${info.local_ip}:${currentPort}`;
-        mobileUrlEl.textContent = `📱 ${mobileUrl}`;
-        mobileUrlEl.title = "클릭하면 복사";
+        mobileUrlEl.textContent = `?벑 ${mobileUrl}`;
+        mobileUrlEl.title = "?대┃?섎㈃ 蹂듭궗";
       }
 
-      // ngrok URL 표시 (있는 경우에만)
+      // ngrok URL ?쒖떆 (?덈뒗 寃쎌슦?먮쭔)
       if (ngrokUrlEl && info.ngrok_url) {
-        ngrokUrlEl.textContent = `🌐 ${info.ngrok_url}`;
-        ngrokUrlEl.title = "클릭하면 복사 (외부 접속용)";
+        ngrokUrlEl.textContent = `?뙋 ${info.ngrok_url}`;
+        ngrokUrlEl.title = "?대┃?섎㈃ 蹂듭궗 (?몃? ?묒냽??";
         ngrokUrlEl.style.display = "inline-block";
 
-        // 클릭하면 복사
+        // ?대┃?섎㈃ 蹂듭궗
         ngrokUrlEl.addEventListener("click", () => {
           navigator.clipboard.writeText(info.ngrok_url).then(() => {
             const original = ngrokUrlEl.textContent;
-            ngrokUrlEl.textContent = "✓ 복사됨!";
+            ngrokUrlEl.textContent = "??蹂듭궗??";
             ngrokUrlEl.classList.add("copied");
             setTimeout(() => {
               ngrokUrlEl.textContent = original;
@@ -3875,25 +3842,25 @@ function initializeButtonHandlers() {
       }
     })
     .catch(() => {
-      // server_info.json 없으면 현재 호스트 사용
+      // server_info.json ?놁쑝硫??꾩옱 ?몄뒪???ъ슜
       if (mobileUrlEl) {
         const currentHost = window.location.hostname;
         const currentPort = window.location.port || "8000";
         if (currentHost === "localhost" || currentHost === "127.0.0.1") {
-          mobileUrlEl.textContent = "📱 같은 WiFi에서 PC IP:8000";
+          mobileUrlEl.textContent = "?벑 媛숈? WiFi?먯꽌 PC IP:8000";
         } else {
-          mobileUrlEl.textContent = `📱 http://${currentHost}:${currentPort}`;
+          mobileUrlEl.textContent = `?벑 http://${currentHost}:${currentPort}`;
         }
       }
     });
 
-  // 모바일 URL 클릭하면 복사
+  // 紐⑤컮??URL ?대┃?섎㈃ 蹂듭궗
   if (mobileUrlEl) {
     mobileUrlEl.addEventListener("click", () => {
-      const url = mobileUrlEl.textContent.replace("📱 ", "");
+      const url = mobileUrlEl.textContent.replace("?벑 ", "");
       navigator.clipboard.writeText(url).then(() => {
         const original = mobileUrlEl.textContent;
-        mobileUrlEl.textContent = "✓ 복사됨!";
+        mobileUrlEl.textContent = "??蹂듭궗??";
         mobileUrlEl.classList.add("copied");
         setTimeout(() => {
           mobileUrlEl.textContent = original;
@@ -3903,35 +3870,35 @@ function initializeButtonHandlers() {
     });
   }
 
-  // 전체 채점
+  // ?꾩껜 梨꾩젏
   const btnCheckLocal = document.getElementById("btn-check");
   if (btnCheckLocal) {
     btnCheckLocal.addEventListener("click", () => {
-      // parsed_quiz 모드
+      // parsed_quiz 紐⑤뱶
       if (parsedQuizStates.length > 0) {
         const answered = parsedQuizStates.filter(s => s.answered).length;
         const total = parsedQuizStates.length;
-        alert(`📊 현재 진행 상황\n\n완료: ${answered} / ${total}개\n남은 문제: ${total - answered}개\n\n※ 파싱된 문제는 정답을 알 수 없어 채점이 불가합니다.`);
+        alert(`?뱤 ?꾩옱 吏꾪뻾 ?곹솴\n\n?꾨즺: ${answered} / ${total}媛?n?⑥? 臾몄젣: ${total - answered}媛?n\n???뚯떛??臾몄젣???뺣떟???????놁뼱 梨꾩젏??遺덇??⑸땲??`);
         return;
       }
-      // 일반 빈칸 채점
+      // ?쇰컲 鍮덉뭏 梨꾩젏
       inputs.forEach((inp) => checkOne(inp, false));
       updateScore();
     });
   }
 
-  // 전체 정답 보기
+  // ?꾩껜 ?뺣떟 蹂닿린
   const btnRevealLocal = document.getElementById("btn-reveal");
   if (btnRevealLocal) {
     btnRevealLocal.addEventListener("click", () => {
-      // parsed_quiz 모드
+      // parsed_quiz 紐⑤뱶
       if (parsedQuizStates.length > 0) {
-        // 모든 문제에 "선택됨" 표시만 표시 (정답을 모르므로)
+        // 紐⑤뱺 臾몄젣??"?좏깮?? ?쒖떆留??쒖떆 (?뺣떟??紐⑤Ⅴ誘濡?
         parsedQuizStates.forEach(s => {
           if (!s.answered) {
             const resultDiv = document.getElementById(`pq-result-${s.qId}`);
             if (resultDiv) {
-              resultDiv.innerHTML = `<span style="color: var(--yellow);">⚠️ 미응답</span>`;
+              resultDiv.innerHTML = `<span style="color: var(--yellow);">?좑툘 誘몄쓳??/span>`;
             }
             const nav = document.getElementById(`nav-pq-${s.qId}`);
             if (nav) {
@@ -3939,35 +3906,34 @@ function initializeButtonHandlers() {
             }
           }
         });
-        alert("📚 파싱된 문제에는 정답 정보가 포함되어 있지 않습니다.\n\nPython 코드 파일로 세션을 생성하면 자동 채점이 가능합니다.");
+        alert("?뱴 ?뚯떛??臾몄젣?먮뒗 ?뺣떟 ?뺣낫媛 ?ы븿?섏뼱 ?덉? ?딆뒿?덈떎.\n\nPython 肄붾뱶 ?뚯씪濡??몄뀡???앹꽦?섎㈃ ?먮룞 梨꾩젏??媛?ν빀?덈떎.");
         return;
       }
-      // 일반 빈칸
+      // ?쇰컲 鍮덉뭏
       inputs.forEach((inp) => revealOne(inp));
       updateScore();
     });
   }
 
-  // 복습 모드 시작
+  // 蹂듭뒿 紐⑤뱶 ?쒖옉
   const btnReview = document.getElementById("btn-review");
   if (btnReview) {
     btnReview.addEventListener("click", startReviewCycle);
   }
 
-  // 리셋
+  // 由ъ뀑
   const btnReset = document.getElementById("btn-reset");
   if (btnReset) {
     btnReset.addEventListener("click", () => {
-      if (confirm("모든 답변을 초기화하시겠습니까?")) {
-        // parsed_quiz 모드
+      if (confirm("紐⑤뱺 ?듬???珥덇린?뷀븯?쒓쿋?듬땲源?")) {
+        // parsed_quiz 紐⑤뱶
         if (parsedQuizStates.length > 0) {
           parsedQuizStates.forEach(s => {
             s.answered = false;
             s.selected = null;
             s.userAnswer = "";
 
-            // UI 초기화
-            const cardDiv = document.getElementById(`pq-${s.qId}`);
+            // UI 珥덇린??            const cardDiv = document.getElementById(`pq-${s.qId}`);
             if (cardDiv) {
               cardDiv.querySelectorAll(".mc-option").forEach(opt => {
                 opt.disabled = false;
@@ -3993,7 +3959,7 @@ function initializeButtonHandlers() {
           updateParsedQuizScore();
           return;
         }
-        // 일반 빈칸
+        // ?쇰컲 鍮덉뭏
         inputs.forEach((inp) => {
           inp.value = "";
           setState(inp, "pending");
@@ -4004,8 +3970,7 @@ function initializeButtonHandlers() {
     });
   }
 
-  // API 키 버튼들
-  const btnApiKey = document.getElementById("btn-api-key");
+  // API ??踰꾪듉??  const btnApiKey = document.getElementById("btn-api-key");
   if (btnApiKey) {
     btnApiKey.addEventListener("click", showApiKeyModal);
   }
@@ -4017,7 +3982,7 @@ function initializeButtonHandlers() {
       if (key) {
         setApiKey(key);
         hideApiKeyModal();
-        alert("API 키가 저장되었습니다.");
+        alert("API ?ㅺ? ??λ릺?덉뒿?덈떎.");
       }
     });
   }
@@ -4027,13 +3992,13 @@ function initializeButtonHandlers() {
     btnCancelApiKey.addEventListener("click", hideApiKeyModal);
   }
 
-  // 키보드 단축키 버튼
+  // ?ㅻ낫???⑥텞??踰꾪듉
   const btnShortcuts = document.getElementById("btn-shortcuts");
   if (btnShortcuts) {
     btnShortcuts.addEventListener("click", () => KeyboardShortcuts.showHelp());
   }
 
-  // 맨 위로 버튼
+  // 留??꾨줈 踰꾪듉
   const btnScrollTop = document.getElementById("btn-scroll-top");
   if (btnScrollTop) {
     btnScrollTop.addEventListener("click", () => {
@@ -4041,23 +4006,23 @@ function initializeButtonHandlers() {
     });
   }
 
-  // 학습 타이머 시작 (세션 로드될 때도 시작)
+  // ?숈뒿 ??대㉧ ?쒖옉 (?몄뀡 濡쒕뱶???뚮룄 ?쒖옉)
   StudyTimer.start();
 
-  // 이전 세션 복원 시도
+  // ?댁쟾 ?몄뀡 蹂듭썝 ?쒕룄
   setTimeout(() => SessionSaver.restore(), 500);
 
-  // 알림 권한 요청 (Pomodoro 알림용)
+  // ?뚮┝ 沅뚰븳 ?붿껌 (Pomodoro ?뚮┝??
   if (Notification.permission === 'default') {
     Notification.requestPermission();
   }
 }
 
-// DOMContentLoaded 이벤트가 이미 발생했는지 확인 (동적 스크립트 로드 시)
+// DOMContentLoaded ?대깽?멸? ?대? 諛쒖깮?덈뒗吏 ?뺤씤 (?숈쟻 ?ㅽ겕由쏀듃 濡쒕뱶 ??
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeButtonHandlers);
 } else {
-  // 이미 DOM이 로드된 상태면 즉시 실행
+  // ?대? DOM??濡쒕뱶???곹깭硫?利됱떆 ?ㅽ뻾
   initializeButtonHandlers();
 }
 
@@ -4081,13 +4046,13 @@ function renderDefinitionQuiz(definitions, answerKey, language) {
     cardDiv.className = "definition-card";
     cardDiv.id = `definition-${defNum}`;
 
-    // 용어 (Front)
+    // ?⑹뼱 (Front)
     const termDiv = document.createElement("div");
     termDiv.className = "definition-term";
-    termDiv.innerHTML = `<span class="definition-num">#${defNum}</span> <strong>${escapeHtml(def.term)}</strong>이란?`;
+    termDiv.innerHTML = `<span class="definition-num">#${defNum}</span> <strong>${escapeHtml(def.term)}</strong>?대??`;
     cardDiv.appendChild(termDiv);
 
-    // 입력 영역 (Back - 빈칸)
+    // ?낅젰 ?곸뿭 (Back - 鍮덉뭏)
     const inputDiv = document.createElement("div");
     inputDiv.className = "definition-input-area";
 
@@ -4096,7 +4061,7 @@ function renderDefinitionQuiz(definitions, answerKey, language) {
     textarea.id = `def-input-${defNum}`;
     textarea.dataset.key = String(defNum);
     textarea.dataset.answer = correctAnswer;
-    textarea.placeholder = "정의를 입력하세요... (Enter로 AI 채점)";
+    textarea.placeholder = "?뺤쓽瑜??낅젰?섏꽭??.. (Enter濡?AI 梨꾩젏)";
     textarea.rows = 2;
 
     textarea.addEventListener("keydown", (e) => {
@@ -4109,7 +4074,7 @@ function renderDefinitionQuiz(definitions, answerKey, language) {
     inputDiv.appendChild(textarea);
     cardDiv.appendChild(inputDiv);
 
-    // 결과 표시
+    // 寃곌낵 ?쒖떆
     const resultDiv = document.createElement("div");
     resultDiv.className = "definition-result";
     resultDiv.id = `def-result-${defNum}`;
@@ -4142,12 +4107,12 @@ async function handleDefinitionCheck(defNum) {
   const userAnswer = textarea.value.trim();
 
   if (!userAnswer) {
-    alert("정의를 입력해주세요.");
+    alert("?뺤쓽瑜??낅젰?댁＜?몄슂.");
     return;
   }
 
   const resultDiv = document.getElementById(`def-result-${defNum}`);
-  resultDiv.innerHTML = `<span class="definition-loading">🤔 AI가 채점 중...</span>`;
+  resultDiv.innerHTML = `<span class="definition-loading">?쨺 AI媛 梨꾩젏 以?..</span>`;
   textarea.disabled = true;
 
   try {
@@ -4156,7 +4121,7 @@ async function handleDefinitionCheck(defNum) {
     state.answered = true;
     state.isCorrect = isCorrect;
 
-    // 학습 통계 기록
+    // ?숈뒿 ?듦퀎 湲곕줉
     LearningStats.recordAnswer(isCorrect);
     SoundEffects.play(isCorrect ? 'correct' : 'wrong');
 
@@ -4167,20 +4132,20 @@ async function handleDefinitionCheck(defNum) {
       if (state.hasBeenWrong) {
         textarea.classList.add("retried");
         reviewQueue.add(String(defNum));
-        resultDiv.innerHTML = `<span class="mc-correct">✅ 정답! (재도전 성공)</span>`;
+        resultDiv.innerHTML = `<span class="mc-correct">???뺣떟! (?щ룄???깃났)</span>`;
       } else {
         textarea.classList.add("correct");
         reviewQueue.delete(String(defNum));
-        resultDiv.innerHTML = `<span class="mc-correct">✅ 정답!</span>`;
+        resultDiv.innerHTML = `<span class="mc-correct">???뺣떟!</span>`;
       }
     } else {
       state.hasBeenWrong = true;
       textarea.classList.add("wrong");
       reviewQueue.add(String(defNum));
       resultDiv.innerHTML = `
-        <span class="mc-wrong">❌ 아쉽네요. 핵심 개념이 부족합니다.</span>
+        <span class="mc-wrong">???꾩돺?ㅼ슂. ?듭떖 媛쒕뀗??遺議깊빀?덈떎.</span>
         <div class="definition-correct-answer">
-          <strong>모범 답안:</strong> ${escapeHtml(state.correctAnswer)}
+          <strong>紐⑤쾾 ?듭븞:</strong> ${escapeHtml(state.correctAnswer)}
         </div>`;
     }
 
@@ -4196,7 +4161,7 @@ async function handleDefinitionCheck(defNum) {
 
     updateDefinitionScore();
 
-    // 다음 문제로 포커스 (이전 답변이 보이도록)
+    // ?ㅼ쓬 臾몄젣濡??ъ빱??(?댁쟾 ?듬???蹂댁씠?꾨줉)
     const nextState = definitionStates.find(s => !s.answered);
     if (nextState) {
       const nextInput = document.getElementById(`def-input-${nextState.defNum}`);
@@ -4214,54 +4179,51 @@ async function handleDefinitionCheck(defNum) {
     }
   } catch (err) {
     textarea.disabled = false;
-    resultDiv.innerHTML = `<span class="mc-wrong">❌ 오류: ${err.message}</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">???ㅻ쪟: ${err.message}</span>`;
   }
 }
 
 async function checkDefinitionWithAI(term, userAnswer, correctAnswer) {
-  // 최소 길이 검사 (너무 짧은 답은 무조건 오답)
+  // 理쒖냼 湲몄씠 寃??(?덈Т 吏㏃? ?듭? 臾댁“嫄??ㅻ떟)
   if (userAnswer.length < 10) {
     return false;
   }
 
-  const prompt = `당신은 매우 엄격한 OOP 기말시험 채점관입니다. 학점 인플레를 허용하지 않습니다.
+  const prompt = `?뱀떊? 留ㅼ슦 ?꾧꺽??OOP 湲곕쭚?쒗뿕 梨꾩젏愿?낅땲?? ?숈젏 ?명뵆?덈? ?덉슜?섏? ?딆뒿?덈떎.
 
-**용어**: "${term}"
-**모범 답안**: "${correctAnswer}"
-**학생의 답**: "${userAnswer}"
+**?⑹뼱**: "${term}"
+**紐⑤쾾 ?듭븞**: "${correctAnswer}"
+**?숈깮????*: "${userAnswer}"
 
-## 채점 기준 (엄격하게 적용)
-1. **핵심 키워드 필수**: 모범 답안의 핵심 기술 용어가 포함되어야 함
-2. **개념의 완전성**: 정의의 핵심 요소가 모두 설명되어야 함
-3. **기술적 정확성**: CS 전공자가 보기에 정확한 설명이어야 함
+## 梨꾩젏 湲곗? (?꾧꺽?섍쾶 ?곸슜)
+1. **?듭떖 ?ㅼ썙???꾩닔**: 紐⑤쾾 ?듭븞???듭떖 湲곗닠 ?⑹뼱媛 ?ы븿?섏뼱????2. **媛쒕뀗???꾩쟾??*: ?뺤쓽???듭떖 ?붿냼媛 紐⑤몢 ?ㅻ챸?섏뼱????3. **湲곗닠???뺥솗??*: CS ?꾧났?먭? 蹂닿린???뺥솗???ㅻ챸?댁뼱????
+## 諛섎뱶???ㅻ떟 泥섎━?섎뒗 寃쎌슦
+- "~吏 萸?, "~?몃벏", "~媛숈쓬" ???좊ℓ???쒗쁽
+- ?듭떖 媛쒕뀗 ?놁씠 ?⑹뼱留?諛섎났 (?? "?곕젅?쒕뒗 ?곕젅?쒕떎")
+- 吏?섏튂寃?吏㏐굅??遺덉꽦?ㅽ븳 ?듬?
+- ?뺤쓽媛 ?꾨땶 ?덉떆留??섏뿴
+- 湲곗닠?곸쑝濡?遺?뺥솗???ㅻ챸
 
-## 반드시 오답 처리하는 경우
-- "~지 뭐", "~인듯", "~같음" 등 애매한 표현
-- 핵심 개념 없이 용어만 반복 (예: "쓰레드는 쓰레드다")
-- 지나치게 짧거나 불성실한 답변
-- 정의가 아닌 예시만 나열
-- 기술적으로 부정확한 설명
+## ?뺣떟?쇰줈 ?몄젙?섎뒗 寃쎌슦
+- 紐⑤쾾 ?듭븞怨??쒗쁽? ?ㅻⅤ吏留??듭떖 媛쒕뀗???뺥솗???쇱튂
+- 異붽? ?ㅻ챸???덉?留??듭떖??留욎쓬
 
-## 정답으로 인정하는 경우
-- 모범 답안과 표현은 다르지만 핵심 개념이 정확히 일치
-- 추가 설명이 있지만 핵심이 맞음
-
-**판정**: 위 기준에 따라 엄격하게 판단하세요.
-JSON 형식으로만 응답 (다른 텍스트 없이):
-{"correct": true 또는 false}`;
+**?먯젙**: ??湲곗????곕씪 ?꾧꺽?섍쾶 ?먮떒?섏꽭??
+JSON ?뺤떇?쇰줈留??묐떟 (?ㅻⅨ ?띿뒪???놁씠):
+{"correct": true ?먮뒗 false}`;
 
   try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요. 채점은 엄격하게.");
+    const response = await callGeminiAPI(prompt, "JSON ?뺤떇?쇰줈留??묐떟?섏꽭?? 梨꾩젏? ?꾧꺽?섍쾶.");
     const jsonMatch = response.match(/\{[^}]+\}/);
     if (jsonMatch) {
       const result = JSON.parse(jsonMatch[0]);
       return result.correct === true;
     }
-    // 파싱 실패 시 엄격한 비교
+    // ?뚯떛 ?ㅽ뙣 ???꾧꺽??鍮꾧탳
     return false;
   } catch (err) {
     console.error("AI grading error:", err);
-    // AI 실패 시에도 엄격하게 - 정확히 일치해야 정답
+    // AI ?ㅽ뙣 ?쒖뿉???꾧꺽?섍쾶 - ?뺥솗???쇱튂?댁빞 ?뺣떟
     const normalize = s => s.replace(/\s+/g, '').toLowerCase();
     return normalize(userAnswer) === normalize(correctAnswer);
   }
@@ -4299,13 +4261,13 @@ function updateDefinitionScore() {
   if (reviewBadge) {
     const reviewCount = wrong + retried + reviewQueue.size;
     if (reviewCount) {
-      reviewBadge.textContent = `복습 ${reviewCount}개`;
+      reviewBadge.textContent = `蹂듭뒿 ${reviewCount}媛?;
     } else if (answered === total) {
       const percentage = Math.round(ratio);
-      reviewBadge.textContent = `완료! ${correct}/${total} (${percentage}%)`;
+      reviewBadge.textContent = `?꾨즺! ${correct}/${total} (${percentage}%)`;
       reviewBadge.style.color = percentage >= 60 ? "var(--green)" : "var(--red)";
     } else {
-      reviewBadge.textContent = `남은 문제 ${total - answered}개`;
+      reviewBadge.textContent = `?⑥? 臾몄젣 ${total - answered}媛?;
     }
   }
   applyNavFilter();
@@ -4327,27 +4289,27 @@ function renderVocabularyCards(words, answerKey, language) {
 
   words.forEach((word, idx) => {
     const wordNum = idx + 1;
-    const correctAnswer = word.korean || "[AI 생성 필요]";
+    const correctAnswer = word.korean || "[AI ?앹꽦 ?꾩슂]";
 
     const cardDiv = document.createElement("div");
     cardDiv.className = "vocab-card";
     cardDiv.id = `vocab-${wordNum}`;
 
-    // 영어 단어
+    // ?곸뼱 ?⑥뼱
     const termDiv = document.createElement("div");
     termDiv.className = "vocab-term";
     termDiv.innerHTML = `<span class="vocab-num">#${wordNum}</span> <strong class="vocab-english">${escapeHtml(word.english)}</strong>`;
     cardDiv.appendChild(termDiv);
 
-    // 한글 뜻 입력/표시
+    // ?쒓? ???낅젰/?쒖떆
     const meaningDiv = document.createElement("div");
     meaningDiv.className = "vocab-meaning-area";
 
     if (word.needs_ai) {
-      // AI가 생성해야 하는 경우
+      // AI媛 ?앹꽦?댁빞 ?섎뒗 寃쎌슦
       const genBtn = document.createElement("button");
       genBtn.className = "vocab-gen-btn";
-      genBtn.textContent = "🤖 AI 뜻 생성";
+      genBtn.textContent = "?쨼 AI ???앹꽦";
       genBtn.addEventListener("click", () => generateVocabMeaning(wordNum, word.english));
       meaningDiv.appendChild(genBtn);
 
@@ -4356,13 +4318,12 @@ function renderVocabularyCards(words, answerKey, language) {
       genResult.id = `vocab-gen-${wordNum}`;
       meaningDiv.appendChild(genResult);
     } else {
-      // 이미 뜻이 있는 경우 - 빈칸 테스트
-      const textarea = document.createElement("textarea");
+      // ?대? ?살씠 ?덈뒗 寃쎌슦 - 鍮덉뭏 ?뚯뒪??      const textarea = document.createElement("textarea");
       textarea.className = "vocab-input";
       textarea.id = `vocab-input-${wordNum}`;
       textarea.dataset.key = String(wordNum);
       textarea.dataset.answer = correctAnswer;
-      textarea.placeholder = "뜻을 입력하세요... (Enter로 확인)";
+      textarea.placeholder = "?살쓣 ?낅젰?섏꽭??.. (Enter濡??뺤씤)";
       textarea.rows = 1;
 
       textarea.addEventListener("keydown", (e) => {
@@ -4377,7 +4338,7 @@ function renderVocabularyCards(words, answerKey, language) {
 
     cardDiv.appendChild(meaningDiv);
 
-    // 결과 표시
+    // 寃곌낵 ?쒖떆
     const resultDiv = document.createElement("div");
     resultDiv.className = "vocab-result";
     resultDiv.id = `vocab-result-${wordNum}`;
@@ -4405,30 +4366,30 @@ function renderVocabularyCards(words, answerKey, language) {
 
 async function generateVocabMeaning(wordNum, english) {
   const resultDiv = document.getElementById(`vocab-gen-${wordNum}`);
-  resultDiv.innerHTML = `<span class="definition-loading">🤖 AI가 뜻을 생성 중...</span>`;
+  resultDiv.innerHTML = `<span class="definition-loading">?쨼 AI媛 ?살쓣 ?앹꽦 以?..</span>`;
 
-  const prompt = `영어 단어 "${english}"의 한국어 뜻을 알려주세요.
+  const prompt = `?곸뼱 ?⑥뼱 "${english}"???쒓뎅???살쓣 ?뚮젮二쇱꽭??
 
-중요 규칙:
-1. 단순 음역(code→코드, interface→인터페이스)은 절대 안 됩니다.
-2. 실제 의미를 한국어로 설명해주세요.
-3. 간결하게 1-2줄로 작성하세요.
+以묒슂 洹쒖튃:
+1. ?⑥닚 ?뚯뿭(code?믪퐫?? interface?믪씤?고럹?댁뒪)? ?덈? ???⑸땲??
+2. ?ㅼ젣 ?섎?瑜??쒓뎅?대줈 ?ㅻ챸?댁＜?몄슂.
+3. 媛꾧껐?섍쾶 1-2以꾨줈 ?묒꽦?섏꽭??
 
-JSON 형식으로만 응답: {"meaning": "한국어 뜻"}`;
+JSON ?뺤떇?쇰줈留??묐떟: {"meaning": "?쒓뎅????}`;
 
   try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요.");
+    const response = await callGeminiAPI(prompt, "JSON ?뺤떇?쇰줈留??묐떟?섏꽭??");
     const jsonMatch = response.match(/\{[^}]+\}/);
     if (jsonMatch) {
       const result = JSON.parse(jsonMatch[0]);
-      const meaning = result.meaning || "생성 실패";
+      const meaning = result.meaning || "?앹꽦 ?ㅽ뙣";
 
       resultDiv.innerHTML = `
         <div class="vocab-generated">
-          <strong>뜻:</strong> ${escapeHtml(meaning)}
+          <strong>??</strong> ${escapeHtml(meaning)}
         </div>`;
 
-      // 상태 업데이트
+      // ?곹깭 ?낅뜲?댄듃
       const state = vocabStates.find(s => s.wordNum === wordNum);
       if (state) {
         state.correctAnswer = meaning;
@@ -4445,7 +4406,7 @@ JSON 형식으로만 응답: {"meaning": "한국어 뜻"}`;
       updateVocabScore();
     }
   } catch (err) {
-    resultDiv.innerHTML = `<span class="mc-wrong">❌ 오류: ${err.message}</span>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">???ㅻ쪟: ${err.message}</span>`;
   }
 }
 
@@ -4479,11 +4440,11 @@ function handleVocabCheck(wordNum) {
     if (state.hasBeenWrong) {
       textarea.classList.add("retried");
       reviewQueue.add(String(wordNum));
-      resultDiv.innerHTML = `<span class="mc-correct">✓ 정답! (재도전 성공)</span> <span style="color: var(--muted); margin-left: 8px;">(${escapeHtml(state.correctAnswer)})</span>`;
+      resultDiv.innerHTML = `<span class="mc-correct">???뺣떟! (?щ룄???깃났)</span> <span style="color: var(--muted); margin-left: 8px;">(${escapeHtml(state.correctAnswer)})</span>`;
     } else {
       textarea.classList.add("correct");
       reviewQueue.delete(String(wordNum));
-      resultDiv.innerHTML = `<span class="mc-correct">✓ 정답!</span> <span style="color: var(--muted); margin-left: 8px;">(${escapeHtml(state.correctAnswer)})</span>`;
+      resultDiv.innerHTML = `<span class="mc-correct">???뺣떟!</span> <span style="color: var(--muted); margin-left: 8px;">(${escapeHtml(state.correctAnswer)})</span>`;
     }
   } else {
     state.hasBeenWrong = true;
@@ -4492,7 +4453,7 @@ function handleVocabCheck(wordNum) {
     textarea.value = state.correctAnswer;
     textarea.classList.remove("wrong");
     textarea.classList.add("revealed");
-    resultDiv.innerHTML = `<span class="mc-wrong">✗ 오답. 정답: ${escapeHtml(state.correctAnswer)}</span> <button onclick="explainWhyWrong(${wordNum}, 'vocab')" style="margin-left: 8px; background: linear-gradient(135deg, #ff6b6b, #ee5a5a); color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">왜 틀렸나요?</button>`;
+    resultDiv.innerHTML = `<span class="mc-wrong">???ㅻ떟. ?뺣떟: ${escapeHtml(state.correctAnswer)}</span> <button onclick="explainWhyWrong(${wordNum}, 'vocab')" style="margin-left: 8px; background: linear-gradient(135deg, #ff6b6b, #ee5a5a); color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">????몃굹??</button>`;
   }
 
   const nav = document.getElementById(`nav-vocab-${wordNum}`);
@@ -4539,13 +4500,40 @@ function updateVocabScore() {
   if (reviewBadge) {
     const reviewCount = wrong + retried + reviewQueue.size;
     if (reviewCount) {
-      reviewBadge.textContent = `복습 ${reviewCount}개`;
+      reviewBadge.textContent = `蹂듭뒿 ${reviewCount}媛?;
     } else if (answered === total) {
-      reviewBadge.textContent = `완료! ${correct}/${total}`;
+      reviewBadge.textContent = `?꾨즺! ${correct}/${total}`;
     } else {
-      reviewBadge.textContent = `남은 단어 ${total - answered}개`;
+      reviewBadge.textContent = `?⑥? ?⑥뼱 ${total - answered}媛?;
     }
   }
+  applyNavFilter();
+}
+
+function renderVocabNav() {
+  if (!blankList || !vocabStates || vocabStates.length === 0) return;
+
+  blankList.innerHTML = "";
+  vocabStates.forEach((s) => {
+    const btn = document.createElement("div");
+    btn.className = "blank-pill pending";
+    btn.id = `nav-vocab-${s.wordNum}`;
+    btn.textContent = `V${s.wordNum}`;
+
+    if (s.answered) {
+      btn.classList.remove("pending");
+      btn.classList.add(s.isCorrect ? "correct" : "wrong");
+      if (s.hasBeenWrong && s.isCorrect) {
+        btn.classList.add("retried");
+      }
+    }
+
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(`vocab-${s.wordNum}`);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    blankList.appendChild(btn);
+  });
   applyNavFilter();
 }
 
@@ -4558,20 +4546,20 @@ function initializeFileModeModal() {
   const statusEl = document.getElementById("fm-status");
   const selectedFileEl = document.getElementById("selected-file-name");
 
-  // 현재 선택 상태
+  // ?꾩옱 ?좏깮 ?곹깭
   let selectedPreset = "oop_vocab";
   let selectedMode = 7;
 
   const fileNames = {
-    "oop_vocab": "1_OOP_영단어.txt",
-    "oop_concept": "2_OOP_개념어.txt",
-    "oop_code": "3_OOP_코드빈칸.txt",
-    "data_structure": "4_자료구조_코드.txt",
-    "math_theory": "5_전산수학_필기.txt",
-    "math_practice": "6_전산수학_실기.txt"
+    "oop_vocab": "1_OOP_?곷떒??txt",
+    "oop_concept": "2_OOP_媛쒕뀗??txt",
+    "oop_code": "3_OOP_肄붾뱶鍮덉뭏.txt",
+    "data_structure": "4_?먮즺援ъ“_肄붾뱶.txt",
+    "math_theory": "5_?꾩궛?섑븰_?꾧린.txt",
+    "math_practice": "6_?꾩궛?섑븰_?ㅺ린.txt"
   };
 
-  // 모달 자동 표시 함수
+  // 紐⑤떖 ?먮룞 ?쒖떆 ?⑥닔
   function showFileModeModal() {
     if (modal) {
       modal.style.display = "flex";
@@ -4582,32 +4570,32 @@ function initializeFileModeModal() {
     }
   }
 
-  // 세션 상태 확인 - 비어있거나 폴백 세션이면 모달 자동 표시
+  // ?몄뀡 ?곹깭 ?뺤씤 - 鍮꾩뼱?덇굅???대갚 ?몄뀡?대㈃ 紐⑤떖 ?먮룞 ?쒖떆
   function checkSessionAndShowModal() {
-    // currentSession이 없거나 폴백 세션인지 확인
+    // currentSession???녾굅???대갚 ?몄뀡?몄? ?뺤씤
     if (!currentSession) {
-      console.log("세션 없음 - 모달 표시");
+      console.log("?몄뀡 ?놁쓬 - 紐⑤떖 ?쒖떆");
       showFileModeModal();
       return;
     }
 
-    // 폴백 세션 감지: title이 "기본 세션"이거나 answer_key가 비어있는 경우
+    // ?대갚 ?몄뀡 媛먯?: title??"湲곕낯 ?몄뀡"?닿굅??answer_key媛 鍮꾩뼱?덈뒗 寃쎌슦
     const isFallbackSession =
-      currentSession.title === "기본 세션" ||
+      currentSession.title === "湲곕낯 ?몄뀡" ||
       (!currentSession.answer_key) ||
       (currentSession.answer_key._type === "whiteboard" &&
         (!currentSession.answer_key._challenges || currentSession.answer_key._challenges.length === 0));
 
     if (isFallbackSession) {
-      console.log("폴백 세션 감지 - 모달 표시");
+      console.log("?대갚 ?몄뀡 媛먯? - 紐⑤떖 ?쒖떆");
       showFileModeModal();
     }
   }
 
-  // 세션 상태 확인 - initializeApp에서 이미 세션을 로드했으므로 즉시 체크
+  // ?몄뀡 ?곹깭 ?뺤씤 - initializeApp?먯꽌 ?대? ?몄뀡??濡쒕뱶?덉쑝誘濡?利됱떆 泥댄겕
   checkSessionAndShowModal();
 
-  // 모달 열기
+  // 紐⑤떖 ?닿린
   if (btnOpen) {
     btnOpen.addEventListener("click", () => {
       modal.style.display = "flex";
@@ -4616,33 +4604,32 @@ function initializeFileModeModal() {
     });
   }
 
-  // 모달 닫기
+  // 紐⑤떖 ?リ린
   if (btnCancel) {
     btnCancel.addEventListener("click", () => {
       modal.style.display = "none";
     });
   }
 
-  // 프리셋 파일 선택
+  // ?꾨━???뚯씪 ?좏깮
   document.querySelectorAll(".fm-preset:not(.fm-upload)").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".fm-preset").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       selectedPreset = btn.dataset.preset;
-      customFileContent = null; // 프리셋 선택 시 커스텀 파일 초기화
-      selectedFileEl.textContent = fileNames[selectedPreset] || selectedPreset;
+      customFileContent = null; // ?꾨━???좏깮 ??而ㅼ뒪? ?뚯씪 珥덇린??      selectedFileEl.textContent = fileNames[selectedPreset] || selectedPreset;
 
-      // 기본 모드 자동 선택 (data-default-mode 속성)
+      // 湲곕낯 紐⑤뱶 ?먮룞 ?좏깮 (data-default-mode ?띿꽦)
       const defaultMode = btn.dataset.defaultMode;
       if (defaultMode) {
         selectedMode = parseInt(defaultMode, 10);
-        // 모드 버튼 UI 업데이트
+        // 紐⑤뱶 踰꾪듉 UI ?낅뜲?댄듃
         document.querySelectorAll(".fm-mode").forEach(m => m.classList.remove("active"));
         const modeBtn = document.querySelector(`.fm-mode[data-mode="${defaultMode}"]`);
         if (modeBtn) modeBtn.classList.add("active");
       }
 
-      // C# OOP 코드 선택 시 AI 방식 자동 선택
+      // C# OOP 肄붾뱶 ?좏깮 ??AI 諛⑹떇 ?먮룞 ?좏깮
       if (selectedPreset === "oop_code") {
         selectedMethod = "ai";
         document.querySelectorAll(".fm-method").forEach(m => m.classList.remove("active"));
@@ -4652,11 +4639,11 @@ function initializeFileModeModal() {
     });
   });
 
-  // 첫 번째 프리셋 활성화 + 기본 모드 설정
+  // 泥?踰덉㎏ ?꾨━???쒖꽦??+ 湲곕낯 紐⑤뱶 ?ㅼ젙
   const firstPreset = document.querySelector('.fm-preset:not(.fm-upload)');
   if (firstPreset) {
     firstPreset.classList.add('active');
-    // 첫 프리셋의 기본 모드도 적용
+    // 泥??꾨━?뗭쓽 湲곕낯 紐⑤뱶???곸슜
     const defaultMode = firstPreset.dataset.defaultMode;
     if (defaultMode) {
       selectedMode = parseInt(defaultMode, 10);
@@ -4666,8 +4653,7 @@ function initializeFileModeModal() {
     }
   }
 
-  // 파일 업로드 핸들러
-  let customFileContent = null;
+  // ?뚯씪 ?낅줈???몃뱾??  let customFileContent = null;
   let customFileName = null;
   const customFileInput = document.getElementById("custom-file-input");
   const uploadLabel = document.querySelector(".fm-upload");
@@ -4680,23 +4666,23 @@ function initializeFileModeModal() {
       try {
         customFileContent = await file.text();
         customFileName = file.name;
-        selectedPreset = "custom"; // 커스텀 파일 표시
+        selectedPreset = "custom"; // 而ㅼ뒪? ?뚯씪 ?쒖떆
 
-        // UI 업데이트
+        // UI ?낅뜲?댄듃
         document.querySelectorAll(".fm-preset").forEach(b => b.classList.remove("active"));
         if (uploadLabel) uploadLabel.classList.add("active");
-        selectedFileEl.textContent = `📁 ${file.name}`;
+        selectedFileEl.textContent = `?뱚 ${file.name}`;
 
-        statusEl.textContent = `✅ 파일 로드 완료: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+        statusEl.textContent = `???뚯씪 濡쒕뱶 ?꾨즺: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
         statusEl.className = "fm-status";
       } catch (err) {
-        statusEl.textContent = `❌ 파일 읽기 오류: ${err.message}`;
+        statusEl.textContent = `???뚯씪 ?쎄린 ?ㅻ쪟: ${err.message}`;
         statusEl.className = "fm-status error";
       }
     });
   }
 
-  // 모드 선택
+  // 紐⑤뱶 ?좏깮
   document.querySelectorAll(".fm-mode").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".fm-mode").forEach(b => b.classList.remove("active"));
@@ -4705,7 +4691,7 @@ function initializeFileModeModal() {
     });
   });
 
-  // 생성 방식 선택
+  // ?앹꽦 諛⑹떇 ?좏깮
   let selectedMethod = "local";
   document.querySelectorAll(".fm-method").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -4715,39 +4701,39 @@ function initializeFileModeModal() {
     });
   });
 
-  // 세션 생성
+  // ?몄뀡 ?앹꽦
   if (btnGenerate) {
     btnGenerate.addEventListener("click", async () => {
-      // ===== 모드 6: 전산수학 코드 작성 (프론트엔드에서 직접 처리) =====
+      // ===== 紐⑤뱶 6: ?꾩궛?섑븰 肄붾뱶 ?묒꽦 (?꾨줎?몄뿏?쒖뿉??吏곸젒 泥섎━) =====
       if (selectedMode === 6) {
-        statusEl.textContent = "🤖 AI가 코드 작성 문제를 생성 중...";
+        statusEl.textContent = "?쨼 AI媛 肄붾뱶 ?묒꽦 臾몄젣瑜??앹꽦 以?..";
         modal.style.display = "none";
         await renderMode6CodeWriting();
         return;
       }
 
-      // ===== 모드 1: C# OOP 변형 빈칸 (프론트엔드에서 직접 처리) =====
+      // ===== 紐⑤뱶 1: C# OOP 蹂??鍮덉뭏 (?꾨줎?몄뿏?쒖뿉??吏곸젒 泥섎━) =====
       if (selectedMode === 1) {
-        statusEl.textContent = "🤖 AI가 C# OOP 변형 문제를 생성 중...";
+        statusEl.textContent = "?쨼 AI媛 C# OOP 蹂??臾몄젣瑜??앹꽦 以?..";
         modal.style.display = "none";
         await renderMode1OOPBlanks();
         return;
       }
 
-      const methodLabel = selectedMethod === "ai" ? "🤖 AI로" : "⚡ 로컬에서";
-      statusEl.textContent = `${methodLabel} 세션 생성 중...`;
+      const methodLabel = selectedMethod === "ai" ? "?쨼 AI濡? : "??濡쒖뺄?먯꽌";
+      statusEl.textContent = `${methodLabel} ?몄뀡 ?앹꽦 以?..`;
       statusEl.className = "fm-status";
       btnGenerate.disabled = true;
 
       try {
-        // 요청 데이터 구성
+        // ?붿껌 ?곗씠??援ъ꽦
         const requestData = {
           preset: selectedPreset,
           mode: selectedMode,
           method: selectedMethod
         };
 
-        // 커스텀 파일이 선택된 경우 파일 내용 포함
+        // 而ㅼ뒪? ?뚯씪???좏깮??寃쎌슦 ?뚯씪 ?댁슜 ?ы븿
         if (selectedPreset === "custom" && customFileContent) {
           requestData.content = customFileContent;
           requestData.fileName = customFileName;
@@ -4763,14 +4749,14 @@ function initializeFileModeModal() {
 
         if (result.success) {
           const countInfo = result.questions
-            ? `${result.questions}개 문제`
+            ? `${result.questions}媛?臾몄젣`
             : result.challenges
-              ? `${result.challenges}개 챌린지`
-              : `${result.blanks || 0}개 빈칸`;
-          statusEl.textContent = `✅ 세션 생성 완료! (${countInfo})`;
+              ? `${result.challenges}媛?梨뚮┛吏`
+              : `${result.blanks || 0}媛?鍮덉뭏`;
+          statusEl.textContent = `???몄뀡 ?앹꽦 ?꾨즺! (${countInfo})`;
           statusEl.className = "fm-status";
 
-          // 세션 다시 로드 (리로드 없이)
+          // ?몄뀡 ?ㅼ떆 濡쒕뱶 (由щ줈???놁씠)
           setTimeout(async () => {
             try {
               const sessionResponse = await fetch('session.json?t=' + Date.now());
@@ -4780,15 +4766,15 @@ function initializeFileModeModal() {
                 modal.style.display = 'none';
               }
             } catch (e) {
-              console.error('세션 새로고침 실패:', e);
+              console.error('?몄뀡 ?덈줈怨좎묠 ?ㅽ뙣:', e);
             }
           }, 300);
         } else {
-          statusEl.textContent = `❌ 오류: ${result.error}`;
+          statusEl.textContent = `???ㅻ쪟: ${result.error}`;
           statusEl.className = "fm-status error";
         }
       } catch (err) {
-        statusEl.textContent = `❌ 네트워크 오류: ${err.message}`;
+        statusEl.textContent = `???ㅽ듃?뚰겕 ?ㅻ쪟: ${err.message}`;
         statusEl.className = "fm-status error";
       } finally {
         btnGenerate.disabled = false;
@@ -4796,7 +4782,7 @@ function initializeFileModeModal() {
     });
   }
 
-  // 모달 바깥 클릭 시 닫기
+  // 紐⑤떖 諛붽묑 ?대┃ ???リ린
   if (modal) {
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
@@ -4806,23 +4792,23 @@ function initializeFileModeModal() {
   }
 }
 
-// 동적 스크립트 로드 대응 + 세션 자동 로드
+// ?숈쟻 ?ㅽ겕由쏀듃 濡쒕뱶 ???+ ?몄뀡 ?먮룞 濡쒕뱶
 async function initializeApp() {
-  // 세션 먼저 로드 (서버가 이미 생성한 session.json)
+  // ?몄뀡 癒쇱? 濡쒕뱶 (?쒕쾭媛 ?대? ?앹꽦??session.json)
   try {
     const response = await fetch('session.json?t=' + Date.now());
     if (response.ok) {
       const data = await response.json();
       setSession(data);
-      console.log('Session loaded:', data.title || 'untitled');
+      console.log('?몄뀡 濡쒕뱶 ?깃났:', data.title || 'untitled');
     } else {
-      console.log('No session.json, waiting for modal');
+      console.log('session.json ?놁쓬, 紐⑤떖?먯꽌 ?앹꽦 ?湲?);
     }
   } catch (e) {
-    console.log('Session load error:', e.message);
+    console.log('?몄뀡 濡쒕뱶 ?ㅽ뙣:', e.message);
   }
 
-  // 모달 초기화 (세션 로드 후)
+  // 紐⑤떖 珥덇린??(?몄뀡 濡쒕뱶 ??
   initializeFileModeModal();
 }
 
@@ -4850,7 +4836,7 @@ if (document.readyState === 'loading') {
     });
   }
 
-  // 빈칸 목록에서 항목 클릭 시 자동으로 닫기 (모바일)
+  // 鍮덉뭏 紐⑸줉?먯꽌 ??ぉ ?대┃ ???먮룞?쇰줈 ?リ린 (紐⑤컮??
   document.getElementById('blank-list')?.addEventListener('click', (e) => {
     if (e.target.classList.contains('blank-pill')) {
       if (window.innerWidth <= 768) {
@@ -4862,7 +4848,7 @@ if (document.readyState === 'loading') {
 
 // ========== CACHE CLEAR ON UNLOAD ==========
 window.addEventListener("unload", () => {
-  // 브라우저 캐시 초기화 시도
+  // 釉뚮씪?곗? 罹먯떆 珥덇린???쒕룄
   if ('caches' in window) {
     caches.keys().then(names => {
       names.forEach(name => caches.delete(name));
@@ -4871,80 +4857,71 @@ window.addEventListener("unload", () => {
 });
 
 // ============================================================================
-// 모드 6: 전산수학 코드 작성 모드
+// 紐⑤뱶 6: ?꾩궛?섑븰 肄붾뱶 ?묒꽦 紐⑤뱶
 // ----------------------------------------------------------------------------
-// 목적: 교수님의 전산수학 시험 대비
-// - AI가 "메뉴 → 계산기 → CSV 저장 → 판다스 → 그래프" 흐름에 기반한 문제 생성
-// - 학생이 전체 코드를 직접 작성
-// - AI가 로직/흐름이 맞으면 정답으로 채점 (융통성 있게)
+// 紐⑹쟻: 援먯닔?섏쓽 ?꾩궛?섑븰 ?쒗뿕 ?鍮?// - AI媛 "硫붾돱 ??怨꾩궛湲???CSV ??????먮떎????洹몃옒?? ?먮쫫??湲곕컲??臾몄젣 ?앹꽦
+// - ?숈깮???꾩껜 肄붾뱶瑜?吏곸젒 ?묒꽦
+// - AI媛 濡쒖쭅/?먮쫫??留욎쑝硫??뺣떟?쇰줈 梨꾩젏 (?듯넻???덇쾶)
 // ============================================================================
 
-// 모드 6 상태 관리
-let mode6State = {
-  problem: '',       // 문제 설명
-  sampleCode: '',    // 참고용 샘플 코드 (채점 시 비교용)
-  userCode: '',      // 사용자가 작성한 코드
-  submitted: false,  // 제출 여부
-  isCorrect: null    // 채점 결과
+// 紐⑤뱶 6 ?곹깭 愿由?let mode6State = {
+  problem: '',       // 臾몄젣 ?ㅻ챸
+  sampleCode: '',    // 李멸퀬???섑뵆 肄붾뱶 (梨꾩젏 ??鍮꾧탳??
+  userCode: '',      // ?ъ슜?먭? ?묒꽦??肄붾뱶
+  submitted: false,  // ?쒖텧 ?щ?
+  isCorrect: null    // 梨꾩젏 寃곌낵
 };
 
 /**
- * 모드 6 렌더링 함수
- * - AI가 전산수학 스타일의 코드 작성 문제를 생성하고 화면에 표시
- * - 메뉴/계산기/CSV/판다스/그래프 흐름을 변형한 문제
+ * 紐⑤뱶 6 ?뚮뜑留??⑥닔
+ * - AI媛 ?꾩궛?섑븰 ?ㅽ??쇱쓽 肄붾뱶 ?묒꽦 臾몄젣瑜??앹꽦?섍퀬 ?붾㈃???쒖떆
+ * - 硫붾돱/怨꾩궛湲?CSV/?먮떎??洹몃옒???먮쫫??蹂?뺥븳 臾몄젣
  */
 async function renderMode6CodeWriting() {
   const codeArea = document.getElementById('code-area');
-  codeArea.innerHTML = `<div class="definition-loading">🤖 AI가 전산수학 코드 작성 문제를 생성 중...</div>`;
+  codeArea.innerHTML = `<div class="definition-loading">?쨼 AI媛 ?꾩궛?섑븰 肄붾뱶 ?묒꽦 臾몄젣瑜??앹꽦 以?..</div>`;
 
-  // 제목 업데이트
-  sessionTitle.textContent = "전산수학 코드 작성";
-  sessionMode.textContent = "코드 작성 (AI 채점)";
+  // ?쒕ぉ ?낅뜲?댄듃
+  sessionTitle.textContent = "?꾩궛?섑븰 肄붾뱶 ?묒꽦";
+  sessionMode.textContent = "肄붾뱶 ?묒꽦 (AI 梨꾩젏)";
 
-  // AI에게 문제 생성 요청
-  const prompt = `당신은 전산수학 시험 출제자입니다.
+  // AI?먭쾶 臾몄젣 ?앹꽦 ?붿껌
+    // AI?? ?? ??? ??
+    // AI에게 문제 생성을 요청
+  const prompt = `당신은 전산수학 교수이자 실습 출제자입니다.
+다음 '전산수학 실기 메뉴도우미' 기본 요구사항을 반드시 포함한 실습 과제를 하나 만들어 주세요.
+- 파이썬 컨솔 메뉴 루프로 사칙연산(+,-,*,/) 수행 및 기록
+- 종료 시 기록을 utf-8-sig CSV로 저장·불러오기 지원
+- pandas + matplotlib로 기록 그래프 출력
+- 변형은 "아주 작은 추가 조건 1~2개" 수준만 허용(예: 메뉴 입력 검증 추가, 정렬/필터 옵션 1개, 누적 통계 1개). 과도한 제약이나 보편 패턴 금지.
+- 학생이 바로 따라침 수 있는 단일 파일 구조, 과한 HTML/Canvas 출력 없음.
 
-아래 패턴을 변형하여 "전체 코드를 작성하시오" 형태의 문제를 출제하세요:
-- 메뉴(while 루프) 기반 프로그램
-- 사칙연산 계산기 (덧셈, 뺄셈, 곱셈, 나눗셈)
-- 결과를 리스트/딕셔너리에 저장
-- CSV 파일 저장 (pandas 또는 csv 모듈)
-- 판다스 DataFrame 생성
-- matplotlib 그래프 출력
-
-아래 중 하나를 선택해서 변형하세요:
-1. 온도 변환기 (섭씨↔화씨) + CSV 저장 + 그래프
-2. 성적 관리 프로그램 + 평균 계산 + 그래프
-3. 가계부 프로그램 + 수입/지출 + 파이 차트
-4. BMI 계산기 + 기록 저장 + 추이 그래프
-5. 단위 변환기 (km/ml, kg/lb 등) + 기록
-
-## 응답 형식 (JSON으로만 응답):
+JSON으로만 응답하세요:
 {
-  "problem_title": "프로그램 제목",
-  "problem_description": "상세한 문제 설명 (어떤 기능을 구현해야 하는지 명확하게)",
-  "requirements": ["요구사항1", "요구사항2", "요구사항3"],
-  "sample_code": "정답 예시 코드 (채점 기준용, 학생에게는 보이지 않음)"
+  "problem_title": "실습 문제 제목",
+  "problem_description": "기본 요구사항을 포함하고, 가볍게 변형된 상세 설명",
+  "requirements": ["필수 요구사항1", "필수 요구사항2", "필수 요구사항3"],
+  "sample_code": "정답 예시 코드를 짧게. 채점용 기준이지만 학생에게는 숨김"
 }`;
+`;
 
-  try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요. 코드 블록 없이 순수 JSON만.");
+try {
+    const response = await callGeminiAPI(prompt, "JSON ?뺤떇?쇰줈留??묐떟?섏꽭?? 肄붾뱶 釉붾줉 ?놁씠 ?쒖닔 JSON留?");
 
-    // JSON 파싱
+    // JSON ?뚯떛
     let problemData;
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         problemData = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error("JSON 파싱 실패");
+        throw new Error("JSON ?뚯떛 ?ㅽ뙣");
       }
     } catch (e) {
-      throw new Error("문제 생성 실패: " + e.message);
+      throw new Error("臾몄젣 ?앹꽦 ?ㅽ뙣: " + e.message);
     }
 
-    // 상태 저장
-    mode6State = {
+    // ?곹깭 ???    mode6State = {
       problem: problemData.problem_description,
       sampleCode: problemData.sample_code || '',
       userCode: '',
@@ -4952,33 +4929,32 @@ async function renderMode6CodeWriting() {
       isCorrect: null
     };
 
-    // UI 렌더링
-    codeArea.innerHTML = `
+    // UI ?뚮뜑留?    codeArea.innerHTML = `
       <div class="mode6-container" style="max-width: 900px; margin: 0 auto;">
-        <!-- 문제 설명 카드 -->
+        <!-- 臾몄젣 ?ㅻ챸 移대뱶 -->
         <div class="mode6-problem-card" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-          <h2 style="color: #667eea; margin: 0 0 12px 0;">📝 ${escapeHtml(problemData.problem_title)}</h2>
+          <h2 style="color: #667eea; margin: 0 0 12px 0;">?뱷 ${escapeHtml(problemData.problem_title)}</h2>
           <p style="color: var(--text); line-height: 1.7; white-space: pre-line;">${escapeHtml(problemData.problem_description)}</p>
           
           <div style="margin-top: 16px;">
-            <h4 style="color: var(--accent-2); margin: 0 0 8px 0;">✅ 요구사항</h4>
+            <h4 style="color: var(--accent-2); margin: 0 0 8px 0;">???붽뎄?ы빆</h4>
             <ul style="color: var(--text); margin: 0; padding-left: 20px;">
               ${problemData.requirements.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
             </ul>
           </div>
         </div>
         
-        <!-- 코드 입력 영역 -->
+        <!-- 肄붾뱶 ?낅젰 ?곸뿭 -->
         <div class="mode6-input-area" style="margin-bottom: 20px;">
-          <h3 style="color: var(--accent); margin: 0 0 12px 0;">💻 코드 작성</h3>
+          <h3 style="color: var(--accent); margin: 0 0 12px 0;">?뮲 肄붾뱶 ?묒꽦</h3>
           <textarea id="mode6-code-input" 
             class="challenge-textarea" 
-            placeholder="# 여기에 전체 코드를 작성하세요...
+            placeholder="# ?ш린???꾩껜 肄붾뱶瑜??묒꽦?섏꽭??..
 import pandas as pd
 import matplotlib.pyplot as plt
 
 def main():
-    # 메뉴 기반 프로그램 시작
+    # 硫붾돱 湲곕컲 ?꾨줈洹몃옩 ?쒖옉
     ...
 
 if __name__ == '__main__':
@@ -4987,19 +4963,19 @@ if __name__ == '__main__':
             spellcheck="false"></textarea>
         </div>
         
-        <!-- 버튼 영역 -->
+        <!-- 踰꾪듉 ?곸뿭 -->
         <div class="mode6-buttons" style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button id="mode6-submit-btn" onclick="submitMode6Code()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600;">🚀 제출 및 AI 채점</button>
-          <button onclick="resetMode6()" style="padding: 12px 24px; background: var(--muted); color: var(--text); border: none; border-radius: 8px; cursor: pointer;">🔄 초기화</button>
-          <button onclick="showMode6Hint()" style="padding: 12px 24px; background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; cursor: pointer;">💡 힌트 보기</button>
+          <button id="mode6-submit-btn" onclick="submitMode6Code()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600;">?? ?쒖텧 諛?AI 梨꾩젏</button>
+          <button onclick="resetMode6()" style="padding: 12px 24px; background: var(--muted); color: var(--text); border: none; border-radius: 8px; cursor: pointer;">?봽 珥덇린??/button>
+          <button onclick="showMode6Hint()" style="padding: 12px 24px; background: rgba(255, 107, 107, 0.2); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; cursor: pointer;">?뮕 ?뚰듃 蹂닿린</button>
         </div>
         
-        <!-- 결과 영역 -->
+        <!-- 寃곌낵 ?곸뿭 -->
         <div id="mode6-result" class="mode6-result" style="margin-top: 20px;"></div>
       </div>
     `;
 
-    // 코드 입력 시 Tab 처리
+    // 肄붾뱶 ?낅젰 ??Tab 泥섎━
     const codeInput = document.getElementById('mode6-code-input');
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Tab') {
@@ -5011,18 +4987,18 @@ if __name__ == '__main__':
       }
     });
 
-    // 세션 카운트 업데이트
+    // ?몄뀡 移댁슫???낅뜲?댄듃
     sessionCount.textContent = "1";
 
   } catch (err) {
-    codeArea.innerHTML = `<div class="mc-wrong" style="padding: 20px;">❌ 문제 생성 오류: ${err.message}<br><br><button onclick="renderMode6CodeWriting()" style="padding: 10px 20px; background: var(--accent-2); border: none; border-radius: 6px; cursor: pointer;">🔄 다시 시도</button></div>`;
+    codeArea.innerHTML = `<div class="mc-wrong" style="padding: 20px;">??臾몄젣 ?앹꽦 ?ㅻ쪟: ${err.message}<br><br><button onclick="renderMode6CodeWriting()" style="padding: 10px 20px; background: var(--accent-2); border: none; border-radius: 6px; cursor: pointer;">?봽 ?ㅼ떆 ?쒕룄</button></div>`;
   }
 }
 
 /**
- * 모드 6 코드 제출 및 AI 채점
- * - 학생이 작성한 코드를 AI가 채점
- * - 로직/흐름이 맞으면 정답으로 융통성 있게 채점
+ * 紐⑤뱶 6 肄붾뱶 ?쒖텧 諛?AI 梨꾩젏
+ * - ?숈깮???묒꽦??肄붾뱶瑜?AI媛 梨꾩젏
+ * - 濡쒖쭅/?먮쫫??留욎쑝硫??뺣떟?쇰줈 ?듯넻???덇쾶 梨꾩젏
  */
 async function submitMode6Code() {
   const codeInput = document.getElementById('mode6-code-input');
@@ -5030,48 +5006,48 @@ async function submitMode6Code() {
   const userCode = codeInput.value.trim();
 
   if (!userCode) {
-    alert('코드를 입력해주세요!');
+    alert('肄붾뱶瑜??낅젰?댁＜?몄슂!');
     return;
   }
 
   mode6State.userCode = userCode;
-  resultDiv.innerHTML = `<div class="definition-loading">🤖 AI가 코드를 분석하고 채점 중...</div>`;
+  resultDiv.innerHTML = `<div class="definition-loading">?쨼 AI媛 肄붾뱶瑜?遺꾩꽍?섍퀬 梨꾩젏 以?..</div>`;
 
-  const prompt = `당신은 전산수학 시험 채점관입니다. 융통성 있게 채점하되, 핵심 로직이 맞아야 합니다.
+  const prompt = `?뱀떊? ?꾩궛?섑븰 ?쒗뿕 梨꾩젏愿?낅땲?? ?듯넻???덇쾶 梨꾩젏?섎릺, ?듭떖 濡쒖쭅??留욎븘???⑸땲??
 
-## 문제 설명
+## 臾몄젣 ?ㅻ챸
 ${mode6State.problem}
 
-## 학생이 작성한 코드
+## ?숈깮???묒꽦??肄붾뱶
 \`\`\`python
 ${userCode}
 \`\`\`
 
-## 채점 기준 (융통성 있게)
-1. 핵심 기능 구현 여부 (70% 비중):
-   - 메뉴 기반 while 루프가 있는가?
-   - 사칙연산 또는 핵심 계산 로직이 있는가?
-   - 데이터 저장 구조(리스트/딕셔너리)가 있는가?
+## 梨꾩젏 湲곗? (?듯넻???덇쾶)
+1. ?듭떖 湲곕뒫 援ы쁽 ?щ? (70% 鍮꾩쨷):
+   - 硫붾돱 湲곕컲 while 猷⑦봽媛 ?덈뒗媛?
+   - ?ъ튃?곗궛 ?먮뒗 ?듭떖 怨꾩궛 濡쒖쭅???덈뒗媛?
+   - ?곗씠?????援ъ“(由ъ뒪???뺤뀛?덈━)媛 ?덈뒗媛?
    
-2. 파일/시각화 (30% 비중):
-   - CSV 저장 또는 pandas 사용 시도가 있는가?
-   - matplotlib 그래프 시도가 있는가?
+2. ?뚯씪/?쒓컖??(30% 鍮꾩쨷):
+   - CSV ????먮뒗 pandas ?ъ슜 ?쒕룄媛 ?덈뒗媛?
+   - matplotlib 洹몃옒???쒕룄媛 ?덈뒗媛?
    
-3. 정답 기준:
-   - 70% 이상 구현되면 정답
-   - 핵심 로직 구조만 맞아도 OK (변수명, 출력 메시지 달라도 됨)
-   - 문법 오류가 좀 있어도 로직이 맞으면 정답
+3. ?뺣떟 湲곗?:
+   - 70% ?댁긽 援ы쁽?섎㈃ ?뺣떟
+   - ?듭떖 濡쒖쭅 援ъ“留?留욎븘??OK (蹂?섎챸, 異쒕젰 硫붿떆吏 ?щ씪????
+   - 臾몃쾿 ?ㅻ쪟媛 醫 ?덉뼱??濡쒖쭅??留욎쑝硫??뺣떟
 
-## 응답 형식 (JSON)
+## ?묐떟 ?뺤떇 (JSON)
 {
-  "score": 0~100 점수,
-  "passed": true 또는 false (70점 이상이면 true),
-  "feedback": "상세한 피드백 (잘한 점, 부족한 점)",
-  "missing": ["누락된 기능1", "누락된 기능2"] 또는 []
+  "score": 0~100 ?먯닔,
+  "passed": true ?먮뒗 false (70???댁긽?대㈃ true),
+  "feedback": "?곸꽭???쇰뱶諛?(?섑븳 ?? 遺議깊븳 ??",
+  "missing": ["?꾨씫??湲곕뒫1", "?꾨씫??湲곕뒫2"] ?먮뒗 []
 }`;
 
   try {
-    const response = await callGeminiAPI(prompt, "JSON 형식으로만 응답하세요.");
+    const response = await callGeminiAPI(prompt, "JSON ?뺤떇?쇰줈留??묐떟?섏꽭??");
 
     let result;
     try {
@@ -5079,32 +5055,32 @@ ${userCode}
       if (jsonMatch) {
         result = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error("JSON 파싱 실패");
+        throw new Error("JSON ?뚯떛 ?ㅽ뙣");
       }
     } catch (e) {
-      // JSON 파싱 실패 시 텍스트에서 판단
-      const passed = response.includes('passed": true') || response.includes('정답') || response.includes('합격');
+      // JSON ?뚯떛 ?ㅽ뙣 ???띿뒪?몄뿉???먮떒
+      const passed = response.includes('passed": true') || response.includes('?뺣떟') || response.includes('?⑷꺽');
       result = { score: passed ? 80 : 50, passed, feedback: response, missing: [] };
     }
 
     mode6State.submitted = true;
     mode6State.isCorrect = result.passed;
 
-    // 결과 UI
+    // 寃곌낵 UI
     const bgColor = result.passed ? 'rgba(94, 230, 167, 0.1)' : 'rgba(255, 107, 107, 0.1)';
     const borderColor = result.passed ? 'var(--green)' : 'var(--red)';
-    const icon = result.passed ? '✅' : '❌';
-    const title = result.passed ? '정답입니다!' : '아직 부족해요';
+    const icon = result.passed ? '?? : '??;
+    const title = result.passed ? '?뺣떟?낅땲??' : '?꾩쭅 遺議깊빐??;
 
     resultDiv.innerHTML = `
       <div style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 12px; padding: 20px;">
         <h3 style="color: ${result.passed ? 'var(--green)' : 'var(--red)'}; margin: 0 0 12px 0;">
-          ${icon} ${title} (${result.score}점)
+          ${icon} ${title} (${result.score}??
         </h3>
         <div style="color: var(--text); line-height: 1.7; white-space: pre-line;">${escapeHtml(result.feedback)}</div>
         ${result.missing && result.missing.length > 0 ? `
           <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid ${borderColor};">
-            <strong style="color: var(--yellow);">📋 누락된 기능:</strong>
+            <strong style="color: var(--yellow);">?뱥 ?꾨씫??湲곕뒫:</strong>
             <ul style="margin: 8px 0 0 0; padding-left: 20px;">
               ${result.missing.map(m => `<li>${escapeHtml(m)}</li>`).join('')}
             </ul>
@@ -5113,11 +5089,10 @@ ${userCode}
       </div>
     `;
 
-    // 점수 업데이트
+    // ?먯닔 ?낅뜲?댄듃
     sessionScore.textContent = `${result.score} / 100`;
 
-    // 효과음
-    if (result.passed) {
+    // ?④낵??    if (result.passed) {
       SoundEffects.play('correct');
       LearningStats.recordAnswer(true);
     } else {
@@ -5126,13 +5101,12 @@ ${userCode}
     }
 
   } catch (err) {
-    resultDiv.innerHTML = `<div class="mc-wrong" style="padding: 20px;">❌ 채점 오류: ${err.message}</div>`;
+    resultDiv.innerHTML = `<div class="mc-wrong" style="padding: 20px;">??梨꾩젏 ?ㅻ쪟: ${err.message}</div>`;
   }
 }
 
 /**
- * 모드 6 초기화
- */
+ * 紐⑤뱶 6 珥덇린?? */
 function resetMode6() {
   const codeInput = document.getElementById('mode6-code-input');
   const resultDiv = document.getElementById('mode6-result');
@@ -5146,60 +5120,56 @@ function resetMode6() {
 }
 
 /**
- * 모드 6 힌트 보기
+ * 紐⑤뱶 6 ?뚰듃 蹂닿린
  */
 async function showMode6Hint() {
   const resultDiv = document.getElementById('mode6-result');
-  resultDiv.innerHTML = `<div class="definition-loading">💡 힌트 생성 중...</div>`;
+  resultDiv.innerHTML = `<div class="definition-loading">?뮕 ?뚰듃 ?앹꽦 以?..</div>`;
 
-  const prompt = `문제: ${mode6State.problem}
+  const prompt = `臾몄젣: ${mode6State.problem}
 
-이 문제를 풀기 위한 핵심 힌트를 알려주세요:
-1. 필수 import문
-2. 기본 코드 구조 (의사 코드 수준)
-3. 주의할 점
-
-정답 코드를 직접 주지 말고, 힌트만 주세요.`;
+??臾몄젣瑜??湲??꾪븳 ?듭떖 ?뚰듃瑜??뚮젮二쇱꽭??
+1. ?꾩닔 import臾?2. 湲곕낯 肄붾뱶 援ъ“ (?섏궗 肄붾뱶 ?섏?)
+3. 二쇱쓽????
+?뺣떟 肄붾뱶瑜?吏곸젒 二쇱? 留먭퀬, ?뚰듃留?二쇱꽭??`;
 
   try {
-    const response = await callGeminiAPI(prompt, "힌트만 제공하세요. 정답 코드는 주지 마세요.");
+    const response = await callGeminiAPI(prompt, "?뚰듃留??쒓났?섏꽭?? ?뺣떟 肄붾뱶??二쇱? 留덉꽭??");
     resultDiv.innerHTML = `
       <div style="background: rgba(247, 215, 116, 0.1); border: 1px solid rgba(247, 215, 116, 0.3); border-radius: 12px; padding: 20px;">
-        <h3 style="color: var(--yellow); margin: 0 0 12px 0;">💡 힌트</h3>
+        <h3 style="color: var(--yellow); margin: 0 0 12px 0;">?뮕 ?뚰듃</h3>
         <div style="color: var(--text); line-height: 1.7; white-space: pre-line;">${escapeHtml(response)}</div>
       </div>
     `;
   } catch (err) {
-    resultDiv.innerHTML = `<div class="mc-wrong">힌트 생성 실패: ${err.message}</div>`;
+    resultDiv.innerHTML = `<div class="mc-wrong">?뚰듃 ?앹꽦 ?ㅽ뙣: ${err.message}</div>`;
   }
 }
 
 // ============================================================================
-// 모드 1: C# OOP 빈칸 채우기
-// ----------------------------------------------------------------------------
-// CSharp_코드문제.txt를 파싱하여 문제를 로드하고, 빈칸 카드 UI로 표시
+// 紐⑤뱶 1: C# OOP 鍮덉뭏 梨꾩슦湲?// ----------------------------------------------------------------------------
+// CSharp_肄붾뱶臾몄젣.txt瑜??뚯떛?섏뿬 臾몄젣瑜?濡쒕뱶?섍퀬, 鍮덉뭏 移대뱶 UI濡??쒖떆
 // ============================================================================
 
-// 모드 1 상태 관리
-let mode1State = {
-  questions: [],    // 파싱된 문제들 { topic, description, code, blanks: [{num, answer}] }
-  userAnswers: {},  // 사용자 답변
+// 紐⑤뱶 1 ?곹깭 愿由?let mode1State = {
+  questions: [],    // ?뚯떛??臾몄젣??{ topic, description, code, blanks: [{num, answer}] }
+  userAnswers: {},  // ?ъ슜???듬?
   difficulty: 'normal' // easy, normal, hard
 };
 
 /**
- * CSharp_코드문제.txt 파일을 파싱하여 문제 배열 반환
+ * CSharp_肄붾뱶臾몄젣.txt ?뚯씪???뚯떛?섏뿬 臾몄젣 諛곗뿴 諛섑솚
  */
 function parseCSharpQuestions(text) {
-  console.log('[Mode1] 파싱 시작, 텍스트 길이:', text.length);
+  console.log('[Mode1] ?뚯떛 ?쒖옉, ?띿뒪??湲몄씠:', text.length);
   const questions = [];
 
-  // ===== 문제 N: 로 분리
-  const blocks = text.split(/={5,}\s*문제\s*\d+\s*:\s*/);
-  console.log('[Mode1] 분리된 블록 수:', blocks.length);
+  // ===== 臾몄젣 N: 濡?遺꾨━
+  const blocks = text.split(/={5,}\s*臾몄젣\s*\d+\s*:\s*/);
+  console.log('[Mode1] 遺꾨━??釉붾줉 ??', blocks.length);
 
   blocks.forEach((block, idx) => {
-    if (idx === 0) return; // 첫 블록은 파일 헤더
+    if (idx === 0) return; // 泥?釉붾줉? ?뚯씪 ?ㅻ뜑
 
     const lines = block.trim().split('\n');
     let topic = '';
@@ -5211,25 +5181,25 @@ function parseCSharpQuestions(text) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // 첫 줄에서 제목 추출 (===== 로 끝나는 줄)
+      // 泥?以꾩뿉???쒕ぉ 異붿텧 (===== 濡??앸굹??以?
       if (i === 0 && line.includes('=====')) {
         topic = line.replace(/=+/g, '').trim();
         continue;
       }
 
-      // // 로 시작하는 첫 번째 줄 = 설명
+      // // 濡??쒖옉?섎뒗 泥?踰덉㎏ 以?= ?ㅻ챸
       if (line.trim().startsWith('//') && !description && !inAnswerKey) {
         description = line.replace(/^\/\/\s*/, '').trim();
         continue;
       }
 
-      // 정답키 섹션 시작
-      if (line.includes('정답키:')) {
+      // ?뺣떟???뱀뀡 ?쒖옉
+      if (line.includes('?뺣떟??')) {
         inAnswerKey = true;
         continue;
       }
 
-      // 정답키 파싱
+      // ?뺣떟???뚯떛
       if (inAnswerKey) {
         const answerMatch = line.match(/^(\d+)=(.+)$/);
         if (answerMatch) {
@@ -5238,18 +5208,18 @@ function parseCSharpQuestions(text) {
         continue;
       }
 
-      // 코드 수집 (정답키 시작 전까지 모든 줄)
+      // 肄붾뱶 ?섏쭛 (?뺣떟???쒖옉 ?꾧퉴吏 紐⑤뱺 以?
       code += line + '\n';
     }
 
-    // 빈칸 개수 확인
+    // 鍮덉뭏 媛쒖닔 ?뺤씤
     const blankCount = (code.match(/_____/g) || []).length;
     const answerCount = Object.keys(answers).length;
 
-    console.log(`[Mode1] 문제 ${idx}: topic="${topic}", 빈칸=${blankCount}, 정답=${answerCount}`);
+    console.log(`[Mode1] 臾몄젣 ${idx}: topic="${topic}", 鍮덉뭏=${blankCount}, ?뺣떟=${answerCount}`);
 
     if (topic && code.trim() && blankCount > 0 && answerCount > 0) {
-      // 빈칸 정보 생성
+      // 鍮덉뭏 ?뺣낫 ?앹꽦
       const blanks = [];
       for (let num = 1; num <= Math.min(blankCount, answerCount); num++) {
         if (answers[num.toString()]) {
@@ -5271,58 +5241,77 @@ function parseCSharpQuestions(text) {
     }
   });
 
-  console.log('[Mode1] 파싱 완료, 문제 수:', questions.length);
+  console.log('[Mode1] ?뚯떛 ?꾨즺, 臾몄젣 ??', questions.length);
   return questions;
 }
 
 /**
- * 모드 1 렌더링 함수
- * - CSharp_코드문제.txt 파일을 로드하고 파싱
- * - blank-card 스타일 UI로 표시
- * - 구문 강조 적용
+ * 紐⑤뱶 1 ?뚮뜑留??⑥닔
+ * - CSharp_肄붾뱶臾몄젣.txt ?뚯씪??濡쒕뱶?섍퀬 ?뚯떛
+ * - blank-card ?ㅽ???UI濡??쒖떆
+ * - 援щЦ 媛뺤“ ?곸슜
  */
 async function renderMode1OOPBlanks() {
   const codeArea = document.getElementById('code-area');
-  codeArea.innerHTML = `<div class="definition-loading">📂 C# OOP 문제를 불러오는 중...</div>`;
+  codeArea.innerHTML = `<div class="definition-loading">?뱛 C# OOP 臾몄젣瑜?遺덈윭?ㅻ뒗 以?..</div>`;
 
-  // 제목 업데이트
-  sessionTitle.textContent = "C# OOP 빈칸 채우기";
-  sessionMode.textContent = "OOP 빈칸 채우기";
+  // ?쒕ぉ ?낅뜲?댄듃
+  sessionTitle.textContent = "C# OOP 鍮덉뭏 梨꾩슦湲?;
+  sessionMode.textContent = "OOP 鍮덉뭏 梨꾩슦湲?;
 
   try {
-    // 파일 로드 (신규 이름 우선, 실패 시 구버전 이름으로 폴백)
-    const primaryUrl = '/data/3_OOP_코드빈칸.txt?t=' + Date.now();
-    const legacyUrl = '/data/CSharp_코드문제.txt?t=' + Date.now();
-    let text = "";
-    let resp = await fetch(primaryUrl);
-    if (!resp.ok) {
-      resp = await fetch(legacyUrl);
-    }
-    if (!resp.ok) throw new Error('파일을 찾을 수 없습니다');
-    text = await resp.text();
+    // ?뚯씪 濡쒕뱶 (?곷? 寃쎈줈濡?- GitHub Pages? 濡쒖뺄 ?쒕쾭 紐⑤몢 ?명솚)
+    const basePaths = ['data/', '../data/', './data/', '/data/'];
+    const fileNames = ['3_OOP_肄붾뱶鍮덉뭏.txt', 'CSharp_肄붾뱶臾몄젣.txt'];
 
-    // 문제 파싱
+    let text = "";
+    let loaded = false;
+
+    // ?щ윭 寃쎈줈? ?뚯씪紐?議고빀 ?쒕룄
+    for (const basePath of basePaths) {
+      if (loaded) break;
+      for (const fileName of fileNames) {
+        const url = basePath + fileName + '?t=' + Date.now();
+        try {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            text = await resp.text();
+            if (text.trim().length > 0) {
+              console.log('[Mode1] ?뚯씪 濡쒕뱶 ?깃났:', url);
+              loaded = true;
+              break;
+            }
+          }
+        } catch (e) {
+          console.log('[Mode1] ?쒕룄:', url, '?ㅽ뙣');
+        }
+      }
+    }
+
+    if (!loaded || !text.trim()) {
+      throw new Error('?뚯씪??李얠쓣 ???놁뒿?덈떎');
+    }
+
+    // 臾몄젣 ?뚯떛
     const allQuestions = parseCSharpQuestions(text);
 
     if (allQuestions.length === 0) {
-      throw new Error('문제를 파싱할 수 없습니다');
+      throw new Error('臾몄젣瑜??뚯떛?????놁뒿?덈떎');
     }
 
-    // 난이도에 따라 문제 선택 (현재는 전체 사용)
+    // ?쒖씠?꾩뿉 ?곕씪 臾몄젣 ?좏깮 (?꾩옱???꾩껜 ?ъ슜)
     mode1State.questions = allQuestions;
     mode1State.userAnswers = {};
     mode1State.submitted = false;
 
-    // UI 렌더링 - blank-card 스타일
-    let questionsHtml = '';
+    // UI ?뚮뜑留?- blank-card ?ㅽ???    let questionsHtml = '';
     let navHtml = '';
     let globalBlankIdx = 0;
 
     allQuestions.forEach((q, qIdx) => {
       const questionNum = qIdx + 1;
 
-      // C# 구문 강조 후 빈칸을 입력 필드로 변환
-      let processedCode = highlightCSharpSyntax(q.code);
+      // C# 援щЦ 媛뺤“ ??鍮덉뭏???낅젰 ?꾨뱶濡?蹂??      let processedCode = highlightCSharpSyntax(q.code);
       let blankCounter = 1;
       processedCode = processedCode.replace(/_____/g, () => {
         const blank = q.blanks.find(b => b.num === blankCounter);
@@ -5353,69 +5342,69 @@ async function renderMode1OOPBlanks() {
 
     codeArea.innerHTML = questionsHtml;
 
-    // 빈칸 목록 업데이트
+    // 鍮덉뭏 紐⑸줉 ?낅뜲?댄듃
     const blankList = document.getElementById('blank-list');
     if (blankList) {
       blankList.innerHTML = navHtml;
     }
 
-    // 세션 카운트 업데이트
+    // ?몄뀡 移댁슫???낅뜲?댄듃
     sessionCount.textContent = globalBlankIdx.toString();
     sessionScore.textContent = `0 / ${globalBlankIdx}`;
 
-    // 이벤트 리스너 설정
+    // ?대깽??由ъ뒪???ㅼ젙
     setupMode1EventListeners();
 
   } catch (err) {
-    codeArea.innerHTML = `<div class="mc-wrong" style="padding: 20px;">❌ 오류: ${err.message}<br><br><button onclick="renderMode1OOPBlanks()" style="padding: 10px 20px; background: var(--accent-2); border: none; border-radius: 6px; cursor: pointer;">🔄 다시 시도</button></div>`;
+    codeArea.innerHTML = `<div class="mc-wrong" style="padding: 20px;">???ㅻ쪟: ${err.message}<br><br><button onclick="renderMode1OOPBlanks()" style="padding: 10px 20px; background: var(--accent-2); border: none; border-radius: 6px; cursor: pointer;">?봽 ?ㅼ떆 ?쒕룄</button></div>`;
   }
 }
 
 /**
- * C# 코드 구문 강조
+ * C# 肄붾뱶 援щЦ 媛뺤“
  */
 function highlightCSharpSyntax(code) {
-  // 키워드 강조
+  // ?ㅼ썙??媛뺤“
   const keywords = ['namespace', 'class', 'interface', 'public', 'private', 'protected', 'static', 'void', 'int', 'string', 'double', 'bool', 'new', 'return', 'if', 'else', 'for', 'foreach', 'while', 'try', 'catch', 'finally', 'throw', 'using', 'lock', 'object', 'in'];
 
   let result = code;
 
-  // 문자열 강조 (먼저 처리)
+  // 臾몄옄??媛뺤“ (癒쇱? 泥섎━)
   result = result.replace(/"([^"\\]|\\.)*"/g, '<span style="color: #ce9178;">"$&"</span>');
   result = result.replace(/<span style="color: #ce9178;">"("([^"\\]|\\.)*")"/g, '<span style="color: #ce9178;">$1');
 
-  // 주석 강조
+  // 二쇱꽍 媛뺤“
   result = result.replace(/(\/\/[^\n]*)/g, '<span style="color: #6a9955;">$1</span>');
   result = result.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #6a9955;">$1</span>');
 
-  // 키워드 강조
+  // ?ㅼ썙??媛뺤“
   keywords.forEach(kw => {
     const regex = new RegExp(`\\b(${kw})\\b`, 'g');
     result = result.replace(regex, '<span style="color: #569cd6;">$1</span>');
   });
 
-  // 타입 강조
+  // ???媛뺤“
   const types = ['Console', 'Thread', 'Exception', 'DivideByZeroException', 'ArgumentException', 'ThreadStart'];
   types.forEach(type => {
     const regex = new RegExp(`\\b(${type})\\b`, 'g');
     result = result.replace(regex, '<span style="color: #4ec9b0;">$1</span>');
   });
 
-  // 숫자 강조
+  // ?レ옄 媛뺤“
   result = result.replace(/\b(\d+)\b/g, '<span style="color: #b5cea8;">$1</span>');
 
   return result;
 }
 
 /**
- * Mode 1 이벤트 리스너 설정
+ * Mode 1 ?대깽??由ъ뒪???ㅼ젙
  */
 function setupMode1EventListeners() {
   const inputs = document.querySelectorAll('.mode1-input');
   let lastEnterTime = {};
 
   inputs.forEach(input => {
-    // Enter 키 처리: 1번 = 체크, 2번 = 정답 표시
+    // Enter ??泥섎━: 1踰?= 泥댄겕, 2踰?= ?뺣떟 ?쒖떆
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -5424,15 +5413,15 @@ function setupMode1EventListeners() {
         const lastTime = lastEnterTime[inputId] || 0;
 
         if (now - lastTime < 500) {
-          // 더블 엔터: 정답 표시
+          // ?붾툝 ?뷀꽣: ?뺣떟 ?쒖떆
           checkMode1Single(input, true);
         } else {
-          // 싱글 엔터: 정답/오답만 체크
+          // ?깃? ?뷀꽣: ?뺣떟/?ㅻ떟留?泥댄겕
           checkMode1Single(input, false);
         }
         lastEnterTime[inputId] = now;
 
-        // 다음 빈칸으로 이동
+        // ?ㅼ쓬 鍮덉뭏?쇰줈 ?대룞
         const allInputs = Array.from(document.querySelectorAll('.mode1-input'));
         const currentIdx = allInputs.indexOf(input);
         if (currentIdx < allInputs.length - 1) {
@@ -5444,7 +5433,7 @@ function setupMode1EventListeners() {
 }
 
 /**
- * Mode 1 개별 빈칸 체크
+ * Mode 1 媛쒕퀎 鍮덉뭏 泥댄겕
  */
 function checkMode1Single(input, showAnswer = false) {
   const qNum = input.dataset.q;
@@ -5462,7 +5451,7 @@ function checkMode1Single(input, showAnswer = false) {
   navPill?.classList.remove('pending', 'correct', 'wrong', 'revealed');
 
   if (showAnswer && !isCorrect) {
-    // 정답 표시
+    // ?뺣떟 ?쒖떆
     input.value = correctAnswer;
     input.classList.add('revealed');
     navPill?.classList.add('revealed');
@@ -5484,7 +5473,7 @@ function checkMode1Single(input, showAnswer = false) {
 }
 
 /**
- * Mode 1 점수 업데이트
+ * Mode 1 ?먯닔 ?낅뜲?댄듃
  */
 function updateMode1Score() {
   const inputs = document.querySelectorAll('.mode1-input');
@@ -5506,7 +5495,7 @@ function updateMode1Score() {
 }
 
 /**
- * Mode 1 전체 채점
+ * Mode 1 ?꾩껜 梨꾩젏
  */
 function checkMode1Answers() {
   document.querySelectorAll('.mode1-input').forEach(input => {

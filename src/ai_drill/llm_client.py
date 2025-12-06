@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from pathlib import Path
 
 from .prompt_templates import (
     COMMON_RULES,
@@ -18,6 +19,42 @@ from .prompt_templates import (
 )
 
 DEFAULT_MODEL = "gemini-2.5-flash"
+
+
+def _scrub_system_prompt(raw: str) -> str:
+    if not raw:
+        return ""
+    lines = []
+    for line in raw.splitlines():
+        lower = line.lower()
+        has_html = "<" in line or "html" in lower
+        is_canvas_html = "canvas" in lower and (has_html or "html" in lower)
+        if has_html or is_canvas_html:
+            continue
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def _load_base_prompt() -> str:
+    """
+    Load the shared Ailey & Bailey system prompt, skipping HTML/canvas-specific lines.
+    """
+    root_dir = Path(__file__).resolve().parents[1]
+    candidates = [
+        root_dir / "data" / "gemini_system_prompt.txt",
+        root_dir / "src" / "web_app" / "data" / "gemini_system_prompt.txt",
+    ]
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            raw = path.read_text(encoding="utf-8")
+            cleaned = _scrub_system_prompt(raw)
+            if cleaned:
+                return cleaned
+        except OSError:
+            continue
+    return ""
 
 
 class LLMClient:
@@ -35,9 +72,17 @@ class LLMClient:
         model_env = os.getenv("GEMINI_MODEL")
         model_to_use = model_name or model_env or DEFAULT_MODEL
 
+        system_prompt = COMMON_RULES
+        base_prompt = _load_base_prompt()
+        if base_prompt:
+            system_prompt = "\n\n".join([base_prompt, COMMON_RULES]).strip()
+
         genai.configure(api_key=api_key)
         self.model_name = model_to_use
-        self.model = genai.GenerativeModel(model_to_use, system_instruction=COMMON_RULES)
+        self.model = genai.GenerativeModel(
+            model_to_use,
+            system_instruction=system_prompt
+        )
         self._genai: Any = genai
 
     def generate_drill(self, content: str, mode: int) -> str:

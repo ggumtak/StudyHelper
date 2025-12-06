@@ -29,6 +29,7 @@ from ai_drill.quiz_parser import parse_response
 
 console = Console()
 
+
 def detect_language_from_path(path: str) -> str:
     """Infer language from file extension for UI display."""
     ext = os.path.splitext(path)[1].lower()
@@ -43,6 +44,7 @@ def detect_language_from_path(path: str) -> str:
         ".md": "markdown",
     }
     return mapping.get(ext, "text")
+
 
 def strip_code_block(text: str) -> str:
     """
@@ -70,6 +72,7 @@ def load_api_key_from_file() -> str | None:
         console.print(f"[yellow]Warning: failed to read API key file: {exc}[/yellow]")
     return None
 
+
 def normalize_answer_key(answer_key) -> dict:
     """
     Flatten various answer_key shapes that the LLM/local generator may emit.
@@ -82,12 +85,13 @@ def normalize_answer_key(answer_key) -> dict:
         answer_key = answer_key["answer_key"]
     result = {}
     for k, v in answer_key.items():
-        # 특수 키 (_로 시작하는 키)는 그대로 유지
+        # Keep metadata keys that start with "_" untouched
         if str(k).startswith("_"):
             result[k] = v
         else:
             result[str(k)] = v
     return result
+
 
 def build_session_payload(session, input_file: str) -> dict:
     """Standardize the payload consumed by the web UI."""
@@ -107,160 +111,175 @@ def build_session_payload(session, input_file: str) -> dict:
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
+
 def start_server():
     """Starts a simple HTTP server serving the web_app directory with NO CACHE."""
-    
-    # 캐시를 완전히 비활성화하는 커스텀 핸들러
+
+    # Disable caching to ensure the browser always loads fresh assets
     class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=WEB_APP_DIR, **kwargs)
-        
+
         def end_headers(self):
-            # 모든 응답에 no-cache 헤더 추가
-            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            self.send_header('Pragma', 'no-cache')
-            self.send_header('Expires', '0')
+            # Force no-cache headers on every response
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
             super().end_headers()
 
         def do_POST(self):
-            if self.path == '/shutdown':
+            if self.path == "/shutdown":
                 print("Shutting down server via web request...")
                 self.send_response(200)
                 self.end_headers()
-                # 별도 스레드에서 종료 (응답을 보낸 후 종료하기 위해)
+                # Exit the server in a background thread
                 threading.Thread(target=lambda: os._exit(0)).start()
             else:
-                # SimpleHTTPRequestHandler는 기본적으로 do_POST가 없으므로 405 반환하거나 무시
                 self.send_error(405, "Method Not Allowed")
 
     socketserver.ThreadingTCPServer.allow_reuse_address = True
     try:
-        # 0.0.0.0으로 바인딩하여 네트워크의 다른 기기에서도 접속 가능
         with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), NoCacheHandler) as httpd:
-            # 로컬 IP 주소 가져오기
             import socket
+
             hostname = socket.gethostname()
             try:
                 local_ip = socket.gethostbyname(hostname)
-            except:
-                local_ip = "알 수 없음"
-            
-            print(f"\n{'='*50}")
-            print(f"웹 서버 시작!")
-            print(f"{'='*50}")
-            print(f"PC에서 접속: http://localhost:{PORT}")
-            print(f"📱 핸드폰에서 접속: http://{local_ip}:{PORT}")
-            print(f"{'='*50}")
-            print(f"(같은 WiFi 네트워크에 연결되어 있어야 합니다)\n")
+            except Exception:
+                local_ip = "unknown"
+
+            print(f"\n{'=' * 50}")
+            print("StudyHelper server is ready!")
+            print(f"{'=' * 50}")
+            print(f"Localhost: http://localhost:{PORT}")
+            print(f"LAN (same Wi-Fi/hotspot): http://{local_ip}:{PORT}")
+            print(f"{'=' * 50}")
+            print("(Use the same Wi-Fi/hotspot on phone and PC)\n")
             httpd.serve_forever()
     except OSError:
         print(f"Port {PORT} is already in use. Assuming server is running.")
+
 
 def launcher():
     """
     GUI to select file and mode, then generate JSON and launch Web UI.
     """
     root = tk.Tk()
-    root.title("AI 트레이닝 센터")
+    root.title("AI Drill Launcher")
     root.geometry("420x420")
     root.configure(bg="#ffffff")
     root.resizable(False, False)
-    
+
     # Styling
-    font_title = ("Malgun Gothic", 14, "bold")
-    font_desc = ("Malgun Gothic", 9)
-    font_btn = ("Malgun Gothic", 10, "bold")
-    
+    font_title = ("Segoe UI", 14, "bold")
+    font_desc = ("Segoe UI", 9)
+    font_btn = ("Segoe UI", 10, "bold")
+
     def on_mode_select(mode):
-        # Mode 5: OOP 정의 퀴즈는 내장 파일 사용 (파일 선택 필요 없음)
+        # Mode 5: default definitions shortcut
         if mode == 5:
             default_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "default_definitions.txt")
             if os.path.exists(default_file):
                 root.destroy()
                 run_generation_and_launch(default_file, mode, offline=True)
                 return
-        
-        # 다른 모드는 파일 선택
+
         filename = filedialog.askopenfilename(
-            title=f"모드 {mode} 학습 파일 선택",
-            filetypes=[("코드/텍스트 파일", "*.txt;*.py;*.c;*.cpp;*.java;*.js"), ("모든 파일", "*.*")]
+            title=f"Select practice file for mode {mode}",
+            filetypes=[
+                ("Code/Text files", "*.txt;*.py;*.c;*.cpp;*.java;*.js"),
+                ("All files", "*.*"),
+            ],
         )
         if filename:
             root.destroy()
             run_generation_and_launch(filename, mode, offline=offline_var.get())
 
     # UI Elements
-    tk.Label(root, text="AI 트레이닝 센터", font=font_title, bg="white", fg="#333").pack(pady=(20, 3))
-    tk.Label(root, text="모드를 선택하세요", font=font_desc, bg="white", fg="#666").pack(pady=(0, 8))
+    tk.Label(root, text="AI Drill Launcher", font=font_title, bg="white", fg="#333").pack(pady=(20, 3))
+    tk.Label(root, text="Choose a mode and select the source file.", font=font_desc, bg="white", fg="#666").pack(
+        pady=(0, 8)
+    )
 
     offline_var = tk.BooleanVar(value=False)
     tk.Checkbutton(
-        root, text="로컬 생성 모드", variable=offline_var,
-        bg="white", fg="#444", selectcolor="#f1f5f9", activebackground="white",
-        font=("Malgun Gothic", 9)
-    ).pack(pady=(0, 8))
-    
+        root,
+        text="Offline (local generator only)",
+        variable=offline_var,
+        bg="white",
+        fg="#444",
+        selectcolor="#f1f5f9",
+        activebackground="white",
+        font=("Segoe UI", 9),
+    ).pack()
+
     btn_frame = tk.Frame(root, bg="white")
     btn_frame.pack(fill="both", expand=True, padx=20)
-    
-    # 2열 그리드 레이아웃, 짧은 이름
+
+    # Modes: text is English because this desktop launcher is not web UI
     modes = [
-        (1, "1. OOP 빈칸", "#E3F2FD", "#1565C0"),
-        (2, "2. 자료구조", "#FFEBEE", "#C62828"),
-        (3, "3. 백지복습", "#FFF3E0", "#EF6C00"),
-        (4, "4. 모의고사", "#E8F5E9", "#2E7D32"),
-        (5, "5. 정의퀴즈 ⭐", "#F3E5F5", "#7B1FA2"),
-        (7, "7. 영단어", "#E0F7FA", "#00838F")
+        (1, "1. OOP Fill Blanks", "#E3F2FD", "#1565C0"),
+        (2, "2. Data Structure Fill Blanks", "#FFEBEE", "#C62828"),
+        (3, "3. Whiteboard Practice", "#FFF3E0", "#EF6C00"),
+        (4, "4. Mock Exam", "#E8F5E9", "#2E7D32"),
+        (5, "5. Definition Quiz", "#F3E5F5", "#7B1FA2"),
+        (7, "7. Vocab Drill", "#E0F7FA", "#00838F"),
     ]
-    
+
     for i, (m_id, m_text, bg_color, fg_color) in enumerate(modes):
         row, col = divmod(i, 2)
-        btn = tk.Button(btn_frame, text=m_text, font=font_btn, bg=bg_color, fg=fg_color,
-                        relief="flat", activebackground=fg_color, activeforeground="white",
-                        command=lambda m=m_id: on_mode_select(m), cursor="hand2")
+        btn = tk.Button(
+            btn_frame,
+            text=m_text,
+            font=font_btn,
+            bg=bg_color,
+            fg=fg_color,
+            relief="flat",
+            activebackground=fg_color,
+            activeforeground="white",
+            command=lambda m=m_id: on_mode_select(m),
+            cursor="hand2",
+        )
         btn.grid(row=row, column=col, padx=5, pady=5, sticky="nsew", ipady=12)
-    
-    # 열 균등 분배
+
     btn_frame.columnconfigure(0, weight=1)
     btn_frame.columnconfigure(1, weight=1)
-    
-    # 핸드폰 접속 주소 표시
+
+    # Show mobile URL for convenience
     import socket
+
     try:
         hostname = socket.gethostname()
         local_ip = socket.gethostbyname(hostname)
         mobile_url = f"http://{local_ip}:{PORT}"
-    except:
-        mobile_url = "IP 확인 불가"
-    
+    except Exception:
+        mobile_url = "IP unavailable"
+
     mobile_frame = tk.Frame(root, bg="#f0f4f8")
     mobile_frame.pack(fill="x", padx=20, pady=(10, 0))
-    
-    tk.Label(mobile_frame, text="📱 핸드폰 접속:", font=("Malgun Gothic", 9, "bold"), 
-             bg="#f0f4f8", fg="#333").pack(side="left", padx=(10, 5))
-    
-    url_label = tk.Label(mobile_frame, text=mobile_url, font=("Consolas", 10), 
-                         bg="#f0f4f8", fg="#1565C0", cursor="hand2")
+
+    tk.Label(
+        mobile_frame, text="Mobile URL:", font=("Segoe UI", 9, "bold"), bg="#f0f4f8", fg="#333"
+    ).pack(side="left", padx=(10, 5))
+
+    url_label = tk.Label(mobile_frame, text=mobile_url, font=("Consolas", 10), bg="#f0f4f8", fg="#1565C0", cursor="hand2")
     url_label.pack(side="left")
-    
-    # 클릭하면 클립보드에 복사
+
     def copy_url(event=None):
         root.clipboard_clear()
         root.clipboard_append(mobile_url)
-        url_label.config(text=mobile_url + " ✓복사됨!")
+        url_label.config(text=mobile_url + " (copied)")
         root.after(1500, lambda: url_label.config(text=mobile_url))
-    
+
     url_label.bind("<Button-1>", copy_url)
-    
-    tk.Label(mobile_frame, text="(클릭하면 복사)", font=("Malgun Gothic", 8), 
-             bg="#f0f4f8", fg="#999").pack(side="left", padx=(5, 10))
-        
+
+    tk.Label(mobile_frame, text="(click to copy)", font=("Segoe UI", 8), bg="#f0f4f8", fg="#999").pack(
+        side="left", padx=(5, 10)
+    )
+
     tk.Label(root, text="Powered by Gemini", font=("Arial", 8), bg="white", fg="#bbb").pack(side="bottom", pady=8)
-    
+
     root.mainloop()
-
-
-
 
 
 def run_generation_and_launch(input_file, mode, offline: bool = False):
@@ -301,7 +320,7 @@ def run_generation_and_launch(input_file, mode, offline: bool = False):
         loading_text = "Building questions locally... (no AI)"
     else:
         loading_text = "Generating questions with AI... Please wait."
-    tk.Label(splash, text=loading_text, font=("Malgun Gothic", 10)).pack(expand=True)
+    tk.Label(splash, text=loading_text, font=("Segoe UI", 10)).pack(expand=True)
     splash.update()
 
     session = None
@@ -349,24 +368,34 @@ def run_generation_and_launch(input_file, mode, offline: bool = False):
     control_root.geometry("300x150")
     control_root.configure(bg="white")
 
-    tk.Label(control_root, text="Server is running.", font=("Malgun Gothic", 12, "bold"), bg="white", fg="green").pack(pady=(20, 10))
-    tk.Label(control_root, text=f"http://localhost:{PORT}", font=("Malgun Gothic", 10), bg="white").pack(pady=(0, 20))
+    tk.Label(
+        control_root, text="Server is running.", font=("Segoe UI", 12, "bold"), bg="white", fg="green"
+    ).pack(pady=(20, 10))
+    tk.Label(control_root, text=f"http://localhost:{PORT}", font=("Segoe UI", 10), bg="white").pack(pady=(0, 20))
 
     def on_close():
         print("Stopping server...")
         control_root.destroy()
         os._exit(0)  # Force exit to kill threads
 
-    tk.Button(control_root, text="Stop Server", command=on_close, bg="#ffcdd2", fg="#c62828", font=("Malgun Gothic", 10)).pack(ipadx=20, ipady=5)
+    tk.Button(
+        control_root,
+        text="Stop Server",
+        command=on_close,
+        bg="#ffcdd2",
+        fg="#c62828",
+        font=("Segoe UI", 10),
+    ).pack(ipadx=20, ipady=5)
 
     control_root.protocol("WM_DELETE_WINDOW", on_close)
     control_root.mainloop()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AI Drill Generator")
-    parser.add_argument("--file", "-f", dest="input_file", help="입력 파일 경로")
-    parser.add_argument("--mode", "-m", type=int, choices=[1, 2, 3, 4, 5, 7], help="학습 모드 (1~5, 7)")
-    parser.add_argument("--offline", action="store_true", help="LLM 없이 로컬 제너레이터 사용")
+    parser.add_argument("--file", "-f", dest="input_file", help="Path to input file")
+    parser.add_argument("--mode", "-m", type=int, choices=[1, 2, 3, 4, 5, 7], help="Practice mode (1-5, 7)")
+    parser.add_argument("--offline", action="store_true", help="Use local generator only (no LLM)")
     args, unknown = parser.parse_known_args()
 
     if args.input_file and args.mode:
