@@ -143,8 +143,11 @@ def find_project_root(base_dir: Path) -> Path | None:
 
 
 def find_python_cmd() -> str | None:
+    """Find Python command - tries multiple methods including common install paths."""
     creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
-    for cmd in ("py -3.11", "py -3", "python"):
+    
+    # First try standard commands
+    for cmd in ("py -3.11", "py -3", "python", "python3"):
         try:
             subprocess.run(
                 cmd.split() + ["--version"],
@@ -156,6 +159,32 @@ def find_python_cmd() -> str | None:
             return cmd
         except Exception:
             continue
+    
+    # If not found, try common Windows Python installation paths
+    if os.name == "nt":
+        common_paths = [
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Python" / "Python311" / "python.exe",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Python" / "Python310" / "python.exe",
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Python" / "Python39" / "python.exe",
+            Path("C:/Python311/python.exe"),
+            Path("C:/Python310/python.exe"),
+            Path("C:/Program Files/Python311/python.exe"),
+            Path("C:/Program Files/Python310/python.exe"),
+        ]
+        for python_path in common_paths:
+            if python_path.exists():
+                try:
+                    subprocess.run(
+                        [str(python_path), "--version"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=True,
+                        creationflags=creationflags,
+                    )
+                    return str(python_path)
+                except Exception:
+                    continue
+    
     return None
 
 
@@ -514,7 +543,18 @@ def main() -> int:
             except Exception:
                 pass
         
-        webbrowser.open("http://localhost:8000")
+        # Use current_port from server_info.json or default to 3000
+        try:
+            server_info_path = project_root / "src" / "web_app" / "server_info.json"
+            if server_info_path.exists():
+                import json
+                info = json.loads(server_info_path.read_text(encoding="utf-8"))
+                port = info.get("port", 3000)
+            else:
+                port = 3000
+        except Exception:
+            port = 3000
+        webbrowser.open(f"http://localhost:{port}")
         splash.close()
         try:
             server.wait()
