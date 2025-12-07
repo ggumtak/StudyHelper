@@ -199,11 +199,28 @@ def main() -> int:
                 stage_file(item, dest)
 
         # Record installed version for launcher bookkeeping
-        version_record = {"version": args.version or "", "installed_at": time.time()}
+        version_record = {
+            "version": args.version or "",
+            "core_version": args.version or "",
+            "installed_at": time.time(),
+        }
         try:
             (base_dir / "installed_version.json").write_text(
                 json.dumps(version_record, ensure_ascii=False, indent=2), encoding="utf-8"
             )
+        except Exception:
+            pass
+
+        try:
+            version_json = {
+                "version": args.version or "",
+                "core_version": args.version or "",
+                "launcher_version": args.version or "",
+                "patcher_version": PATCHER_VERSION,
+                "url": args.asset_url,
+                "checksum": args.checksum,
+            }
+            (base_dir / "version.json").write_text(json.dumps(version_json, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception:
             pass
 

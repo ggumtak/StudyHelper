@@ -50,6 +50,7 @@ const sessionLang = document.getElementById("session-lang");
 const sessionMode = document.getElementById("session-mode");
 const sessionCount = document.getElementById("session-count");
 const sessionScore = document.getElementById("session-score");
+const appVersionEl = document.getElementById("app-version");
 const sessionProgress = document.querySelector("#session-progress span");
 const answerBlock = document.getElementById("answer-block");
 const blankList = document.getElementById("blank-list");
@@ -3529,6 +3530,16 @@ function initializeButtonHandlers() {
   fetch("/server_info.json")
     .then(r => r.json())
     .then(info => {
+      if (appVersionEl) {
+        const versionText = info.version || info.app_version || "";
+        if (versionText) {
+          appVersionEl.textContent = `v${versionText}`;
+          appVersionEl.title = `현재 버전: ${versionText}`;
+        } else {
+          appVersionEl.style.display = "none";
+        }
+      }
+
       const currentPort = String(info.port || window.location.port || "3000");
       const portAttempts = Array.isArray(info.ports_tried) ? info.ports_tried.join(",") : "";
 
@@ -3579,6 +3590,9 @@ function initializeButtonHandlers() {
         const fallbackPort = window.location.port || "3000";
         serverPortEl.textContent = `Port ${fallbackPort}`;
         serverPortEl.title = "server_info.json missing; using current page port.";
+      }
+      if (appVersionEl) {
+        appVersionEl.style.display = "none";
       }
     });
 

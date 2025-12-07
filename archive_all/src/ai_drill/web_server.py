@@ -25,6 +25,12 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote
 
+# Prefer external source tree beside the executable when bundled (hybrid mode)
+INSTALL_BASE = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parents[2]
+EXTERNAL_SRC = Path(os.getenv("STUDYHELPER_SRC_DIR", INSTALL_BASE / "src"))
+if EXTERNAL_SRC.exists() and str(EXTERNAL_SRC) not in sys.path:
+    sys.path.insert(0, str(EXTERNAL_SRC))
+
 from ai_drill.local_generator import build_local_session
 from ai_drill.main import build_session_payload
 from ai_drill.llm_client import LLMClient
@@ -42,8 +48,24 @@ def _is_frozen() -> bool:
 
 def _bundle_root() -> Path:
     if _is_frozen():
-        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+        exe_dir = Path(sys.executable).resolve().parent
+        external_root = Path(os.getenv("STUDYHELPER_EXTERNAL_ROOT", exe_dir))
+        if (external_root / "src").exists() or (external_root / "web_app").exists():
+            return external_root
+        return Path(getattr(sys, "_MEIPASS", exe_dir))
     return Path(__file__).resolve().parents[2]
+
+
+def _resolve_source_dir(root: Path, name: str) -> Path | None:
+    """
+    Find the best-matching source directory for assets (web_app/data/config),
+    preferring root-level folders, then src/<name>.
+    """
+    candidates = [root / name, root / "src" / name]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _prepare_runtime_root() -> Path:
@@ -61,9 +83,9 @@ def _prepare_runtime_root() -> Path:
 
     source_root = _bundle_root()
     for name in ("web_app", "data", "config"):
-        src = source_root / name
+        src = _resolve_source_dir(source_root, name)
         dest = runtime_root / name
-        if not src.exists():
+        if not src:
             continue
         if name == "config" and dest.exists():
             for item in src.rglob("*"):
@@ -89,6 +111,26 @@ if _is_frozen():
     PROJECT_DIR = _prepare_runtime_root()
 else:
     PROJECT_DIR = Path(__file__).resolve().parents[2]
+
+
+def _read_version_from_disk() -> str:
+    candidates = [
+        _bundle_root() / "version.json",
+        _bundle_root() / "web_app" / "version.json",
+    ]
+    for path in candidates:
+        try:
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                version = data.get("core_version") or data.get("version")
+                if version:
+                    return str(version)
+        except Exception:
+            continue
+    return APP_VERSION
+
+
+VERSION_FROM_FILE = _read_version_from_disk()
 
 WEB_APP_DIR = PROJECT_DIR / "web_app"
 DATA_DIR = PROJECT_DIR / "data"
@@ -197,7 +239,8 @@ def save_server_info(port: int | None = None, ports_tried: list[int] | None = No
         "mobile_url": f"http://{local_ip}:{current_port}",
         "presets": {k: v["name"] for k, v in PRESET_FILES.items()},
         "modes": MODE_LABELS,
-        "version": APP_VERSION,
+        "version": VERSION_FROM_FILE,
+        "app_version": APP_VERSION,
         "runtime_dir": str(PROJECT_DIR),
         "ports_tried": ports_tried or port_attempts,
     }

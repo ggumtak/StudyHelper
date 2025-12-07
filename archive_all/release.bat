@@ -29,7 +29,7 @@ if errorlevel 1 goto :end
 echo [2/5] Zipping dist\%RELEASE_ASSET% ...
 if exist "dist\%RELEASE_ASSET%" del /q "dist\%RELEASE_ASSET%"
 powershell -NoLogo -NoProfile -Command ^
- "Compress-Archive -Path 'dist/StudyHelper.exe','dist/StudyHelperLauncher.exe','dist/StudyHelperPatcher.exe' -DestinationPath 'dist/%RELEASE_ASSET%' -Force"
+ "Compress-Archive -Path 'dist/StudyHelper.exe','dist/StudyHelperLauncher.exe','dist/StudyHelperPatcher.exe','src','data','config' -DestinationPath 'dist/%RELEASE_ASSET%' -Force"
 if errorlevel 1 goto :end
 
 echo [3/5] Computing SHA256...
@@ -43,7 +43,7 @@ set "RELEASE_URL=https://github.com/%RELEASE_REPO%/releases/download/v%VERSION%/
 
 echo [4/5] Writing version.json...
 powershell -NoLogo -NoProfile -Command ^
- "$json = @{ version = '%VERSION%'; url = '%RELEASE_URL%'; checksum = '%CHECKSUM%' }; $json | ConvertTo-Json | Set-Content -Path 'version.json' -Encoding UTF8"
+ "$json = @{ version = '%VERSION%'; core_version = '%VERSION%'; launcher_version = '%VERSION%'; patcher_version = '%VERSION%'; url = '%RELEASE_URL%'; checksum = '%CHECKSUM%' }; $json | ConvertTo-Json | Set-Content -Path 'version.json' -Encoding UTF8"
 if errorlevel 1 goto :end
 
 echo [5/5] Running sync.bat (git add/commit/push)...

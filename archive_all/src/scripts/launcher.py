@@ -43,7 +43,11 @@ except Exception:  # pragma: no cover - defensive fallback
     APP_VERSION = "0.0.0"
     LAUNCHER_VERSION = "0.0.0"
 
-VERSION_ENDPOINT = "https://raw.githubusercontent.com/ggumtak/StudyHelper/main/version.json"
+# Try release asset first (preferred for published builds), then raw main as a fallback.
+VERSION_ENDPOINTS = [
+    "https://github.com/ggumtak/StudyHelper/releases/latest/download/version.json",
+    "https://raw.githubusercontent.com/ggumtak/StudyHelper/main/version.json",
+]
 TARGET_EXE_NAME = "StudyHelper.exe"
 PATCHER_EXE_NAME = "StudyHelperPatcher.exe"
 LOCAL_VERSION_FILE = "installed_version.json"
@@ -183,18 +187,39 @@ def git_pull(project_root: Path, ui: StatusUI) -> bool:
         return True
 
 
-def fetch_remote_version() -> dict[str, Any] | None:
-    req = urllib.request.Request(VERSION_ENDPOINT, headers={"User-Agent": "StudyHelper-Launcher"})
+def _load_local_version_file(path: Path) -> dict[str, Any] | None:
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            if isinstance(data, dict) and "version" in data and "url" in data:
+        if path.exists():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and ("version" in data or "core_version" in data):
                 return data
-    except urllib.error.URLError:
-        return None
     except Exception:
         return None
     return None
+
+
+def fetch_remote_version(base_dir: Path) -> tuple[dict[str, Any] | None, str]:
+    """
+    Returns (version_info, source).
+    Tries remote endpoints in order, then falls back to local version.json.
+    """
+    last_error = ""
+    for endpoint in VERSION_ENDPOINTS:
+        req = urllib.request.Request(endpoint, headers={"User-Agent": "StudyHelper-Launcher"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                if isinstance(data, dict) and ("version" in data or "core_version" in data):
+                    return data, f"remote:{endpoint}"
+        except Exception as exc:  # network/404/parse
+            last_error = f"{type(exc).__name__}: {exc}"
+            continue
+
+    local_version = _load_local_version_file(base_dir / "version.json")
+    if local_version:
+        return local_version, "local:version.json"
+
+    return None, last_error or "no version file"
 
 
 def read_installed_version(base_dir: Path) -> str:
@@ -202,8 +227,10 @@ def read_installed_version(base_dir: Path) -> str:
     try:
         if path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, dict) and data.get("version"):
-                return str(data["version"])
+            if isinstance(data, dict):
+                candidate = data.get("core_version") or data.get("version")
+                if candidate:
+                    return str(candidate)
     except Exception:
         pass
     return APP_VERSION
@@ -212,7 +239,12 @@ def read_installed_version(base_dir: Path) -> str:
 def write_installed_version(base_dir: Path, version: str):
     try:
         path = base_dir / LOCAL_VERSION_FILE
-        path.write_text(json.dumps({"version": version}, ensure_ascii=False, indent=2), encoding="utf-8")
+        payload = {
+            "version": version,
+            "core_version": version,
+            "installed_at": time.time(),
+        }
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
         pass
 
@@ -222,12 +254,13 @@ def write_installed_version(base_dir: Path, version: str):
 # ---------------------------------------------------------------------------
 def pick_patcher_command(base_dir: Path, remote_info: dict[str, Any]) -> list[str] | None:
     patcher_exe = base_dir / PATCHER_EXE_NAME
+    target_version = remote_info.get("core_version") or remote_info.get("version", "")
     if patcher_exe.exists():
         return [
             str(patcher_exe),
             f"--asset-url={remote_info.get('url', '')}",
             f"--checksum={remote_info.get('checksum', '')}",
-            f"--version={remote_info.get('version', '')}",
+            f"--version={target_version}",
             f"--target={TARGET_EXE_NAME}",
             f"--install-dir={base_dir}",
         ]
@@ -240,7 +273,7 @@ def pick_patcher_command(base_dir: Path, remote_info: dict[str, Any]) -> list[st
             str(patcher_py),
             f"--asset-url={remote_info.get('url', '')}",
             f"--checksum={remote_info.get('checksum', '')}",
-            f"--version={remote_info.get('version', '')}",
+            f"--version={target_version}",
             f"--target={TARGET_EXE_NAME}",
             f"--install-dir={base_dir}",
         ]
@@ -265,7 +298,8 @@ def run_patcher(base_dir: Path, remote_info: dict[str, Any], ui: StatusUI) -> bo
             creationflags=creationflags,
         )
         if result.returncode == 0:
-            write_installed_version(base_dir, str(remote_info.get("version", APP_VERSION)))
+            remote_version = str(remote_info.get("core_version") or remote_info.get("version", APP_VERSION))
+            write_installed_version(base_dir, remote_version)
             return True
         ui.set("Patcher failed; launching current build")
         return False
@@ -276,18 +310,23 @@ def run_patcher(base_dir: Path, remote_info: dict[str, Any], ui: StatusUI) -> bo
 
 def ensure_release(base_dir: Path, ui: StatusUI) -> bool:
     target_exe = base_dir / TARGET_EXE_NAME
-    remote = fetch_remote_version()
+    remote, source = fetch_remote_version(base_dir)
     installed_version = read_installed_version(base_dir)
 
     needs_update = not target_exe.exists()
     if remote:
-        if version_key(installed_version) < version_key(str(remote.get("version", installed_version))):
+        remote_version = str(remote.get("core_version") or remote.get("version", installed_version))
+        if version_key(installed_version) < version_key(remote_version):
             needs_update = True
+    else:
+        # If we cannot confirm freshness, at least inform the user and avoid silent skips.
+        ui.set(f"Update check failed ({source}); using installed copy")
 
     if needs_update:
         if not remote:
-            ui.set("Release info unavailable; starting local build")
+            ui.set("Release info unavailable; starting current build")
             return target_exe.exists()
+        ui.set(f"Updating from {source}")
         return run_patcher(base_dir, remote, ui)
     return True
 
@@ -324,6 +363,8 @@ def launch_app(base_dir: Path, ui: StatusUI) -> int:
     target_exe = base_dir / TARGET_EXE_NAME
     env = dict(os.environ)
     env["SKIP_AUTO_BROWSER_OPEN"] = "1"  # launcher handles it using server_info.json
+    env["STUDYHELPER_EXTERNAL_ROOT"] = str(base_dir)
+    env["STUDYHELPER_SRC_DIR"] = str(base_dir / "src")
     creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
     if target_exe.exists():

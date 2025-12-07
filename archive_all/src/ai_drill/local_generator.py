@@ -361,188 +361,373 @@ def build_inline_blank_code(code: str, blanks: list) -> str:
 
 def make_blanks_with_context(code: str, target_count: int):
     """
-    Generate blanks from identifiers/numbers with SMART distribution.
+    AST-based blank generation with CONCEPT-UNIT extraction.
     
-    Priority System:
-    - HIGH: Tokens in if/while/for conditions, return values, logical operators
-    - MEDIUM: Assignment values, function arguments, list/dict operations  
-    - LOW: Variable names in simple statements
-    - EXCLUDED: print, def, class, import keywords, string literals in print()
+    Key Principles:
+    1. Extract CONCEPT UNITS, not individual tokens
+       - Full conditions: "current.link is not None" as one blank
+       - Full pointer assignments: "current.link = node" as one blank
+    2. Weighted Priority:
+       - Pointer/Structure manipulation (weight 3): head=, current.link=, pre.link=
+       - Control conditions (weight 3): if/while conditions
+       - Boundary checks (weight 2): index < 0, head is None
+       - Return values (weight 1): return result
+    3. Distribute evenly across FUNCTIONS
+    4. Maintain minimum LINE DISTANCE between blanks
+    5. Avoid duplicates of same concept pattern
+    """
+    import ast
+    
+    # ========== CONFIGURATION ==========
+    MIN_LINE_DISTANCE = 2  # Minimum lines between blanks
+    
+    # Weights for scoring
+    WEIGHT_POINTER = 3      # head, current, pre, node, .link assignments
+    WEIGHT_CONDITION = 3    # if/while/for conditions
+    WEIGHT_BOUNDARY = 2     # index < 0, head is None boundary checks
+    WEIGHT_RETURN = 1       # return statements
+    WEIGHT_EXCLUDED = 0     # print, menu, file I/O
+    
+    # Function importance weights for distribution
+    FUNCTION_WEIGHTS = {
+        'appendNode': 3, 'insertNode': 3, 'insertAt': 3, 'deleteNode': 3,
+        'searchNode': 2, 'printNodes': 1, 'get_list_data': 1,
+        'Node': 1, '__init__': 1,
+        'saveToFile': 0.5, 'loadFromFile': 0.5, 'clearList': 0.5,
+        '__main__': 0.3, 'main': 0.3,
+    }
+    DEFAULT_FUNC_WEIGHT = 1.0
+    
+    # Pointer-related identifiers to detect
+    POINTER_IDENTIFIERS = {'head', 'current', 'pre', 'node', 'newNode', 'temp'}
+    
+    # Excluded patterns (don't create blanks for these)
+    EXCLUDED_LINE_PATTERNS = [
+        r'^\s*print\s*\(["\']',      # Print with string literal
+        r'^\s*#',                     # Comments
+        r'^\s*"""',                   # Docstrings
+        r"^\s*'''",                   # Docstrings
+        r'^\s*def\s+\w+\s*\(',       # Function definitions (name only)
+        r'^\s*class\s+\w+',          # Class definitions
+    ]
+    
+    lines = code.splitlines()
+    candidates = []
+    
+    # ========== HELPER FUNCTIONS ==========
+    
+    def get_source_segment(code_lines: list, start_line: int, start_col: int, 
+                           end_line: int, end_col: int) -> str:
+        """Extract source code segment from line/column positions."""
+        if start_line == end_line:
+            return code_lines[start_line - 1][start_col:end_col]
+        result = [code_lines[start_line - 1][start_col:]]
+        for line_idx in range(start_line, end_line - 1):
+            result.append(code_lines[line_idx])
+        result.append(code_lines[end_line - 1][:end_col])
+        return '\n'.join(result)
+    
+    def get_text_from_node(node, code_lines: list) -> str:
+        """Get source text for an AST node."""
+        if not hasattr(node, 'lineno') or not hasattr(node, 'end_lineno'):
+            return ""
+        try:
+            return get_source_segment(
+                code_lines, node.lineno, node.col_offset,
+                node.end_lineno, node.end_col_offset
+            )
+        except (IndexError, AttributeError):
+            return ""
+    
+    def is_pointer_related(node) -> bool:
+        """Check if node involves pointer/structure manipulation."""
+        text = get_text_from_node(node, lines)
+        # Check for pointer identifiers or .link attribute
+        if '.link' in text:
+            return True
+        for ident in POINTER_IDENTIFIERS:
+            if re.search(rf'\b{ident}\b', text):
+                return True
+        return False
+    
+    def is_excluded_line(line: str) -> bool:
+        """Check if line should be excluded from blank generation."""
+        for pattern in EXCLUDED_LINE_PATTERNS:
+            if re.match(pattern, line):
+                return True
+        return False
+    
+    def detect_current_function(node, func_map: dict) -> str:
+        """Find which function contains this node based on line number."""
+        line = getattr(node, 'lineno', 0)
+        containing_func = '__global__'
+        for func_name, (start, end) in func_map.items():
+            if start <= line <= end:
+                containing_func = func_name
+        return containing_func
+    
+    # ========== AST PARSING ==========
+    
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        # Fallback to simple token-based extraction if AST fails
+        return _fallback_token_blanks(code, target_count)
+    
+    # Build function map: function_name -> (start_line, end_line)
+    func_map = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            end_line = node.end_lineno if hasattr(node, 'end_lineno') else node.lineno + 20
+            func_map[node.name] = (node.lineno, end_line)
+        elif isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef):
+                    end_line = item.end_lineno if hasattr(item, 'end_lineno') else item.lineno + 10
+                    func_map[f"{node.name}.{item.name}"] = (item.lineno, end_line)
+    
+    # ========== CANDIDATE EXTRACTION ==========
+    
+    for node in ast.walk(tree):
+        line_num = getattr(node, 'lineno', 0)
+        if line_num == 0 or line_num > len(lines):
+            continue
+        
+        line_text = lines[line_num - 1]
+        if is_excluded_line(line_text):
+            continue
+        
+        func_name = detect_current_function(node, func_map)
+        
+        # --- 1. If/While/For CONDITIONS (Priority: WEIGHT_CONDITION or WEIGHT_BOUNDARY) ---
+        if isinstance(node, (ast.If, ast.While)):
+            condition_text = get_text_from_node(node.test, lines)
+            if condition_text and len(condition_text) > 2:
+                # Determine if this is a boundary check
+                is_boundary = any(kw in condition_text for kw in 
+                    ['is None', '< 0', '> len', '>= len', 'is not None', '== 0', 'index'])
+                score = WEIGHT_BOUNDARY if is_boundary else WEIGHT_CONDITION
+                
+                # Extra boost for pointer-related conditions
+                if is_pointer_related(node.test):
+                    score = WEIGHT_CONDITION
+                
+                candidates.append({
+                    'type': 'condition',
+                    'text': condition_text,
+                    'line_num': line_num,
+                    'col_offset': node.test.col_offset,
+                    'score': score,
+                    'function': func_name,
+                    'full_line': line_text,
+                })
+        
+        # --- 2. For loop iterables ---
+        elif isinstance(node, ast.For):
+            iter_text = get_text_from_node(node.iter, lines)
+            if iter_text and len(iter_text) > 2:
+                candidates.append({
+                    'type': 'for_iter',
+                    'text': iter_text,
+                    'line_num': line_num,
+                    'col_offset': node.iter.col_offset,
+                    'score': WEIGHT_CONDITION,
+                    'function': func_name,
+                    'full_line': line_text,
+                })
+        
+        # --- 3. POINTER/STRUCTURE ASSIGNMENTS (Priority: WEIGHT_POINTER) ---
+        elif isinstance(node, ast.Assign):
+            # Check if this is a pointer-related assignment
+            assign_text = get_text_from_node(node, lines)
+            
+            # Look for patterns like: head = node, current.link = node, etc.
+            target_text = ""
+            for target in node.targets:
+                target_text = get_text_from_node(target, lines)
+                break
+            
+            value_text = get_text_from_node(node.value, lines)
+            
+            is_pointer_assign = False
+            # Check if LHS has pointer identifiers or .link
+            if target_text:
+                if '.link' in target_text:
+                    is_pointer_assign = True
+                for ident in POINTER_IDENTIFIERS:
+                    if target_text == ident or target_text.startswith(f"{ident}."):
+                        is_pointer_assign = True
+                        break
+            
+            if is_pointer_assign and assign_text and len(assign_text) > 3:
+                candidates.append({
+                    'type': 'pointer_assign',
+                    'text': assign_text.strip(),
+                    'line_num': line_num,
+                    'col_offset': node.col_offset,
+                    'score': WEIGHT_POINTER,
+                    'function': func_name,
+                    'full_line': line_text,
+                })
+        
+        # --- 4. RETURN STATEMENTS (Priority: WEIGHT_RETURN) ---
+        elif isinstance(node, ast.Return):
+            if node.value:
+                return_val = get_text_from_node(node.value, lines)
+                if return_val and len(return_val) > 1:
+                    candidates.append({
+                        'type': 'return',
+                        'text': return_val,
+                        'line_num': line_num,
+                        'col_offset': node.value.col_offset,
+                        'score': WEIGHT_RETURN,
+                        'function': func_name,
+                        'full_line': line_text,
+                    })
+    
+    # ========== DISTRIBUTION ALGORITHM ==========
+    
+    # Group candidates by function
+    by_function = {}
+    for cand in candidates:
+        func = cand['function']
+        by_function.setdefault(func, []).append(cand)
+    
+    # Sort candidates within each function by score (descending)
+    for func in by_function:
+        by_function[func].sort(key=lambda c: -c['score'])
+    
+    # Calculate target allocation per function
+    total_weight = sum(FUNCTION_WEIGHTS.get(f.split('.')[-1], DEFAULT_FUNC_WEIGHT) 
+                       for f in by_function.keys())
+    if total_weight == 0:
+        total_weight = len(by_function)
+    
+    allocations = {}
+    for func in by_function:
+        func_base = func.split('.')[-1]  # Handle Class.method names
+        weight = FUNCTION_WEIGHTS.get(func_base, DEFAULT_FUNC_WEIGHT)
+        alloc = max(1, round(target_count * weight / total_weight))
+        allocations[func] = alloc
+    
+    # Select candidates with line distance constraint
+    selected = []
+    used_lines = set()
+    used_patterns = set()  # Track concept patterns to avoid duplicates
+    
+    for func_name in sorted(by_function.keys(), 
+                           key=lambda f: -FUNCTION_WEIGHTS.get(f.split('.')[-1], DEFAULT_FUNC_WEIGHT)):
+        func_candidates = by_function[func_name]
+        func_quota = allocations.get(func_name, 1)
+        func_selected = 0
+        
+        for cand in func_candidates:
+            if func_selected >= func_quota:
+                break
+            
+            line = cand['line_num']
+            
+            # Check minimum line distance
+            if any(abs(line - used) < MIN_LINE_DISTANCE for used in used_lines):
+                continue
+            
+            # Check for duplicate pattern (same text in same function)
+            pattern_key = (func_name, cand['text'][:20])
+            if pattern_key in used_patterns:
+                continue
+            
+            selected.append(cand)
+            used_lines.add(line)
+            used_patterns.add(pattern_key)
+            func_selected += 1
+    
+    # Fill remaining quota from high-score leftovers
+    remaining = target_count - len(selected)
+    if remaining > 0:
+        leftover = [c for c in candidates if c not in selected]
+        leftover.sort(key=lambda c: -c['score'])
+        
+        for cand in leftover:
+            if len(selected) >= target_count:
+                break
+            
+            line = cand['line_num']
+            if any(abs(line - used) < MIN_LINE_DISTANCE for used in used_lines):
+                continue
+            
+            selected.append(cand)
+            used_lines.add(line)
+    
+    # If still not enough, add more with relaxed constraints
+    if len(selected) < target_count:
+        leftover = [c for c in candidates if c not in selected]
+        leftover.sort(key=lambda c: (-c['score'], c['line_num']))
+        for cand in leftover:
+            if len(selected) >= target_count:
+                break
+            selected.append(cand)
+    
+    selected = selected[:target_count]
+    
+    # ========== BUILD OUTPUT ==========
+    
+    # Sort by line/column and assign blank numbers
+    selected.sort(key=lambda b: (b['line_num'], b.get('col_offset', 0)))
+    for idx, blank in enumerate(selected, 1):
+        blank['blank_num'] = idx
+        blank['answer'] = blank['text']  # For compatibility with build_inline_blank_code
+    
+    answer_key = {
+        "_type": "fill_in_blank_inline",
+        "_blanks": selected,
+        "_original_code": code,
+    }
+    for blank in selected:
+        answer_key[str(blank["blank_num"])] = blank["text"]
+    
+    question_text = build_inline_blank_code(code, selected)
+    return question_text, answer_key
+
+
+def _fallback_token_blanks(code: str, target_count: int):
+    """
+    Fallback to simple token-based blank generation if AST parsing fails.
     """
     lines = code.splitlines()
     token_re = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|\b\d+\b")
     
-    # Keywords to exclude from blanks (not useful for learning)
     EXCLUDED_KEYWORDS = {
         'print', 'def', 'class', 'import', 'from', 'as', 'pass',
-        'True', 'False', 'None',  # These are too obvious
-        'self', 'cls',  # Common but not learning-focused
+        'True', 'False', 'None', 'self', 'cls',
         '__init__', '__main__', '__name__',
     }
     
-    # High-priority context patterns (important logic to test)
-    HIGH_PRIORITY_PATTERNS = [
-        r'\bif\b', r'\belif\b', r'\bwhile\b', r'\bfor\b',  # Control flow
-        r'\breturn\b',  # Return statements
-        r'\band\b', r'\bor\b', r'\bnot\b', r'\bis\b', r'\bin\b',  # Logical operators
-        r'[<>=!]=?',  # Comparison operators context
-    ]
-    
-    # Medium-priority patterns
-    MEDIUM_PRIORITY_PATTERNS = [
-        r'\.append\(', r'\.extend\(', r'\.insert\(',  # List operations
-        r'\.get\(', r'\.pop\(', r'\.remove\(',  # Dict/list operations
-        r'\[\s*\w', r'\]\s*=',  # Index access
-    ]
-    
-    candidates_high: list[dict] = []
-    candidates_medium: list[dict] = []
-    candidates_low: list[dict] = []
-
-    in_block_comment = False
+    candidates = []
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if not stripped:
-            continue
-        if stripped.startswith(('"' * 3, "'''")):
-            in_block_comment = not in_block_comment
-            continue
-        if in_block_comment or stripped.startswith("#"):
+        if not stripped or stripped.startswith('#'):
             continue
         
-        # Skip lines that are purely print statements with string literals
-        if re.match(r'^\s*print\s*\(["\'].*["\']\s*\)\s*$', stripped):
-            continue
-        
-        # Determine line priority
-        is_high_priority = any(re.search(p, line) for p in HIGH_PRIORITY_PATTERNS)
-        is_medium_priority = any(re.search(p, line) for p in MEDIUM_PRIORITY_PATTERNS)
-
         for match in token_re.finditer(line):
             answer = match.group().strip()
-            
-            # Skip excluded keywords
-            if answer in EXCLUDED_KEYWORDS:
+            if answer in EXCLUDED_KEYWORDS or len(answer) <= 1:
                 continue
             
-            if not is_valid_answer(answer):
-                continue
-            
-            # Skip tokens inside print() parentheses if they look like string content
-            # Check if this token is part of a print string argument
-            before_match = line[:match.start()]
-            if 'print(' in before_match:
-                # Check if we're inside a string in print
-                after_print = before_match.split('print(')[-1]
-                # Count quotes to see if we're in a string
-                single_quotes = after_print.count("'") - after_print.count("\\'")
-                double_quotes = after_print.count('"') - after_print.count('\\"')
-                if single_quotes % 2 == 1 or double_quotes % 2 == 1:
-                    continue  # Skip - we're inside a string in print()
-            
-            cand = {
+            candidates.append({
                 "line_num": i + 1,
                 "answer": answer,
+                "text": answer,
                 "full_line": line.rstrip("\n"),
                 "col_offset": match.start(),
-            }
-            
-            # Categorize by priority
-            if is_high_priority:
-                # Extra boost for tokens in condition part (after if/while/for)
-                if re.search(r'\b(if|elif|while|for)\s+.*' + re.escape(answer), line):
-                    candidates_high.insert(0, cand)  # Front of high priority
-                elif re.search(r'\breturn\s+.*' + re.escape(answer), line):
-                    candidates_high.insert(0, cand)  # Return values are important
-                else:
-                    candidates_high.append(cand)
-            elif is_medium_priority:
-                candidates_medium.append(cand)
-            else:
-                candidates_low.append(cand)
-
-    # Shuffle within each priority group
-    random.shuffle(candidates_high)
-    random.shuffle(candidates_medium)
-    random.shuffle(candidates_low)
+            })
     
-    # Calculate distribution: ensure blanks from all sections
-    total_lines = len([l for l in lines if l.strip()])
-    if total_lines > 0:
-        section_size = max(1, total_lines // 5)  # Divide into 5 sections
-    else:
-        section_size = 1
-    
-    # Build buckets by line number for each priority
-    def build_sectioned_buckets(candidates):
-        buckets = {}
-        for cand in candidates:
-            section_idx = (cand["line_num"] - 1) // section_size
-            buckets.setdefault(section_idx, []).append(cand)
-        return buckets
-    
-    high_buckets = build_sectioned_buckets(candidates_high)
-    medium_buckets = build_sectioned_buckets(candidates_medium)
-    low_buckets = build_sectioned_buckets(candidates_low)
-    
-    blanks: list[dict] = []
-    line_usage: dict[int, int] = {}
-    max_per_line = max(2, math.ceil(target_count / max(1, len(lines) / 2)))
-    
-    # Phase 1: Take from HIGH priority, distributed across sections
-    sections = sorted(set(high_buckets.keys()) | set(medium_buckets.keys()) | set(low_buckets.keys()))
-    
-    # Round-robin through sections for high priority
-    while len(blanks) < target_count * 0.5 and any(high_buckets.values()):
-        for section in sections:
-            if section in high_buckets and high_buckets[section]:
-                cand = high_buckets[section].pop()
-                if line_usage.get(cand["line_num"], 0) < max_per_line:
-                    blanks.append(cand)
-                    line_usage[cand["line_num"]] = line_usage.get(cand["line_num"], 0) + 1
-                if len(blanks) >= target_count * 0.5:
-                    break
-    
-    # Phase 2: Take from MEDIUM priority
-    while len(blanks) < target_count * 0.8 and any(medium_buckets.values()):
-        for section in sections:
-            if section in medium_buckets and medium_buckets[section]:
-                cand = medium_buckets[section].pop()
-                if line_usage.get(cand["line_num"], 0) < max_per_line:
-                    blanks.append(cand)
-                    line_usage[cand["line_num"]] = line_usage.get(cand["line_num"], 0) + 1
-                if len(blanks) >= target_count * 0.8:
-                    break
-    
-    # Phase 3: Fill remaining from LOW priority
-    while len(blanks) < target_count and any(low_buckets.values()):
-        for section in sections:
-            if section in low_buckets and low_buckets[section]:
-                cand = low_buckets[section].pop()
-                if line_usage.get(cand["line_num"], 0) < max_per_line:
-                    blanks.append(cand)
-                    line_usage[cand["line_num"]] = line_usage.get(cand["line_num"], 0) + 1
-                if len(blanks) >= target_count:
-                    break
-    
-    # Phase 4: If still not enough, relax line usage limit
-    if len(blanks) < target_count:
-        all_remaining = []
-        for bucket in list(high_buckets.values()) + list(medium_buckets.values()) + list(low_buckets.values()):
-            all_remaining.extend(bucket)
-        random.shuffle(all_remaining)
-        for cand in all_remaining:
-            if len(blanks) >= target_count:
-                break
-            blanks.append(cand)
-
-    blanks = blanks[:target_count]
-    
-    # Sort by line number and column for proper ordering
+    random.shuffle(candidates)
+    blanks = candidates[:target_count]
     blanks.sort(key=lambda b: (b["line_num"], b.get("col_offset", 0)))
+    
     for idx, blank in enumerate(blanks, 1):
         blank["blank_num"] = idx
-
+    
     answer_key = {
         "_type": "fill_in_blank_inline",
         "_blanks": blanks,
@@ -550,7 +735,7 @@ def make_blanks_with_context(code: str, target_count: int):
     }
     for blank in blanks:
         answer_key[str(blank["blank_num"])] = blank["answer"]
-
+    
     question_text = build_inline_blank_code(code, blanks)
     return question_text, answer_key
 
