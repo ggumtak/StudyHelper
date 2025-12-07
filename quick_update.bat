@@ -114,7 +114,7 @@ if "%SKIP_SYNC%"=="0" (
 )
 
 echo.
-echo Done. Version %VERSION% | URL: %RELEASE_URL%
+echo Done. Version %VERSION% ^| URL: %RELEASE_URL%
 
 :end
 if /i not "%NOPAUSE_QUICK%"=="1" pause
