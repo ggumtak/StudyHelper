@@ -1,0 +1,6 @@
+# Build outputs and packed binaries
+archive_all/dist/
+archive_all/ready_to_zip/*.exe
+archive_all/ready_to_zip/*.zip
+archive_all/ready_to_zip/src/__pycache__/
+*.pyc
