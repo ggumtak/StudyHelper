@@ -360,10 +360,44 @@ def build_inline_blank_code(code: str, blanks: list) -> str:
 
 
 def make_blanks_with_context(code: str, target_count: int):
-    "Generate blanks from identifiers/numbers with even distribution."
+    """
+    Generate blanks from identifiers/numbers with SMART distribution.
+    
+    Priority System:
+    - HIGH: Tokens in if/while/for conditions, return values, logical operators
+    - MEDIUM: Assignment values, function arguments, list/dict operations  
+    - LOW: Variable names in simple statements
+    - EXCLUDED: print, def, class, import keywords, string literals in print()
+    """
     lines = code.splitlines()
     token_re = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|\b\d+\b")
-    candidates: list[dict] = []
+    
+    # Keywords to exclude from blanks (not useful for learning)
+    EXCLUDED_KEYWORDS = {
+        'print', 'def', 'class', 'import', 'from', 'as', 'pass',
+        'True', 'False', 'None',  # These are too obvious
+        'self', 'cls',  # Common but not learning-focused
+        '__init__', '__main__', '__name__',
+    }
+    
+    # High-priority context patterns (important logic to test)
+    HIGH_PRIORITY_PATTERNS = [
+        r'\bif\b', r'\belif\b', r'\bwhile\b', r'\bfor\b',  # Control flow
+        r'\breturn\b',  # Return statements
+        r'\band\b', r'\bor\b', r'\bnot\b', r'\bis\b', r'\bin\b',  # Logical operators
+        r'[<>=!]=?',  # Comparison operators context
+    ]
+    
+    # Medium-priority patterns
+    MEDIUM_PRIORITY_PATTERNS = [
+        r'\.append\(', r'\.extend\(', r'\.insert\(',  # List operations
+        r'\.get\(', r'\.pop\(', r'\.remove\(',  # Dict/list operations
+        r'\[\s*\w', r'\]\s*=',  # Index access
+    ]
+    
+    candidates_high: list[dict] = []
+    candidates_medium: list[dict] = []
+    candidates_low: list[dict] = []
 
     in_block_comment = False
     for i, line in enumerate(lines):
@@ -375,53 +409,136 @@ def make_blanks_with_context(code: str, target_count: int):
             continue
         if in_block_comment or stripped.startswith("#"):
             continue
+        
+        # Skip lines that are purely print statements with string literals
+        if re.match(r'^\s*print\s*\(["\'].*["\']\s*\)\s*$', stripped):
+            continue
+        
+        # Determine line priority
+        is_high_priority = any(re.search(p, line) for p in HIGH_PRIORITY_PATTERNS)
+        is_medium_priority = any(re.search(p, line) for p in MEDIUM_PRIORITY_PATTERNS)
 
         for match in token_re.finditer(line):
             answer = match.group().strip()
+            
+            # Skip excluded keywords
+            if answer in EXCLUDED_KEYWORDS:
+                continue
+            
             if not is_valid_answer(answer):
                 continue
-            candidates.append(
-                {
-                    "line_num": i + 1,
-                    "answer": answer,
-                    "full_line": line.rstrip("\n"),
-                    "col_offset": match.start(),
-                }
-            )
+            
+            # Skip tokens inside print() parentheses if they look like string content
+            # Check if this token is part of a print string argument
+            before_match = line[:match.start()]
+            if 'print(' in before_match:
+                # Check if we're inside a string in print
+                after_print = before_match.split('print(')[-1]
+                # Count quotes to see if we're in a string
+                single_quotes = after_print.count("'") - after_print.count("\\'")
+                double_quotes = after_print.count('"') - after_print.count('\\"')
+                if single_quotes % 2 == 1 or double_quotes % 2 == 1:
+                    continue  # Skip - we're inside a string in print()
+            
+            cand = {
+                "line_num": i + 1,
+                "answer": answer,
+                "full_line": line.rstrip("\n"),
+                "col_offset": match.start(),
+            }
+            
+            # Categorize by priority
+            if is_high_priority:
+                # Extra boost for tokens in condition part (after if/while/for)
+                if re.search(r'\b(if|elif|while|for)\s+.*' + re.escape(answer), line):
+                    candidates_high.insert(0, cand)  # Front of high priority
+                elif re.search(r'\breturn\s+.*' + re.escape(answer), line):
+                    candidates_high.insert(0, cand)  # Return values are important
+                else:
+                    candidates_high.append(cand)
+            elif is_medium_priority:
+                candidates_medium.append(cand)
+            else:
+                candidates_low.append(cand)
 
-    buckets: dict[int, list[dict]] = {}
-    for cand in candidates:
-        buckets.setdefault(cand["line_num"], []).append(cand)
-    for bucket in buckets.values():
-        random.shuffle(bucket)
-
+    # Shuffle within each priority group
+    random.shuffle(candidates_high)
+    random.shuffle(candidates_medium)
+    random.shuffle(candidates_low)
+    
+    # Calculate distribution: ensure blanks from all sections
+    total_lines = len([l for l in lines if l.strip()])
+    if total_lines > 0:
+        section_size = max(1, total_lines // 5)  # Divide into 5 sections
+    else:
+        section_size = 1
+    
+    # Build buckets by line number for each priority
+    def build_sectioned_buckets(candidates):
+        buckets = {}
+        for cand in candidates:
+            section_idx = (cand["line_num"] - 1) // section_size
+            buckets.setdefault(section_idx, []).append(cand)
+        return buckets
+    
+    high_buckets = build_sectioned_buckets(candidates_high)
+    medium_buckets = build_sectioned_buckets(candidates_medium)
+    low_buckets = build_sectioned_buckets(candidates_low)
+    
     blanks: list[dict] = []
     line_usage: dict[int, int] = {}
-    max_per_line = max(2, math.ceil(target_count / max(1, len(lines) / 1.5)))
-
-    for cap in range(max_per_line, max_per_line + 3):
-        for line_idx in range(1, len(lines) + 1):
-            bucket = buckets.get(line_idx, [])
-            while bucket and line_usage.get(line_idx, 0) < cap and len(blanks) < target_count:
-                cand = bucket.pop()
-                blanks.append(cand)
-                line_usage[line_idx] = line_usage.get(line_idx, 0) + 1
-        if len(blanks) >= target_count:
-            break
-
+    max_per_line = max(2, math.ceil(target_count / max(1, len(lines) / 2)))
+    
+    # Phase 1: Take from HIGH priority, distributed across sections
+    sections = sorted(set(high_buckets.keys()) | set(medium_buckets.keys()) | set(low_buckets.keys()))
+    
+    # Round-robin through sections for high priority
+    while len(blanks) < target_count * 0.5 and any(high_buckets.values()):
+        for section in sections:
+            if section in high_buckets and high_buckets[section]:
+                cand = high_buckets[section].pop()
+                if line_usage.get(cand["line_num"], 0) < max_per_line:
+                    blanks.append(cand)
+                    line_usage[cand["line_num"]] = line_usage.get(cand["line_num"], 0) + 1
+                if len(blanks) >= target_count * 0.5:
+                    break
+    
+    # Phase 2: Take from MEDIUM priority
+    while len(blanks) < target_count * 0.8 and any(medium_buckets.values()):
+        for section in sections:
+            if section in medium_buckets and medium_buckets[section]:
+                cand = medium_buckets[section].pop()
+                if line_usage.get(cand["line_num"], 0) < max_per_line:
+                    blanks.append(cand)
+                    line_usage[cand["line_num"]] = line_usage.get(cand["line_num"], 0) + 1
+                if len(blanks) >= target_count * 0.8:
+                    break
+    
+    # Phase 3: Fill remaining from LOW priority
+    while len(blanks) < target_count and any(low_buckets.values()):
+        for section in sections:
+            if section in low_buckets and low_buckets[section]:
+                cand = low_buckets[section].pop()
+                if line_usage.get(cand["line_num"], 0) < max_per_line:
+                    blanks.append(cand)
+                    line_usage[cand["line_num"]] = line_usage.get(cand["line_num"], 0) + 1
+                if len(blanks) >= target_count:
+                    break
+    
+    # Phase 4: If still not enough, relax line usage limit
     if len(blanks) < target_count:
-        remaining = []
-        for bucket in buckets.values():
-            remaining.extend(bucket)
-        random.shuffle(remaining)
-        for cand in remaining:
-            blanks.append(cand)
+        all_remaining = []
+        for bucket in list(high_buckets.values()) + list(medium_buckets.values()) + list(low_buckets.values()):
+            all_remaining.extend(bucket)
+        random.shuffle(all_remaining)
+        for cand in all_remaining:
             if len(blanks) >= target_count:
                 break
+            blanks.append(cand)
 
     blanks = blanks[:target_count]
     
-    # 라인 순서로 정렬 후 번호 재할당 (왼쪽 빈칸 목록 순서 문제 해결)
+    # Sort by line number and column for proper ordering
     blanks.sort(key=lambda b: (b["line_num"], b.get("col_offset", 0)))
     for idx, blank in enumerate(blanks, 1):
         blank["blank_num"] = idx
