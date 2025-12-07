@@ -46,6 +46,9 @@ powershell -NoLogo -NoProfile -Command ^
  "$json = @{ version = '%VERSION%'; core_version = '%VERSION%'; launcher_version = '%VERSION%'; patcher_version = '%VERSION%'; url = '%RELEASE_URL%'; checksum = '%CHECKSUM%' }; $json | ConvertTo-Json | Set-Content -Path 'version.json' -Encoding UTF8"
 if errorlevel 1 goto :end
 
+rem Keep root fallback version.json for raw GitHub URL
+copy /y "version.json" "..\version.json" >nul 2>&1
+
 echo [5/5] Running sync.bat (git add/commit/push)...
 call ..\sync.bat
 
@@ -58,9 +61,9 @@ if "%GH_UPLOAD%"=="1" (
         echo [INFO] Publishing to GitHub Releases via gh...
         gh release view v%VERSION% --repo %RELEASE_REPO% >nul 2>&1
         if errorlevel 1 (
-            gh release create v%VERSION% dist/%RELEASE_ASSET% -t "v%VERSION%" -n "StudyHelper v%VERSION%" --repo %RELEASE_REPO%
+            gh release create v%VERSION% dist/%RELEASE_ASSET% version.json -t "v%VERSION%" -n "StudyHelper v%VERSION%" --repo %RELEASE_REPO%
         ) else (
-            gh release upload v%VERSION% dist/%RELEASE_ASSET% --clobber --repo %RELEASE_REPO%
+            gh release upload v%VERSION% dist/%RELEASE_ASSET% version.json --clobber --repo %RELEASE_REPO%
         )
     )
 )
