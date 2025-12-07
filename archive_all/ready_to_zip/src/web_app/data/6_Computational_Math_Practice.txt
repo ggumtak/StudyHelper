@@ -1,0 +1,20 @@
+﻿Computational Math Practice Menu Helper (Base Requirements)
+- Build a console menu loop in Python (while True + if/elif/else branching).
+- Perform basic arithmetic (+, -, *, /) and log each operation.
+- On exit, save the log to CSV (utf-8-sig) and support reload.
+- Use pandas + matplotlib to plot the log.
+- Base the prompt on the Ailey & Bailey style, from a computational math instructor perspective.
+- Instructors may append stricter constraints; when generating problems, sprinkle a few extra basics (e.g., require at least one user-defined function, guard divide-by-zero, simple input validation).
+
+Reference snippet (for requirement checking only):
+------------------------------------------------------------
+import sys
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import platform
+import time
+
+# CSV save/load, plotting, and the arithmetic menu loop are core.
+# Example record schema: {'operation': op, 'operand1': a, 'operand2': b, 'result': result}
+------------------------------------------------------------

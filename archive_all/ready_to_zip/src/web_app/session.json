@@ -1,0 +1,418 @@
+{
+  "title": "4_Data_Structure_Code.txt",
+  "mode": 2,
+  "language": "text",
+  "question": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = __[1]__\n        self.link = None\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = __[2]__\n    if __[3]__:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while __[4]__:\n        current = __[5]__\n        print(current.data, end=' ')\n    print()\n\ndef get_list_data():\n    \"\"\"연결 리스트의 data들을 파이썬 리스트로 반환 (파일 저장용)\"\"\"\n    result = []\n    current = __[6]__\n    while __[7]__:\n        result.append(current.data)\n        current = current.link\n    return __[8]__\n\ndef appendNode(newData):\n    \"\"\"맨 뒤에 노드 추가\"\"\"\n    global head\n    node = __[9]__\n    node.data = newData\n    if __[10]__:\n        head = __[11]__\n        return\n    current = head\n    while current.link is not None:\n        current = current.link\n    current.link = node\n\ndef insertNode(findData, insertData):\n    \"\"\"특정 데이터 앞에 삽입, 못 찾으면 맨 뒤에 추가\"\"\"\n    global head\n    \n    # 리스트가 비어 있을 경우\n    if head is None:\n        node = Node()\n        node.data = __[12]__\n        head = node\n        return\n\n    # 첫 번째 노드가 findData인 경우 (맨 앞 삽입)\n    if head.data == __[13]__:\n        node = Node()\n        node.data = insertData\n        node.link = head\n        head = node\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = __[14]__\n        current = current.link\n        if __[15]__:\n            node = Node()\n            node.data = insertData\n            node.link = current\n            pre.link = node\n            return\n\n    # findData를 끝까지 못 찾으면 맨 뒤에 추가\n    node = Node()\n    node.data = insertData\n    current.link = node\n\ndef insertAt(index, data):\n    \"\"\"특정 인덱스 위치에 노드 삽입\"\"\"\n    global head\n    \n    if __[16]__:\n        print(\"인덱스는 0 이상이어야 합니다.\")\n        return\n\n    newNode = Node()\n    newNode.data = __[17]__\n\n    # 인덱스가 0 (맨 앞 삽입)\n    if __[18]__:\n        newNode.link = head\n        head = __[19]__\n        return\n\n    # 중간 또는 끝 삽입을 위해 순회\n    current = head\n    currentIndex = 0\n    \n    # 삽입 위치 바로 직전(index-1)까지 이동\n    while __[20]__:\n        current = current.link\n        currentIndex += 1\n    \n    if current is None:\n        print(\"인덱스가 리스트의 길이를 초과했습니다.\")\n        return\n\n    # 삽입 실행\n    newNode.link = current.link\n    current.link = newNode\n\ndef deleteNode(deleteData):\n    \"\"\"특정 데이터 삭제\"\"\"\n    global head, current, pre\n\n    if head is None:\n        print(\"삭제할 노드가 없습니다.(빈 리스트)\")\n        return\n\n    # 첫 번째 노드가 삭제 대상인 경우\n    if head.data == __[21]__:\n        current = head\n        head = __[22]__\n        del(current)\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if __[23]__:\n            pre.link = current.link\n            del(current)\n            return\n\n    print(f\"'{deleteData}' 데이터를 찾을 수 없습니다.\")\n\ndef clearList():\n    \"\"\"리스트 전체 초기화\"\"\"\n    global head\n    head = None\n    print(\"리스트가 초기화되었습니다.\")\n\ndef searchNode(target):\n    \"\"\"target을 검색해서 인덱스 리스트 반환\"\"\"\n    global head\n    indexes = []\n    current = head\n    idx = 0\n    while current is not None:\n        if current.data == __[24]__:\n            indexes.append(idx)\n        current = current.link\n        idx += 1\n    return __[25]__\n\ndef saveToFile(filename):\n    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = __[26]__\n    with open(filename, 'w', encoding=__[27]__:\n        for item in data_list:\n            f.write(str(item) + '\\n')\n    print(f\"리스트가 파일로 저장되었습니다. ({filename})\")\n\ndef loadFromFile(filename):\n    \"\"\"파일에서 데이터를 읽어 리스트 재구성\"\"\"\n    global head\n    try:\n        with open(filename, 'r', encoding='utf-8') as f:\n            lines = __[28]__\n    except FileNotFoundError:\n        print(\"파일을 찾을 수 없습니다.\")\n        return\n\n    # 기존 리스트 초기화 후 다시 구성\n    head = None\n    for line in lines:\n        data = __[29]__\n        if __[30]__:\n            appendNode(data)\n    print(f\"파일에서 리스트를 불러왔습니다. ({filename})\")\n\n## 전역 변수 선언 부분 ##\nmemory = []\nhead, current, pre = __[31]__\n\n## 메인 코드 부분 ##\nif __name__ == __[32]__:\n    # 초기 데이터 셋팅\n    dataArray = [\"서울대\", \"고대\", \"연대\", \"두원\", \"부산\"]\n    for data in dataArray:\n        appendNode(data)\n    \n    print(\"초기 연결 리스트:\")\n    printNodes(head)\n\n    # 사용자 입력 기반 메뉴\n    select = __[33]__\n    while __[34]__:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")\n        print(\"1: 추가 (맨 뒤)\")\n        print(\"2: 삽입 (특정 데이터 앞에 삽입)\")\n        print(\"3: 삽입 (특정 위치에 삽입)\")\n        print(\"4: 삭제 (특정 데이터 삭제 / 삭제 전 확인)\")\n        print(\"5: 리스트 초기화\")\n        print(\"6: 검색 (데이터 -> 인덱스)\")\n        print(\"7: 파일 저장\")\n        print(\"8: 파일 불러오기\")\n        print(\"9: 종료\")\n\n        try:\n            select = int(input(\"메뉴 선택: \"))\n        except ValueError:\n            print(\"숫자를 입력하세요.\")\n            continue\n\n        if __[35]__:\n            data = __[36]__\n            appendNode(data)\n            printNodes(head)\n        \n        elif __[37]__:\n            findData = __[38]__\n            insertData = __[39]__\n            insertNode(findData, insertData)\n            printNodes(head)\n        \n        elif __[40]__:\n            try:\n                idx = __[41]__\n                data = input(\"삽입할 데이터 입력: \")\n                insertAt(idx, data)\n                printNodes(head)\n            except ValueError:\n                print(\"인덱스는 숫자로 입력해야 합니다.\")\n\n        elif __[42]__:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = __[43]__\n            if confirm.lower() == __[44]__:\n                deleteNode(delData)\n                printNodes(head)\n            else:\n                print(\"삭제를 취소했습니다.\")\n                printNodes(head)\n\n        elif select == 5:\n            clearList()\n            printNodes(head)\n\n        elif __[45]__:\n            data = __[46]__\n            indexes = __[47]__\n            if indexes:\n                print(f\"'{data}' 데이터는 다음 인덱스에 있습니다: {indexes}\")\n            else:\n                print(f\"'{data}' 데이터는 리스트에 없습니다.\")\n\n        elif __[48]__:\n            filename = __[49]__\n            saveToFile(filename)\n\n        elif __[50]__:\n            filename = input(\"불러올 파일 이름 입력 (예: data.txt): \")\n            loadFromFile(filename)\n            printNodes(head)\n\n        elif select == 9:\n            print(\"프로그램을 종료합니다.\")\n        \n        else:\n            print(\"잘못된 선택입니다. 다시 입력하세요.\")",
+  "question_text": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = __[1]__\n        self.link = None\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = __[2]__\n    if __[3]__:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while __[4]__:\n        current = __[5]__\n        print(current.data, end=' ')\n    print()\n\ndef get_list_data():\n    \"\"\"연결 리스트의 data들을 파이썬 리스트로 반환 (파일 저장용)\"\"\"\n    result = []\n    current = __[6]__\n    while __[7]__:\n        result.append(current.data)\n        current = current.link\n    return __[8]__\n\ndef appendNode(newData):\n    \"\"\"맨 뒤에 노드 추가\"\"\"\n    global head\n    node = __[9]__\n    node.data = newData\n    if __[10]__:\n        head = __[11]__\n        return\n    current = head\n    while current.link is not None:\n        current = current.link\n    current.link = node\n\ndef insertNode(findData, insertData):\n    \"\"\"특정 데이터 앞에 삽입, 못 찾으면 맨 뒤에 추가\"\"\"\n    global head\n    \n    # 리스트가 비어 있을 경우\n    if head is None:\n        node = Node()\n        node.data = __[12]__\n        head = node\n        return\n\n    # 첫 번째 노드가 findData인 경우 (맨 앞 삽입)\n    if head.data == __[13]__:\n        node = Node()\n        node.data = insertData\n        node.link = head\n        head = node\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = __[14]__\n        current = current.link\n        if __[15]__:\n            node = Node()\n            node.data = insertData\n            node.link = current\n            pre.link = node\n            return\n\n    # findData를 끝까지 못 찾으면 맨 뒤에 추가\n    node = Node()\n    node.data = insertData\n    current.link = node\n\ndef insertAt(index, data):\n    \"\"\"특정 인덱스 위치에 노드 삽입\"\"\"\n    global head\n    \n    if __[16]__:\n        print(\"인덱스는 0 이상이어야 합니다.\")\n        return\n\n    newNode = Node()\n    newNode.data = __[17]__\n\n    # 인덱스가 0 (맨 앞 삽입)\n    if __[18]__:\n        newNode.link = head\n        head = __[19]__\n        return\n\n    # 중간 또는 끝 삽입을 위해 순회\n    current = head\n    currentIndex = 0\n    \n    # 삽입 위치 바로 직전(index-1)까지 이동\n    while __[20]__:\n        current = current.link\n        currentIndex += 1\n    \n    if current is None:\n        print(\"인덱스가 리스트의 길이를 초과했습니다.\")\n        return\n\n    # 삽입 실행\n    newNode.link = current.link\n    current.link = newNode\n\ndef deleteNode(deleteData):\n    \"\"\"특정 데이터 삭제\"\"\"\n    global head, current, pre\n\n    if head is None:\n        print(\"삭제할 노드가 없습니다.(빈 리스트)\")\n        return\n\n    # 첫 번째 노드가 삭제 대상인 경우\n    if head.data == __[21]__:\n        current = head\n        head = __[22]__\n        del(current)\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if __[23]__:\n            pre.link = current.link\n            del(current)\n            return\n\n    print(f\"'{deleteData}' 데이터를 찾을 수 없습니다.\")\n\ndef clearList():\n    \"\"\"리스트 전체 초기화\"\"\"\n    global head\n    head = None\n    print(\"리스트가 초기화되었습니다.\")\n\ndef searchNode(target):\n    \"\"\"target을 검색해서 인덱스 리스트 반환\"\"\"\n    global head\n    indexes = []\n    current = head\n    idx = 0\n    while current is not None:\n        if current.data == __[24]__:\n            indexes.append(idx)\n        current = current.link\n        idx += 1\n    return __[25]__\n\ndef saveToFile(filename):\n    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = __[26]__\n    with open(filename, 'w', encoding=__[27]__:\n        for item in data_list:\n            f.write(str(item) + '\\n')\n    print(f\"리스트가 파일로 저장되었습니다. ({filename})\")\n\ndef loadFromFile(filename):\n    \"\"\"파일에서 데이터를 읽어 리스트 재구성\"\"\"\n    global head\n    try:\n        with open(filename, 'r', encoding='utf-8') as f:\n            lines = __[28]__\n    except FileNotFoundError:\n        print(\"파일을 찾을 수 없습니다.\")\n        return\n\n    # 기존 리스트 초기화 후 다시 구성\n    head = None\n    for line in lines:\n        data = __[29]__\n        if __[30]__:\n            appendNode(data)\n    print(f\"파일에서 리스트를 불러왔습니다. ({filename})\")\n\n## 전역 변수 선언 부분 ##\nmemory = []\nhead, current, pre = __[31]__\n\n## 메인 코드 부분 ##\nif __name__ == __[32]__:\n    # 초기 데이터 셋팅\n    dataArray = [\"서울대\", \"고대\", \"연대\", \"두원\", \"부산\"]\n    for data in dataArray:\n        appendNode(data)\n    \n    print(\"초기 연결 리스트:\")\n    printNodes(head)\n\n    # 사용자 입력 기반 메뉴\n    select = __[33]__\n    while __[34]__:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")\n        print(\"1: 추가 (맨 뒤)\")\n        print(\"2: 삽입 (특정 데이터 앞에 삽입)\")\n        print(\"3: 삽입 (특정 위치에 삽입)\")\n        print(\"4: 삭제 (특정 데이터 삭제 / 삭제 전 확인)\")\n        print(\"5: 리스트 초기화\")\n        print(\"6: 검색 (데이터 -> 인덱스)\")\n        print(\"7: 파일 저장\")\n        print(\"8: 파일 불러오기\")\n        print(\"9: 종료\")\n\n        try:\n            select = int(input(\"메뉴 선택: \"))\n        except ValueError:\n            print(\"숫자를 입력하세요.\")\n            continue\n\n        if __[35]__:\n            data = __[36]__\n            appendNode(data)\n            printNodes(head)\n        \n        elif __[37]__:\n            findData = __[38]__\n            insertData = __[39]__\n            insertNode(findData, insertData)\n            printNodes(head)\n        \n        elif __[40]__:\n            try:\n                idx = __[41]__\n                data = input(\"삽입할 데이터 입력: \")\n                insertAt(idx, data)\n                printNodes(head)\n            except ValueError:\n                print(\"인덱스는 숫자로 입력해야 합니다.\")\n\n        elif __[42]__:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = __[43]__\n            if confirm.lower() == __[44]__:\n                deleteNode(delData)\n                printNodes(head)\n            else:\n                print(\"삭제를 취소했습니다.\")\n                printNodes(head)\n\n        elif select == 5:\n            clearList()\n            printNodes(head)\n\n        elif __[45]__:\n            data = __[46]__\n            indexes = __[47]__\n            if indexes:\n                print(f\"'{data}' 데이터는 다음 인덱스에 있습니다: {indexes}\")\n            else:\n                print(f\"'{data}' 데이터는 리스트에 없습니다.\")\n\n        elif __[48]__:\n            filename = __[49]__\n            saveToFile(filename)\n\n        elif __[50]__:\n            filename = input(\"불러올 파일 이름 입력 (예: data.txt): \")\n            loadFromFile(filename)\n            printNodes(head)\n\n        elif select == 9:\n            print(\"프로그램을 종료합니다.\")\n        \n        else:\n            print(\"잘못된 선택입니다. 다시 입력하세요.\")",
+  "answer": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = None\n        self.link = None\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = start\n    if current is None:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while current.link is not None:\n        current = current.link\n        print(current.data, end=' ')\n    print()\n\ndef get_list_data():\n    \"\"\"연결 리스트의 data들을 파이썬 리스트로 반환 (파일 저장용)\"\"\"\n    result = []\n    current = head\n    while current is not None:\n        result.append(current.data)\n        current = current.link\n    return result\n\ndef appendNode(newData):\n    \"\"\"맨 뒤에 노드 추가\"\"\"\n    global head\n    node = Node()\n    node.data = newData\n    if head is None:\n        head = node\n        return\n    current = head\n    while current.link is not None:\n        current = current.link\n    current.link = node\n\ndef insertNode(findData, insertData):\n    \"\"\"특정 데이터 앞에 삽입, 못 찾으면 맨 뒤에 추가\"\"\"\n    global head\n    \n    # 리스트가 비어 있을 경우\n    if head is None:\n        node = Node()\n        node.data = insertData\n        head = node\n        return\n\n    # 첫 번째 노드가 findData인 경우 (맨 앞 삽입)\n    if head.data == findData:\n        node = Node()\n        node.data = insertData\n        node.link = head\n        head = node\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if current.data == findData:\n            node = Node()\n            node.data = insertData\n            node.link = current\n            pre.link = node\n            return\n\n    # findData를 끝까지 못 찾으면 맨 뒤에 추가\n    node = Node()\n    node.data = insertData\n    current.link = node\n\ndef insertAt(index, data):\n    \"\"\"특정 인덱스 위치에 노드 삽입\"\"\"\n    global head\n    \n    if index < 0:\n        print(\"인덱스는 0 이상이어야 합니다.\")\n        return\n\n    newNode = Node()\n    newNode.data = data\n\n    # 인덱스가 0 (맨 앞 삽입)\n    if index == 0:\n        newNode.link = head\n        head = newNode\n        return\n\n    # 중간 또는 끝 삽입을 위해 순회\n    current = head\n    currentIndex = 0\n    \n    # 삽입 위치 바로 직전(index-1)까지 이동\n    while current is not None and currentIndex < index - 1:\n        current = current.link\n        currentIndex += 1\n    \n    if current is None:\n        print(\"인덱스가 리스트의 길이를 초과했습니다.\")\n        return\n\n    # 삽입 실행\n    newNode.link = current.link\n    current.link = newNode\n\ndef deleteNode(deleteData):\n    \"\"\"특정 데이터 삭제\"\"\"\n    global head, current, pre\n\n    if head is None:\n        print(\"삭제할 노드가 없습니다.(빈 리스트)\")\n        return\n\n    # 첫 번째 노드가 삭제 대상인 경우\n    if head.data == deleteData:\n        current = head\n        head = head.link\n        del(current)\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if current.data == deleteData:\n            pre.link = current.link\n            del(current)\n            return\n\n    print(f\"'{deleteData}' 데이터를 찾을 수 없습니다.\")\n\ndef clearList():\n    \"\"\"리스트 전체 초기화\"\"\"\n    global head\n    head = None\n    print(\"리스트가 초기화되었습니다.\")\n\ndef searchNode(target):\n    \"\"\"target을 검색해서 인덱스 리스트 반환\"\"\"\n    global head\n    indexes = []\n    current = head\n    idx = 0\n    while current is not None:\n        if current.data == target:\n            indexes.append(idx)\n        current = current.link\n        idx += 1\n    return indexes\n\ndef saveToFile(filename):\n    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = get_list_data()\n    with open(filename, 'w', encoding='utf-8') as f:\n        for item in data_list:\n            f.write(str(item) + '\\n')\n    print(f\"리스트가 파일로 저장되었습니다. ({filename})\")\n\ndef loadFromFile(filename):\n    \"\"\"파일에서 데이터를 읽어 리스트 재구성\"\"\"\n    global head\n    try:\n        with open(filename, 'r', encoding='utf-8') as f:\n            lines = f.readlines()\n    except FileNotFoundError:\n        print(\"파일을 찾을 수 없습니다.\")\n        return\n\n    # 기존 리스트 초기화 후 다시 구성\n    head = None\n    for line in lines:\n        data = line.strip()\n        if data != '':\n            appendNode(data)\n    print(f\"파일에서 리스트를 불러왔습니다. ({filename})\")\n\n## 전역 변수 선언 부분 ##\nmemory = []\nhead, current, pre = None, None, None\n\n## 메인 코드 부분 ##\nif __name__ == \"__main__\":\n    # 초기 데이터 셋팅\n    dataArray = [\"서울대\", \"고대\", \"연대\", \"두원\", \"부산\"]\n    for data in dataArray:\n        appendNode(data)\n    \n    print(\"초기 연결 리스트:\")\n    printNodes(head)\n\n    # 사용자 입력 기반 메뉴\n    select = -1\n    while select != 9:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")\n        print(\"1: 추가 (맨 뒤)\")\n        print(\"2: 삽입 (특정 데이터 앞에 삽입)\")\n        print(\"3: 삽입 (특정 위치에 삽입)\")\n        print(\"4: 삭제 (특정 데이터 삭제 / 삭제 전 확인)\")\n        print(\"5: 리스트 초기화\")\n        print(\"6: 검색 (데이터 -> 인덱스)\")\n        print(\"7: 파일 저장\")\n        print(\"8: 파일 불러오기\")\n        print(\"9: 종료\")\n\n        try:\n            select = int(input(\"메뉴 선택: \"))\n        except ValueError:\n            print(\"숫자를 입력하세요.\")\n            continue\n\n        if select == 1:\n            data = input(\"추가할 데이터 입력: \")\n            appendNode(data)\n            printNodes(head)\n        \n        elif select == 2:\n            findData = input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")\n            insertData = input(\"삽입할 데이터 입력: \")\n            insertNode(findData, insertData)\n            printNodes(head)\n        \n        elif select == 3:\n            try:\n                idx = int(input(\"삽입할 인덱스 번호 입력: \"))\n                data = input(\"삽입할 데이터 입력: \")\n                insertAt(idx, data)\n                printNodes(head)\n            except ValueError:\n                print(\"인덱스는 숫자로 입력해야 합니다.\")\n\n        elif select == 4:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")\n            if confirm.lower() == 'y':\n                deleteNode(delData)\n                printNodes(head)\n            else:\n                print(\"삭제를 취소했습니다.\")\n                printNodes(head)\n\n        elif select == 5:\n            clearList()\n            printNodes(head)\n\n        elif select == 6:\n            data = input(\"검색할 데이터 입력: \")\n            indexes = searchNode(data)\n            if indexes:\n                print(f\"'{data}' 데이터는 다음 인덱스에 있습니다: {indexes}\")\n            else:\n                print(f\"'{data}' 데이터는 리스트에 없습니다.\")\n\n        elif select == 7:\n            filename = input(\"저장할 파일 이름 입력 (예: data.txt): \")\n            saveToFile(filename)\n\n        elif select == 8:\n            filename = input(\"불러올 파일 이름 입력 (예: data.txt): \")\n            loadFromFile(filename)\n            printNodes(head)\n\n        elif select == 9:\n            print(\"프로그램을 종료합니다.\")\n        \n        else:\n            print(\"잘못된 선택입니다. 다시 입력하세요.\")",
+  "answer_text": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = None\n        self.link = None\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = start\n    if current is None:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while current.link is not None:\n        current = current.link\n        print(current.data, end=' ')\n    print()\n\ndef get_list_data():\n    \"\"\"연결 리스트의 data들을 파이썬 리스트로 반환 (파일 저장용)\"\"\"\n    result = []\n    current = head\n    while current is not None:\n        result.append(current.data)\n        current = current.link\n    return result\n\ndef appendNode(newData):\n    \"\"\"맨 뒤에 노드 추가\"\"\"\n    global head\n    node = Node()\n    node.data = newData\n    if head is None:\n        head = node\n        return\n    current = head\n    while current.link is not None:\n        current = current.link\n    current.link = node\n\ndef insertNode(findData, insertData):\n    \"\"\"특정 데이터 앞에 삽입, 못 찾으면 맨 뒤에 추가\"\"\"\n    global head\n    \n    # 리스트가 비어 있을 경우\n    if head is None:\n        node = Node()\n        node.data = insertData\n        head = node\n        return\n\n    # 첫 번째 노드가 findData인 경우 (맨 앞 삽입)\n    if head.data == findData:\n        node = Node()\n        node.data = insertData\n        node.link = head\n        head = node\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if current.data == findData:\n            node = Node()\n            node.data = insertData\n            node.link = current\n            pre.link = node\n            return\n\n    # findData를 끝까지 못 찾으면 맨 뒤에 추가\n    node = Node()\n    node.data = insertData\n    current.link = node\n\ndef insertAt(index, data):\n    \"\"\"특정 인덱스 위치에 노드 삽입\"\"\"\n    global head\n    \n    if index < 0:\n        print(\"인덱스는 0 이상이어야 합니다.\")\n        return\n\n    newNode = Node()\n    newNode.data = data\n\n    # 인덱스가 0 (맨 앞 삽입)\n    if index == 0:\n        newNode.link = head\n        head = newNode\n        return\n\n    # 중간 또는 끝 삽입을 위해 순회\n    current = head\n    currentIndex = 0\n    \n    # 삽입 위치 바로 직전(index-1)까지 이동\n    while current is not None and currentIndex < index - 1:\n        current = current.link\n        currentIndex += 1\n    \n    if current is None:\n        print(\"인덱스가 리스트의 길이를 초과했습니다.\")\n        return\n\n    # 삽입 실행\n    newNode.link = current.link\n    current.link = newNode\n\ndef deleteNode(deleteData):\n    \"\"\"특정 데이터 삭제\"\"\"\n    global head, current, pre\n\n    if head is None:\n        print(\"삭제할 노드가 없습니다.(빈 리스트)\")\n        return\n\n    # 첫 번째 노드가 삭제 대상인 경우\n    if head.data == deleteData:\n        current = head\n        head = head.link\n        del(current)\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if current.data == deleteData:\n            pre.link = current.link\n            del(current)\n            return\n\n    print(f\"'{deleteData}' 데이터를 찾을 수 없습니다.\")\n\ndef clearList():\n    \"\"\"리스트 전체 초기화\"\"\"\n    global head\n    head = None\n    print(\"리스트가 초기화되었습니다.\")\n\ndef searchNode(target):\n    \"\"\"target을 검색해서 인덱스 리스트 반환\"\"\"\n    global head\n    indexes = []\n    current = head\n    idx = 0\n    while current is not None:\n        if current.data == target:\n            indexes.append(idx)\n        current = current.link\n        idx += 1\n    return indexes\n\ndef saveToFile(filename):\n    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = get_list_data()\n    with open(filename, 'w', encoding='utf-8') as f:\n        for item in data_list:\n            f.write(str(item) + '\\n')\n    print(f\"리스트가 파일로 저장되었습니다. ({filename})\")\n\ndef loadFromFile(filename):\n    \"\"\"파일에서 데이터를 읽어 리스트 재구성\"\"\"\n    global head\n    try:\n        with open(filename, 'r', encoding='utf-8') as f:\n            lines = f.readlines()\n    except FileNotFoundError:\n        print(\"파일을 찾을 수 없습니다.\")\n        return\n\n    # 기존 리스트 초기화 후 다시 구성\n    head = None\n    for line in lines:\n        data = line.strip()\n        if data != '':\n            appendNode(data)\n    print(f\"파일에서 리스트를 불러왔습니다. ({filename})\")\n\n## 전역 변수 선언 부분 ##\nmemory = []\nhead, current, pre = None, None, None\n\n## 메인 코드 부분 ##\nif __name__ == \"__main__\":\n    # 초기 데이터 셋팅\n    dataArray = [\"서울대\", \"고대\", \"연대\", \"두원\", \"부산\"]\n    for data in dataArray:\n        appendNode(data)\n    \n    print(\"초기 연결 리스트:\")\n    printNodes(head)\n\n    # 사용자 입력 기반 메뉴\n    select = -1\n    while select != 9:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")\n        print(\"1: 추가 (맨 뒤)\")\n        print(\"2: 삽입 (특정 데이터 앞에 삽입)\")\n        print(\"3: 삽입 (특정 위치에 삽입)\")\n        print(\"4: 삭제 (특정 데이터 삭제 / 삭제 전 확인)\")\n        print(\"5: 리스트 초기화\")\n        print(\"6: 검색 (데이터 -> 인덱스)\")\n        print(\"7: 파일 저장\")\n        print(\"8: 파일 불러오기\")\n        print(\"9: 종료\")\n\n        try:\n            select = int(input(\"메뉴 선택: \"))\n        except ValueError:\n            print(\"숫자를 입력하세요.\")\n            continue\n\n        if select == 1:\n            data = input(\"추가할 데이터 입력: \")\n            appendNode(data)\n            printNodes(head)\n        \n        elif select == 2:\n            findData = input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")\n            insertData = input(\"삽입할 데이터 입력: \")\n            insertNode(findData, insertData)\n            printNodes(head)\n        \n        elif select == 3:\n            try:\n                idx = int(input(\"삽입할 인덱스 번호 입력: \"))\n                data = input(\"삽입할 데이터 입력: \")\n                insertAt(idx, data)\n                printNodes(head)\n            except ValueError:\n                print(\"인덱스는 숫자로 입력해야 합니다.\")\n\n        elif select == 4:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")\n            if confirm.lower() == 'y':\n                deleteNode(delData)\n                printNodes(head)\n            else:\n                print(\"삭제를 취소했습니다.\")\n                printNodes(head)\n\n        elif select == 5:\n            clearList()\n            printNodes(head)\n\n        elif select == 6:\n            data = input(\"검색할 데이터 입력: \")\n            indexes = searchNode(data)\n            if indexes:\n                print(f\"'{data}' 데이터는 다음 인덱스에 있습니다: {indexes}\")\n            else:\n                print(f\"'{data}' 데이터는 리스트에 없습니다.\")\n\n        elif select == 7:\n            filename = input(\"저장할 파일 이름 입력 (예: data.txt): \")\n            saveToFile(filename)\n\n        elif select == 8:\n            filename = input(\"불러올 파일 이름 입력 (예: data.txt): \")\n            loadFromFile(filename)\n            printNodes(head)\n\n        elif select == 9:\n            print(\"프로그램을 종료합니다.\")\n        \n        else:\n            print(\"잘못된 선택입니다. 다시 입력하세요.\")",
+  "answer_key": {
+    "_type": "fill_in_blank_inline",
+    "_blanks": [
+      {
+        "line_num": 4,
+        "context": "class Node():\n    def __init__(self):\n        self.data = _____\n        self.link = None\n",
+        "answer": "None",
+        "full_line": "self.data = None",
+        "col_offset": 20
+      },
+      {
+        "line_num": 9,
+        "context": "def printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = _____\n    if current is None:\n        print(\"(빈 리스트)\")",
+        "answer": "start",
+        "full_line": "current = start",
+        "col_offset": 14
+      },
+      {
+        "line_num": 10,
+        "context": "    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = start\n    if _____:\n        print(\"(빈 리스트)\")\n        return",
+        "answer": "current is None",
+        "full_line": "if current is None:",
+        "col_offset": 7
+      },
+      {
+        "line_num": 15,
+        "context": "    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while _____:\n        current = current.link\n        print(current.data, end=' ')",
+        "answer": "current.link is not None",
+        "full_line": "while current.link is not None:",
+        "col_offset": 10
+      },
+      {
+        "line_num": 16,
+        "context": "    print(current.data, end=' ')\n    while current.link is not None:\n        current = _____\n        print(current.data, end=' ')\n    print()",
+        "answer": "current.link",
+        "full_line": "current = current.link",
+        "col_offset": 18
+      },
+      {
+        "line_num": 23,
+        "context": "    \"\"\"연결 리스트의 data들을 파이썬 리스트로 반환 (파일 저장용)\"\"\"\n    result = []\n    current = _____\n    while current is not None:\n        result.append(current.data)",
+        "answer": "head",
+        "full_line": "current = head",
+        "col_offset": 14
+      },
+      {
+        "line_num": 24,
+        "context": "    result = []\n    current = head\n    while _____:\n        result.append(current.data)\n        current = current.link",
+        "answer": "current is not None",
+        "full_line": "while current is not None:",
+        "col_offset": 10
+      },
+      {
+        "line_num": 27,
+        "context": "        result.append(current.data)\n        current = current.link\n    return _____\n\ndef appendNode(newData):",
+        "answer": "result",
+        "full_line": "return result",
+        "col_offset": 11
+      },
+      {
+        "line_num": 32,
+        "context": "    \"\"\"맨 뒤에 노드 추가\"\"\"\n    global head\n    node = _____\n    node.data = newData\n    if head is None:",
+        "answer": "Node()",
+        "full_line": "node = Node()",
+        "col_offset": 11
+      },
+      {
+        "line_num": 34,
+        "context": "    node = Node()\n    node.data = newData\n    if _____:\n        head = node\n        return",
+        "answer": "head is None",
+        "full_line": "if head is None:",
+        "col_offset": 7
+      },
+      {
+        "line_num": 35,
+        "context": "    node.data = newData\n    if head is None:\n        head = _____\n        return\n    current = head",
+        "answer": "node",
+        "full_line": "head = node",
+        "col_offset": 15
+      },
+      {
+        "line_num": 49,
+        "context": "    if head is None:\n        node = Node()\n        node.data = _____\n        head = node\n        return",
+        "answer": "insertData",
+        "full_line": "node.data = insertData",
+        "col_offset": 20
+      },
+      {
+        "line_num": 54,
+        "context": "\n    # 첫 번째 노드가 findData인 경우 (맨 앞 삽입)\n    if head.data == _____:\n        node = Node()\n        node.data = insertData",
+        "answer": "findData",
+        "full_line": "if head.data == findData:",
+        "col_offset": 20
+      },
+      {
+        "line_num": 64,
+        "context": "    current = head\n    while current.link is not None:\n        pre = _____\n        current = current.link\n        if current.data == findData:",
+        "answer": "current",
+        "full_line": "pre = current",
+        "col_offset": 14
+      },
+      {
+        "line_num": 66,
+        "context": "        pre = current\n        current = current.link\n        if _____:\n            node = Node()\n            node.data = insertData",
+        "answer": "current.data == findData",
+        "full_line": "if current.data == findData:",
+        "col_offset": 11
+      },
+      {
+        "line_num": 82,
+        "context": "    global head\n    \n    if _____:\n        print(\"인덱스는 0 이상이어야 합니다.\")\n        return",
+        "answer": "index < 0",
+        "full_line": "if index < 0:",
+        "col_offset": 7
+      },
+      {
+        "line_num": 87,
+        "context": "\n    newNode = Node()\n    newNode._____ = data\n\n    # 인덱스가 0 (맨 앞 삽입)",
+        "answer": "data",
+        "full_line": "newNode.data = data",
+        "col_offset": 19
+      },
+      {
+        "line_num": 90,
+        "context": "\n    # 인덱스가 0 (맨 앞 삽입)\n    if _____:\n        newNode.link = head\n        head = newNode",
+        "answer": "index == 0",
+        "full_line": "if index == 0:",
+        "col_offset": 7
+      },
+      {
+        "line_num": 92,
+        "context": "    if index == 0:\n        newNode.link = head\n        head = _____\n        return\n",
+        "answer": "newNode",
+        "full_line": "head = newNode",
+        "col_offset": 15
+      },
+      {
+        "line_num": 100,
+        "context": "    \n    # 삽입 위치 바로 직전(index-1)까지 이동\n    while _____:\n        current = current.link\n        currentIndex += 1",
+        "answer": "current is not None and currentIndex < index - 1",
+        "full_line": "while current is not None and currentIndex < index - 1:",
+        "col_offset": 10
+      },
+      {
+        "line_num": 121,
+        "context": "\n    # 첫 번째 노드가 삭제 대상인 경우\n    if head.data == _____:\n        current = head\n        head = head.link",
+        "answer": "deleteData",
+        "full_line": "if head.data == deleteData:",
+        "col_offset": 20
+      },
+      {
+        "line_num": 123,
+        "context": "    if head.data == deleteData:\n        current = head\n        head = _____\n        del(current)\n        return",
+        "answer": "head.link",
+        "full_line": "head = head.link",
+        "col_offset": 15
+      },
+      {
+        "line_num": 132,
+        "context": "        pre = current\n        current = current.link\n        if _____:\n            pre.link = current.link\n            del(current)",
+        "answer": "current.data == deleteData",
+        "full_line": "if current.data == deleteData:",
+        "col_offset": 11
+      },
+      {
+        "line_num": 152,
+        "context": "    idx = 0\n    while current is not None:\n        if current.data == _____:\n            indexes.append(idx)\n        current = current.link",
+        "answer": "target",
+        "full_line": "if current.data == target:",
+        "col_offset": 27
+      },
+      {
+        "line_num": 156,
+        "context": "        current = current.link\n        idx += 1\n    return _____\n\ndef saveToFile(filename):",
+        "answer": "indexes",
+        "full_line": "return indexes",
+        "col_offset": 11
+      },
+      {
+        "line_num": 160,
+        "context": "def saveToFile(filename):\n    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = _____\n    with open(filename, 'w', encoding='utf-8') as f:\n        for item in data_list:",
+        "answer": "get_list_data()",
+        "full_line": "data_list = get_list_data()",
+        "col_offset": 16
+      },
+      {
+        "line_num": 161,
+        "context": "    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = get_list_data()\n    with open(filename, 'w', encoding=_____:\n        for item in data_list:\n            f.write(str(item) + '\\n')",
+        "answer": "'utf-8') as f",
+        "full_line": "with open(filename, 'w', encoding='utf-8') as f:",
+        "col_offset": 38
+      },
+      {
+        "line_num": 171,
+        "context": "    try:\n        with open(filename, 'r', encoding='utf-8') as f:\n            lines = _____\n    except FileNotFoundError:\n        print(\"파일을 찾을 수 없습니다.\")",
+        "answer": "f.readlines()",
+        "full_line": "lines = f.readlines()",
+        "col_offset": 20
+      },
+      {
+        "line_num": 179,
+        "context": "    head = None\n    for line in lines:\n        data = _____\n        if data != '':\n            appendNode(data)",
+        "answer": "line.strip()",
+        "full_line": "data = line.strip()",
+        "col_offset": 15
+      },
+      {
+        "line_num": 180,
+        "context": "    for line in lines:\n        data = line.strip()\n        if _____:\n            appendNode(data)\n    print(f\"파일에서 리스트를 불러왔습니다. ({filename})\")",
+        "answer": "data != ''",
+        "full_line": "if data != '':",
+        "col_offset": 11
+      },
+      {
+        "line_num": 186,
+        "context": "## 전역 변수 선언 부분 ##\nmemory = []\nhead, current, pre = _____\n\n## 메인 코드 부분 ##",
+        "answer": "None, None, None",
+        "full_line": "head, current, pre = None, None, None",
+        "col_offset": 21
+      },
+      {
+        "line_num": 189,
+        "context": "\n## 메인 코드 부분 ##\nif __name__ == _____:\n    # 초기 데이터 셋팅\n    dataArray = [\"서울대\", \"고대\", \"연대\", \"두원\", \"부산\"]",
+        "answer": "\"__main__\"",
+        "full_line": "if __name__ == \"__main__\":",
+        "col_offset": 15
+      },
+      {
+        "line_num": 199,
+        "context": "\n    # 사용자 입력 기반 메뉴\n    select = _____\n    while select != 9:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")",
+        "answer": "-1",
+        "full_line": "select = -1",
+        "col_offset": 13
+      },
+      {
+        "line_num": 200,
+        "context": "    # 사용자 입력 기반 메뉴\n    select = -1\n    while _____:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")\n        print(\"1: 추가 (맨 뒤)\")",
+        "answer": "select != 9",
+        "full_line": "while select != 9:",
+        "col_offset": 10
+      },
+      {
+        "line_num": 218,
+        "context": "            continue\n\n        if _____:\n            data = input(\"추가할 데이터 입력: \")\n            appendNode(data)",
+        "answer": "select == 1",
+        "full_line": "if select == 1:",
+        "col_offset": 11
+      },
+      {
+        "line_num": 219,
+        "context": "\n        if select == 1:\n            data = _____\n            appendNode(data)\n            printNodes(head)",
+        "answer": "input(\"추가할 데이터 입력: \")",
+        "full_line": "data = input(\"추가할 데이터 입력: \")",
+        "col_offset": 19
+      },
+      {
+        "line_num": 223,
+        "context": "            printNodes(head)\n        \n        elif _____:\n            findData = input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")\n            insertData = input(\"삽입할 데이터 입력: \")",
+        "answer": "select == 2",
+        "full_line": "elif select == 2:",
+        "col_offset": 13
+      },
+      {
+        "line_num": 224,
+        "context": "        \n        elif select == 2:\n            findData = _____\n            insertData = input(\"삽입할 데이터 입력: \")\n            insertNode(findData, insertData)",
+        "answer": "input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")",
+        "full_line": "findData = input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")",
+        "col_offset": 23
+      },
+      {
+        "line_num": 225,
+        "context": "        elif select == 2:\n            findData = input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")\n            insertData = _____\n            insertNode(findData, insertData)\n            printNodes(head)",
+        "answer": "input(\"삽입할 데이터 입력: \")",
+        "full_line": "insertData = input(\"삽입할 데이터 입력: \")",
+        "col_offset": 25
+      },
+      {
+        "line_num": 229,
+        "context": "            printNodes(head)\n        \n        elif _____:\n            try:\n                idx = int(input(\"삽입할 인덱스 번호 입력: \"))",
+        "answer": "select == 3",
+        "full_line": "elif select == 3:",
+        "col_offset": 13
+      },
+      {
+        "line_num": 231,
+        "context": "        elif select == 3:\n            try:\n                idx = _____\n                data = input(\"삽입할 데이터 입력: \")\n                insertAt(idx, data)",
+        "answer": "int(input(\"삽입할 인덱스 번호 입력: \"))",
+        "full_line": "idx = int(input(\"삽입할 인덱스 번호 입력: \"))",
+        "col_offset": 22
+      },
+      {
+        "line_num": 238,
+        "context": "                print(\"인덱스는 숫자로 입력해야 합니다.\")\n\n        elif _____:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")",
+        "answer": "select == 4",
+        "full_line": "elif select == 4:",
+        "col_offset": 13
+      },
+      {
+        "line_num": 240,
+        "context": "        elif select == 4:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = _____\n            if confirm.lower() == 'y':\n                deleteNode(delData)",
+        "answer": "input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")",
+        "full_line": "confirm = input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")",
+        "col_offset": 22
+      },
+      {
+        "line_num": 241,
+        "context": "            delData = input(\"삭제할 데이터 입력: \")\n            confirm = input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")\n            if confirm.lower() == _____:\n                deleteNode(delData)\n                printNodes(head)",
+        "answer": "'y'",
+        "full_line": "if confirm.lower() == 'y':",
+        "col_offset": 34
+      },
+      {
+        "line_num": 252,
+        "context": "            printNodes(head)\n\n        elif _____:\n            data = input(\"검색할 데이터 입력: \")\n            indexes = searchNode(data)",
+        "answer": "select == 6",
+        "full_line": "elif select == 6:",
+        "col_offset": 13
+      },
+      {
+        "line_num": 253,
+        "context": "\n        elif select == 6:\n            data = _____\n            indexes = searchNode(data)\n            if indexes:",
+        "answer": "input(\"검색할 데이터 입력: \")",
+        "full_line": "data = input(\"검색할 데이터 입력: \")",
+        "col_offset": 19
+      },
+      {
+        "line_num": 254,
+        "context": "        elif select == 6:\n            data = input(\"검색할 데이터 입력: \")\n            indexes = _____\n            if indexes:\n                print(f\"'{data}' 데이터는 다음 인덱스에 있습니다: {indexes}\")",
+        "answer": "searchNode(data)",
+        "full_line": "indexes = searchNode(data)",
+        "col_offset": 22
+      },
+      {
+        "line_num": 260,
+        "context": "                print(f\"'{data}' 데이터는 리스트에 없습니다.\")\n\n        elif _____:\n            filename = input(\"저장할 파일 이름 입력 (예: data.txt): \")\n            saveToFile(filename)",
+        "answer": "select == 7",
+        "full_line": "elif select == 7:",
+        "col_offset": 13
+      },
+      {
+        "line_num": 261,
+        "context": "\n        elif select == 7:\n            filename = _____\n            saveToFile(filename)\n",
+        "answer": "input(\"저장할 파일 이름 입력 (예: data.txt): \")",
+        "full_line": "filename = input(\"저장할 파일 이름 입력 (예: data.txt): \")",
+        "col_offset": 23
+      },
+      {
+        "line_num": 264,
+        "context": "            saveToFile(filename)\n\n        elif _____:\n            filename = input(\"불러올 파일 이름 입력 (예: data.txt): \")\n            loadFromFile(filename)",
+        "answer": "select == 8",
+        "full_line": "elif select == 8:",
+        "col_offset": 13
+      }
+    ],
+    "_original_code": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = None\n        self.link = None\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = start\n    if current is None:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while current.link is not None:\n        current = current.link\n        print(current.data, end=' ')\n    print()\n\ndef get_list_data():\n    \"\"\"연결 리스트의 data들을 파이썬 리스트로 반환 (파일 저장용)\"\"\"\n    result = []\n    current = head\n    while current is not None:\n        result.append(current.data)\n        current = current.link\n    return result\n\ndef appendNode(newData):\n    \"\"\"맨 뒤에 노드 추가\"\"\"\n    global head\n    node = Node()\n    node.data = newData\n    if head is None:\n        head = node\n        return\n    current = head\n    while current.link is not None:\n        current = current.link\n    current.link = node\n\ndef insertNode(findData, insertData):\n    \"\"\"특정 데이터 앞에 삽입, 못 찾으면 맨 뒤에 추가\"\"\"\n    global head\n    \n    # 리스트가 비어 있을 경우\n    if head is None:\n        node = Node()\n        node.data = insertData\n        head = node\n        return\n\n    # 첫 번째 노드가 findData인 경우 (맨 앞 삽입)\n    if head.data == findData:\n        node = Node()\n        node.data = insertData\n        node.link = head\n        head = node\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if current.data == findData:\n            node = Node()\n            node.data = insertData\n            node.link = current\n            pre.link = node\n            return\n\n    # findData를 끝까지 못 찾으면 맨 뒤에 추가\n    node = Node()\n    node.data = insertData\n    current.link = node\n\ndef insertAt(index, data):\n    \"\"\"특정 인덱스 위치에 노드 삽입\"\"\"\n    global head\n    \n    if index < 0:\n        print(\"인덱스는 0 이상이어야 합니다.\")\n        return\n\n    newNode = Node()\n    newNode.data = data\n\n    # 인덱스가 0 (맨 앞 삽입)\n    if index == 0:\n        newNode.link = head\n        head = newNode\n        return\n\n    # 중간 또는 끝 삽입을 위해 순회\n    current = head\n    currentIndex = 0\n    \n    # 삽입 위치 바로 직전(index-1)까지 이동\n    while current is not None and currentIndex < index - 1:\n        current = current.link\n        currentIndex += 1\n    \n    if current is None:\n        print(\"인덱스가 리스트의 길이를 초과했습니다.\")\n        return\n\n    # 삽입 실행\n    newNode.link = current.link\n    current.link = newNode\n\ndef deleteNode(deleteData):\n    \"\"\"특정 데이터 삭제\"\"\"\n    global head, current, pre\n\n    if head is None:\n        print(\"삭제할 노드가 없습니다.(빈 리스트)\")\n        return\n\n    # 첫 번째 노드가 삭제 대상인 경우\n    if head.data == deleteData:\n        current = head\n        head = head.link\n        del(current)\n        return\n\n    # 그 외 노드 탐색\n    current = head\n    while current.link is not None:\n        pre = current\n        current = current.link\n        if current.data == deleteData:\n            pre.link = current.link\n            del(current)\n            return\n\n    print(f\"'{deleteData}' 데이터를 찾을 수 없습니다.\")\n\ndef clearList():\n    \"\"\"리스트 전체 초기화\"\"\"\n    global head\n    head = None\n    print(\"리스트가 초기화되었습니다.\")\n\ndef searchNode(target):\n    \"\"\"target을 검색해서 인덱스 리스트 반환\"\"\"\n    global head\n    indexes = []\n    current = head\n    idx = 0\n    while current is not None:\n        if current.data == target:\n            indexes.append(idx)\n        current = current.link\n        idx += 1\n    return indexes\n\ndef saveToFile(filename):\n    \"\"\"현재 리스트 데이터를 파일에 저장\"\"\"\n    data_list = get_list_data()\n    with open(filename, 'w', encoding='utf-8') as f:\n        for item in data_list:\n            f.write(str(item) + '\\n')\n    print(f\"리스트가 파일로 저장되었습니다. ({filename})\")\n\ndef loadFromFile(filename):\n    \"\"\"파일에서 데이터를 읽어 리스트 재구성\"\"\"\n    global head\n    try:\n        with open(filename, 'r', encoding='utf-8') as f:\n            lines = f.readlines()\n    except FileNotFoundError:\n        print(\"파일을 찾을 수 없습니다.\")\n        return\n\n    # 기존 리스트 초기화 후 다시 구성\n    head = None\n    for line in lines:\n        data = line.strip()\n        if data != '':\n            appendNode(data)\n    print(f\"파일에서 리스트를 불러왔습니다. ({filename})\")\n\n## 전역 변수 선언 부분 ##\nmemory = []\nhead, current, pre = None, None, None\n\n## 메인 코드 부분 ##\nif __name__ == \"__main__\":\n    # 초기 데이터 셋팅\n    dataArray = [\"서울대\", \"고대\", \"연대\", \"두원\", \"부산\"]\n    for data in dataArray:\n        appendNode(data)\n    \n    print(\"초기 연결 리스트:\")\n    printNodes(head)\n\n    # 사용자 입력 기반 메뉴\n    select = -1\n    while select != 9:\n        print(\"\\n--- 연결 리스트 메뉴 ---\")\n        print(\"1: 추가 (맨 뒤)\")\n        print(\"2: 삽입 (특정 데이터 앞에 삽입)\")\n        print(\"3: 삽입 (특정 위치에 삽입)\")\n        print(\"4: 삭제 (특정 데이터 삭제 / 삭제 전 확인)\")\n        print(\"5: 리스트 초기화\")\n        print(\"6: 검색 (데이터 -> 인덱스)\")\n        print(\"7: 파일 저장\")\n        print(\"8: 파일 불러오기\")\n        print(\"9: 종료\")\n\n        try:\n            select = int(input(\"메뉴 선택: \"))\n        except ValueError:\n            print(\"숫자를 입력하세요.\")\n            continue\n\n        if select == 1:\n            data = input(\"추가할 데이터 입력: \")\n            appendNode(data)\n            printNodes(head)\n        \n        elif select == 2:\n            findData = input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")\n            insertData = input(\"삽입할 데이터 입력: \")\n            insertNode(findData, insertData)\n            printNodes(head)\n        \n        elif select == 3:\n            try:\n                idx = int(input(\"삽입할 인덱스 번호 입력: \"))\n                data = input(\"삽입할 데이터 입력: \")\n                insertAt(idx, data)\n                printNodes(head)\n            except ValueError:\n                print(\"인덱스는 숫자로 입력해야 합니다.\")\n\n        elif select == 4:\n            delData = input(\"삭제할 데이터 입력: \")\n            confirm = input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")\n            if confirm.lower() == 'y':\n                deleteNode(delData)\n                printNodes(head)\n            else:\n                print(\"삭제를 취소했습니다.\")\n                printNodes(head)\n\n        elif select == 5:\n            clearList()\n            printNodes(head)\n\n        elif select == 6:\n            data = input(\"검색할 데이터 입력: \")\n            indexes = searchNode(data)\n            if indexes:\n                print(f\"'{data}' 데이터는 다음 인덱스에 있습니다: {indexes}\")\n            else:\n                print(f\"'{data}' 데이터는 리스트에 없습니다.\")\n\n        elif select == 7:\n            filename = input(\"저장할 파일 이름 입력 (예: data.txt): \")\n            saveToFile(filename)\n\n        elif select == 8:\n            filename = input(\"불러올 파일 이름 입력 (예: data.txt): \")\n            loadFromFile(filename)\n            printNodes(head)\n\n        elif select == 9:\n            print(\"프로그램을 종료합니다.\")\n        \n        else:\n            print(\"잘못된 선택입니다. 다시 입력하세요.\")",
+    "1": "None",
+    "2": "start",
+    "3": "current is None",
+    "4": "current.link is not None",
+    "5": "current.link",
+    "6": "head",
+    "7": "current is not None",
+    "8": "result",
+    "9": "Node()",
+    "10": "head is None",
+    "11": "node",
+    "12": "insertData",
+    "13": "findData",
+    "14": "current",
+    "15": "current.data == findData",
+    "16": "index < 0",
+    "17": "data",
+    "18": "index == 0",
+    "19": "newNode",
+    "20": "current is not None and currentIndex < index - 1",
+    "21": "deleteData",
+    "22": "head.link",
+    "23": "current.data == deleteData",
+    "24": "target",
+    "25": "indexes",
+    "26": "get_list_data()",
+    "27": "'utf-8') as f",
+    "28": "f.readlines()",
+    "29": "line.strip()",
+    "30": "data != ''",
+    "31": "None, None, None",
+    "32": "\"__main__\"",
+    "33": "-1",
+    "34": "select != 9",
+    "35": "select == 1",
+    "36": "input(\"추가할 데이터 입력: \")",
+    "37": "select == 2",
+    "38": "input(\"어느 데이터 앞에 삽입할까요? (찾을 데이터): \")",
+    "39": "input(\"삽입할 데이터 입력: \")",
+    "40": "select == 3",
+    "41": "int(input(\"삽입할 인덱스 번호 입력: \"))",
+    "42": "select == 4",
+    "43": "input(f\"정말로 '{delData}'를 삭제할까요? (y/n): \")",
+    "44": "'y'",
+    "45": "select == 6",
+    "46": "input(\"검색할 데이터 입력: \")",
+    "47": "searchNode(data)",
+    "48": "select == 7",
+    "49": "input(\"저장할 파일 이름 입력 (예: data.txt): \")",
+    "50": "select == 8"
+  },
+  "answer_count": 53,
+  "created_at": "2025-12-07 06:42:31",
+  "generation_method": "local"
+}

@@ -1,0 +1,234 @@
+inheritance, 상속, 유산
+interface, 접점, 연결 장치
+main, 주된, 주요한
+multi, 다중의
+multiple, 복합적인, 다수의
+override, 재정의하다, 무시하다, 우선하다
+private, 사적인, 전용의
+protect, 보호하다
+public, 공공의, 대중의
+static, 정적인, 고정된
+sub, 하위의, 보조의
+super, 상위의, 초월한
+void, 비어 있는, (반환값이) 없는
+abstract, 추상적인
+align, 정렬하다
+as, ~로서 (형변환)
+border, 테두리, 경계
+break, 중단하다, 깨뜨리다
+calculate, 계산하다
+case, 경우, 사례
+cat, 고양이
+center, 중앙, 중심
+change, 바꾸다, 변경하다
+company, 회사
+component, 구성 요소
+constant, 상수, 불변의
+counter, 계수기
+default, 기본값
+dialog, 대화 상자
+divide, 나누다
+double, 배(倍)의, 실수형(소수점을 포함한 수)
+employee, 직원, 고용인
+entry, 진입, 항목
+exception, 예외
+fix, 고치다, 고정하다
+format, 구성, 서식
+get, 얻다 (값을 읽어오다)
+group, 집단, 그룹
+heap, 더미 (메모리 영역의 일종)
+height, 높이
+if, 만약 ~라면
+image, 그림, 영상
+index, 색인, 지수
+information, 정보
+initialize, 초기화하다
+input, 입력
+insert, 삽입하다
+instance, 실체, 사례
+is, ~이다 (형식 호환성 검사)
+item, 항목, 물품
+mammal, 포유류
+member, 구성원
+middle, 중간
+minus, 빼기
+modulo, 나머지 연산
+multiply, 곱하다
+new, 새로운 (객체 생성)
+null, 빈, 존재하지 않는
+object, 객체, 물체
+operator, 연산자
+partial, 부분적인
+picture, 사진, 그림
+plus, 더하기
+point, 점, 지점
+print, 출력하다, 인쇄하다
+read, 읽다
+realization, 실체화, 구현
+readonly, 읽기 전용
+return, 반환하다, 돌아가다
+salary, 급여
+select, 선택하다
+set, 설정하다 (값을 넣다)
+shape, 도형, 모양
+single, 하나의, 단일의
+structure, 구조, 구조체
+switch, 전환하다 (조건 제어문)
+tiger, 호랑이
+total, 합계
+type, 형식, 유형
+walk, 걷다
+while, ~하는 동안
+width, 너비
+area, 면적, 구역
+base, 기초, 기반
+cast, 형변환하다, 던지다
+circle, 원
+combobox, 콤보 상자 (선택 상자)
+console, 제어탁, 콘솔
+without, ~없이
+address, 주소
+array, 배열
+capacity, 용량, 수용력
+clear, 지우다, 맑게 하다
+collection, 집합, 모음
+contain, 포함하다
+dequeue, 대기열에서 꺼내다
+detail, 세부 사항
+elementary, 초보의, 기초적인
+enqueue, 대기열에 넣다
+enumerate, 열거하다, 낱낱이 세다
+hashtable, 해시 테이블 (키와 값의 연관 배열)
+iterator, 반복기
+key, 열쇠, (검색의) 기준값
+length, 길이
+list, 목록
+peek, 엿보다 (삭제 없이 확인하다)
+pop, 꺼내다 (스택에서)
+province, 지방, 지역
+push, 밀어 넣다 (스택에)
+queue, 대기열, 줄
+remove, 제거하다
+split, 분리하다, 쪼개다
+value, 값
+yield, 산출하다, 양보하다
+convention, 관습, 관례
+friend, 친구
+indexer, 색인기
+line, 선, 줄
+namecard, 명함
+string, 문자열
+alphabetic, 알파벳의
+anonymous, 익명의, 작자 미상의
+ascend, 오르다 (오름차순)
+average, 평균
+bubble, 거품
+client, 의뢰인, 고객
+compare, 비교하다
+comparison, 비교
+composition, 합성, 구성
+concept, 개념
+delegate, 대리자, 위임하다
+descend, 내려가다 (내림차순)
+enumeration, 열거
+event, 사건
+expression, 표현식
+for, ~을 위하여, ~동안
+function, 함수, 기능
+handler, 처리기
+interrupt, 방해하다, 중단시키다
+load, 적재하다, 싣다
+memory, 기억 장치
+method, 방법, 메서드 (함수)
+modifier, 수정자, 제한자
+parse, 구문 분석하다, 해석하다
+pointer, 포인터, 가리키는 것
+receiver, 수신자
+result, 결과
+sender, 발신자
+sort, 정렬하다, 분류하다
+statement, 문장, 구문
+stuff, 물건, 것
+summation, 합계
+swap, 맞바꾸다, 교환하다
+title, 제목
+access, 접근
+argument, 인자, 전달인수
+check, 검사하다, 확인하다
+close, 닫다
+common, 공통의, 일반적인
+debug, 오류 수정
+decrement, 감소시키다
+external, 외부의
+final, 마지막의
+finally, 마침내, 결국 (마지막 실행 블록)
+handle, 다루다, 처리하다
+increment, 증가시키다
+invalid, 무효한, 타당하지 않은
+language, 언어
+max, 최대
+message, 전갈, 메시지
+operation, 연산, 조작, 작동
+out of range, 범위를 벗어난
+passenger, 승객
+reference, 참조
+rethrow, 다시 던지다 (예외 재발생)
+runtime, 실행 시간
+show, 보여주다
+source, 원천, 소스
+speed, 속도
+vehicle, 탈것, 차량
+violation, 위반, 침해
+abort, 중단하다
+implement, 구현하다, 실행하다
+interlock, 맞물리다, 연동하다
+join, 결합하다, 합류하다
+lock, 잠그다
+monitor, 감시하다, 모니터
+multitask, 다중 작업
+multithread, 다중 쓰레드
+option, 선택 사항
+process, 과정, 처리, 프로세스
+pulse, 맥박, 파동 (신호를 보내다)
+ready, 준비된
+resume, 재개하다, 다시 시작하다
+run, 실행하다, 달리다
+sleep, 잠자다 (일시 정지)
+standby, 대기
+start, 시작하다
+suspend, 유예하다, 일시 정지하다
+synchronize, 동기화하다
+terminate, 종료하다, 끝내다
+task, 작업, 과업
+this, 이것 (현재 객체)
+thread, 실, 쓰레드 (실행 흐름)
+transition, 전이, 변환
+unknown, 알 수 없는
+wait, 기다리다
+write, 쓰다, 기록하다
+add, 추가하다, 더하다
+after, ~후에
+application, 응용 프로그램
+before, ~전에
+constraint, 제약 조건, 강제
+count, 세다, 계산하다
+create, 생성하다, 창조하다
+declare, 선언하다
+definition, 정의
+dictionary, 사전
+each, 각각의
+example, 예제, 본보기
+find, 찾다, 발견하다
+first, 첫 번째
+float, 부동 소수점 (실수형)
+generate, 생성하다, 발생시키다
+generic, 포괄적인, 일반적인
+initial, 초기의, 처음의
+link, 연결, 고리
+make, 만들다
+nametag, 이름표
+pair, 쌍
+parameter, 매개변수
+position, 위치
+reflection, 반사, 반영 (메타데이터 검사)
+various, 다양한

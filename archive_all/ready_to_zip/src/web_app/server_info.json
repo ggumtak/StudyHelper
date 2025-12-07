@@ -1,0 +1,22 @@
+{
+  "local_ip": "192.168.219.103",
+  "port": 3013,
+  "mobile_url": "http://192.168.219.103:3013",
+  "presets": {
+    "oop_vocab": "1_OOP_Vocabulary.txt",
+    "oop_concept": "2_OOP_Concepts.txt",
+    "oop_code": "3_OOP_Code_Blanks.txt",
+    "data_structure": "4_Data_Structure_Code.txt",
+    "math_theory": "5_Computational_Math_Theory.txt",
+    "math_practice": "6_Computational_Math_Practice.txt"
+  },
+  "modes": {
+    "1": "OOP fill-in-the-blank",
+    "2": "OOP concept Q&A",
+    "3": "OOP code blanks",
+    "4": "Data structure code",
+    "5": "Computational math theory",
+    "6": "Computational math practice",
+    "7": "Vocabulary"
+  }
+}

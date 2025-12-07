@@ -1,0 +1,17 @@
+{
+  "mode": 2,
+  "language": "python",
+  "title": "자료구조 마스터 (하드코어 빈칸) 샘플",
+  "question": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = __[1]__\n        self.link = __[2]__\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = __[3]__\n    if current is __[4]__:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while current.link is not __[5]__:\n        current = current.link\n        print(current.data, end=' ')\n    print()\n\n## 연결 리스트를 파일로 저장 ###\nimport pickle\n\nwith open('linkedlist.dat', 'wb') as f:\n    linked_list = {'head': head}\n    pickle.__[6]__(linked_list, f)\n\n## 파일에서 연결 리스트를 불러오기 ##\nwith open('linkedlist.dat', 'rb') as f:\n    linked_list = pickle.__[7]__(f)\n    __[8]__ = linked_list['head']\n",
+  "answer": "## 클래스와 함수 선언 부분 ##\nclass Node():\n    def __init__(self):\n        self.data = None\n        self.link = None\n\ndef printNodes(start):\n    \"\"\"현재 연결 리스트 전체를 출력\"\"\"\n    current = start\n    if current is None:\n        print(\"(빈 리스트)\")\n        return\n    print(\"현재 리스트:\", end=' ')\n    print(current.data, end=' ')\n    while current.link is not None:\n        current = current.link\n        print(current.data, end=' ')\n    print()\n\n## 연결 리스트를 파일로 저장 ###\nimport pickle\n\nwith open('linkedlist.dat', 'wb') as f:\n    linked_list = {'head': head}\n    pickle.dump(linked_list, f)\n\n## 파일에서 연결 리스트를 불러오기 ##\nwith open('linkedlist.dat', 'rb') as f:\n    linked_list = pickle.load(f)\n    head = linked_list['head']\n",
+  "answer_key": {
+    "1": "None",
+    "2": "None",
+    "3": "start",
+    "4": "None",
+    "5": "None",
+    "6": "dump",
+    "7": "load",
+    "8": "head"
+  }
+}
