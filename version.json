@@ -1,8 +1,8 @@
 ﻿{
-    "version":  "1.0.6",
-    "checksum":  "26C2AD8CF98E49B18C3D798E6D4CFD51C72D7D01671202E456D907020379507C",
-    "core_version":  "1.0.6",
-    "patcher_version":  "1.0.6",
-    "launcher_version":  "1.0.6",
-    "url":  "https://github.com/ggumtak/StudyHelper/releases/download/v1.0.6/StudyHelper-win-x64.zip"
+    "version":  "1.0.7",
+    "checksum":  "28C39E29B020326E3CFCAC1B0BF302EF62844C7EC240911FFF97DF878EB05245",
+    "core_version":  "1.0.7",
+    "patcher_version":  "1.0.7",
+    "launcher_version":  "1.0.7",
+    "url":  "https://github.com/ggumtak/StudyHelper/releases/download/v1.0.7/StudyHelper-win-x64.zip"
 }
