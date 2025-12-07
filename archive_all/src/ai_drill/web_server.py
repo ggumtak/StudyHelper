@@ -20,6 +20,7 @@ import http.server
 import socketserver
 import webbrowser
 import json as json_lib
+import platform
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote
@@ -29,6 +30,7 @@ from ai_drill.main import build_session_payload
 from ai_drill.llm_client import LLMClient
 from ai_drill.quiz_parser import parse_response
 from ai_drill.version import APP_VERSION
+from ai_drill.tray_icon import TrayController
 
 # Paths & runtime preparation
 RUNTIME_DIR = Path(os.getenv("STUDYHELPER_RUNTIME_DIR", Path(tempfile.gettempdir()) / "studyhelper"))
@@ -564,6 +566,24 @@ def main():
             except Exception:
                 pass
         threading.Thread(target=open_browser, daemon=True).start()
+
+    tray = None
+    if platform.system() == "Windows":
+        def _open_ui():
+            try:
+                webbrowser.open(f"http://localhost:{port}")
+            except Exception as exc:
+                log_error(f"Tray open failed: {exc}")
+
+        def _exit_app():
+            log_error("Tray requested shutdown.")
+            os._exit(0)
+
+        try:
+            tray = TrayController("StudyHelper", _open_ui, _exit_app, log_error)
+            tray.start()
+        except Exception as exc:
+            log_error(f"Tray init failed: {exc}")
 
     log_error("Server running...")
     start_server(port)
